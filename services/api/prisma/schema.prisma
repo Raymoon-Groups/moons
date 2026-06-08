@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CANDIDATE
+  RECRUITER
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  REMOTE
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  VIEWED
+  SHORTLISTED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  googleId     String?  @unique @map("google_id")
+  role         UserRole
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  profile      Profile?
+  jobs         Job[]         @relation("RecruiterJobs")
+  applications Application[]
+
+  @@map("users")
+}
+
+model Profile {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  fullName        String?  @map("full_name")
+  avatarUrl       String?  @map("avatar_url")
+  phone           String?
+  headline        String?
+  currentCompany  String?  @map("current_company")
+  experienceYears Int?     @map("experience_years")
+  location        String?
+  noticePeriod    String?  @map("notice_period")
+  summary         String?
+  skills          String[]
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Job {
+  id             String         @id @default(uuid())
+  recruiterId    String         @map("recruiter_id")
+  title          String
+  companyName    String         @map("company_name")
+  description    String
+  location       String
+  employmentType EmploymentType @map("employment_type")
+  status         JobStatus      @default(DRAFT)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  recruiter    User          @relation("RecruiterJobs", fields: [recruiterId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@map("jobs")
+}
+
+model Application {
+  id          String            @id @default(uuid())
+  jobId       String            @map("job_id")
+  candidateId String            @map("candidate_id")
+  status      ApplicationStatus @default(SUBMITTED)
+  coverNote   String?           @map("cover_note")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate User @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, candidateId])
+  @@map("applications")
+}

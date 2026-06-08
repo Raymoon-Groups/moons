@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f8fa;
+  --foreground: #091e42;
+  --moons-blue: #457eff;
+  --moons-blue-dark: #275df5;
+  --moons-navy: #091e42;
+  --moons-orange: #ff7555;
+  --moons-orange-dark: #e85d3a;
+  --moons-muted: #8292a6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-moons-blue: var(--moons-blue);
+  --color-moons-blue-dark: var(--moons-blue-dark);
+  --color-moons-navy: var(--moons-navy);
+  --color-moons-orange: var(--moons-orange);
+  --color-moons-orange-dark: var(--moons-orange-dark);
+  --color-moons-muted: var(--moons-muted);
+  --color-moons-primary: var(--moons-blue);
+  --color-moons-primary-dark: var(--moons-blue-dark);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
