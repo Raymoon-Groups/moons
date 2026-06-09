@@ -27,10 +27,26 @@ export const landingImages = {
 } as const;
 
 export const stats = [
-  { value: '5 Lakh+', label: 'Live Jobs' },
-  { value: '50,000+', label: 'Recruiters' },
-  { value: '2 Crore+', label: 'Jobseekers' },
-  { value: '10,000+', label: 'Jobs / Day' },
+  {
+    value: '5 Lakh+',
+    label: 'Live Jobs',
+    sublabel: 'Active openings updated daily',
+  },
+  {
+    value: '50,000+',
+    label: 'Recruiters',
+    sublabel: 'From startups to enterprises',
+  },
+  {
+    value: '2 Crore+',
+    label: 'Jobseekers',
+    sublabel: 'Across 100+ cities in India',
+  },
+  {
+    value: '10,000+',
+    label: 'Jobs Posted Daily',
+    sublabel: 'Fresh roles every single day',
+  },
 ] as const;
 
 export const mockJobs = [
@@ -38,7 +54,7 @@ export const mockJobs = [
     id: '1',
     title: 'Senior Software Engineer',
     company: 'Infosys',
-    logo: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=80&q=80&auto=format&fit=crop',
+    logo: 'https://logo.clearbit.com/infosys.com',
     experience: '3–6 yrs',
     location: 'Bangalore',
     salary: '₹12–18 LPA',
@@ -50,7 +66,7 @@ export const mockJobs = [
     id: '2',
     title: 'Product Manager',
     company: 'Flipkart',
-    logo: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=80&q=80&auto=format&fit=crop',
+    logo: 'https://logo.clearbit.com/flipkart.com',
     experience: '5–8 yrs',
     location: 'Bangalore',
     salary: '₹25–40 LPA',
@@ -62,7 +78,7 @@ export const mockJobs = [
     id: '3',
     title: 'Data Analyst',
     company: 'HDFC Bank',
-    logo: 'https://images.unsplash.com/photo-1554224311-beee415c201f?w=80&q=80&auto=format&fit=crop',
+    logo: 'https://logo.clearbit.com/hdfcbank.com',
     experience: '1–3 yrs',
     location: 'Mumbai',
     salary: '₹6–10 LPA',
@@ -74,7 +90,7 @@ export const mockJobs = [
     id: '4',
     title: 'UI/UX Designer',
     company: 'Zomato',
-    logo: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=80&q=80&auto=format&fit=crop',
+    logo: 'https://logo.clearbit.com/zomato.com',
     experience: '2–5 yrs',
     location: 'Gurgaon',
     salary: '₹10–16 LPA',
@@ -96,48 +112,88 @@ export const categories = [
 ] as const;
 
 export const topCompanies = [
-  { name: 'TCS', logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&q=80&auto=format&fit=crop' },
-  { name: 'Infosys', logo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100&q=80&auto=format&fit=crop' },
-  { name: 'Amazon', logo: 'https://images.unsplash.com/photo-1523474253046-5996184b1c57?w=100&q=80&auto=format&fit=crop' },
-  { name: 'Wipro', logo: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=100&q=80&auto=format&fit=crop' },
-  { name: 'Accenture', logo: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=100&q=80&auto=format&fit=crop' },
-  { name: 'HCL', logo: 'https://images.unsplash.com/photo-1497215842960-222b430dc094?w=100&q=80&auto=format&fit=crop' },
-  { name: 'Microsoft', logo: 'https://images.unsplash.com/photo-1633419460226-682e51644064?w=100&q=80&auto=format&fit=crop' },
-  { name: 'Google', logo: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=100&q=80&auto=format&fit=crop' },
+  {
+    name: 'TCS',
+    image: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=500&q=80&auto=format&fit=crop',
+    tagline: '1,200+ open roles',
+  },
+  {
+    name: 'Infosys',
+    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=500&q=80&auto=format&fit=crop',
+    tagline: '900+ open roles',
+  },
+  {
+    name: 'Amazon',
+    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&q=80&auto=format&fit=crop',
+    tagline: '2,400+ open roles',
+  },
+  {
+    name: 'Wipro',
+    image: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=500&q=80&auto=format&fit=crop',
+    tagline: '750+ open roles',
+  },
+  {
+    name: 'Accenture',
+    image: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=500&q=80&auto=format&fit=crop',
+    tagline: '1,100+ open roles',
+  },
+  {
+    name: 'HCL',
+    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&q=80&auto=format&fit=crop',
+    tagline: '680+ open roles',
+  },
+  {
+    name: 'Microsoft',
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=500&q=80&auto=format&fit=crop',
+    tagline: '540+ open roles',
+  },
+  {
+    name: 'Google',
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500&q=80&auto=format&fit=crop',
+    tagline: '420+ open roles',
+  },
 ] as const;
 
+/**
+ * mapX/mapY — pin positions on @svg-maps/india (viewBox 0 0 612 696),
+ * derived from each city's lat/lon projected onto the map bounds.
+ */
 export const popularLocations = [
-  { city: 'Bangalore', jobs: '18,200', image: landingImages.locations.bangalore },
-  { city: 'Mumbai', jobs: '14,500', image: landingImages.locations.mumbai },
-  { city: 'Delhi / NCR', jobs: '16,800', image: landingImages.locations.delhi },
-  { city: 'Hyderabad', jobs: '11,300', image: landingImages.locations.hyderabad },
-  { city: 'Pune', jobs: '9,800', image: landingImages.locations.pune },
-  { city: 'Chennai', jobs: '8,400', image: landingImages.locations.chennai },
+  { city: 'Bangalore', jobs: '18,200', mapX: 203, mapY: 578, locationQuery: 'Bangalore' },
+  { city: 'Mumbai', jobs: '14,500', mapX: 101, mapY: 432, locationQuery: 'Mumbai' },
+  { city: 'Delhi / NCR', jobs: '16,800', mapX: 194, mapY: 202, locationQuery: 'Delhi' },
+  { city: 'Hyderabad', jobs: '11,300', mapX: 221, mapY: 471, locationQuery: 'Hyderabad' },
+  { city: 'Pune', jobs: '9,800', mapX: 122, mapY: 444, locationQuery: 'Pune' },
+  { city: 'Chennai', jobs: '8,400', mapX: 259, mapY: 574, locationQuery: 'Chennai' },
 ] as const;
 
 export const careerServices = [
   {
     title: 'Create your profile',
     desc: 'Get noticed by recruiters',
-    image: landingImages.services.profile,
+    category: 'Profile',
+    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80&auto=format&fit=crop',
     href: '/register',
   },
   {
     title: 'Create job alert',
     desc: 'Get jobs in your inbox',
-    image: landingImages.services.alert,
+    category: 'Alerts',
+    image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&q=80&auto=format&fit=crop',
     href: '/register',
   },
   {
     title: 'Check salary trends',
     desc: 'Know your market worth',
-    image: landingImages.services.salary,
+    category: 'Insights',
+    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80&auto=format&fit=crop',
     href: '/jobs',
   },
   {
     title: 'Upload your resume',
     desc: 'Apply faster to jobs',
-    image: landingImages.services.resume,
+    category: 'Resume',
+    image: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=600&q=80&auto=format&fit=crop',
     href: '/register',
   },
 ] as const;

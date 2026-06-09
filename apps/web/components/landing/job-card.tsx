@@ -17,40 +17,50 @@ export function JobCard({
     type: string;
   };
 }) {
+  const tag = job.skills[0] ?? job.type;
+
   return (
-    <article className="group flex gap-3 border-b border-slate-100 bg-white px-4 py-3.5 transition last:border-b-0 hover:bg-[#f4f8ff]">
-      <div className="relative mt-0.5 h-11 w-11 shrink-0 overflow-hidden rounded border border-slate-200">
-        <Image src={job.logo} alt={job.company} fill className="object-cover" sizes="44px" />
-      </div>
+    <article className="flex min-h-[220px] flex-col justify-between rounded-2xl bg-[#f3f4f6] p-6 md:p-8">
+      <div>
+        <div className="flex items-start gap-4">
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 md:h-14 md:w-14">
+            <Image
+              src={job.logo}
+              alt={`${job.company} logo`}
+              fill
+              className="object-contain"
+              sizes="56px"
+            />
+          </div>
 
-      <div className="min-w-0 flex-1">
-        <Link
-          href={`/jobs/${job.id}`}
-          className="text-[15px] font-semibold text-moons-navy hover:text-moons-blue hover:underline"
-        >
-          {job.title}
-        </Link>
-        <p className="text-sm text-slate-600">{job.company}</p>
-        <p className="mt-1 text-xs text-moons-muted">
-          {job.experience} · {job.location} · {job.salary}
-        </p>
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {job.skills.map((s) => (
-            <span key={s} className="rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
-              {s}
-            </span>
-          ))}
+          <div className="min-w-0 flex-1">
+            <h3 className="text-xl font-bold leading-snug text-moons-navy md:text-2xl">
+              {job.title}{' '}
+              <span className="text-base font-normal text-slate-500 md:text-lg">
+                ({job.location} · {job.type})
+              </span>
+            </h3>
+          </div>
         </div>
+
+        <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-300 px-3 py-1 text-sm text-slate-700">
+          <span className="h-2 w-2 rounded-full bg-moons-navy" />
+          {tag}
+        </span>
+
+        <p className="mt-4 text-sm leading-relaxed text-slate-500 md:text-base">
+          {job.company} · {job.experience} · {job.salary}
+        </p>
       </div>
 
-      <div className="hidden shrink-0 flex-col items-end justify-between sm:flex">
-        <span className="text-[11px] text-slate-400">{job.posted}</span>
+      <div className="mt-6 flex items-center justify-between gap-4">
         <Link
           href={`/jobs/${job.id}`}
-          className="rounded border border-moons-blue px-3 py-1 text-xs font-bold text-moons-blue hover:bg-moons-blue hover:text-white"
+          className="rounded-lg bg-moons-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Apply
+          Apply Now
         </Link>
+        <span className="text-xs text-slate-400">{job.posted}</span>
       </div>
     </article>
   );

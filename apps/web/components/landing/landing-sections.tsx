@@ -1,12 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { CareerServicesSection } from '@/components/landing/career-services-section';
+import { IndiaJobsMap } from '@/components/landing/india-jobs-map';
 import { JobCard } from '@/components/landing/job-card';
 import {
-  careerServices,
   categories,
   landingImages,
   mockJobs,
-  popularLocations,
   popularSearches,
   stats,
   topCompanies,
@@ -14,14 +14,31 @@ import {
 
 export function StatsBar() {
   return (
-    <section className="relative z-10 mx-auto -mt-4 max-w-5xl px-4">
-      <div className="grid grid-cols-2 divide-x divide-slate-100 overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-slate-200 md:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="px-4 py-5 text-center">
-            <p className="text-xl font-extrabold text-moons-blue md:text-2xl">{stat.value}</p>
-            <p className="mt-0.5 text-xs font-medium text-moons-muted">{stat.label}</p>
-          </div>
-        ))}
+    <section className="bg-white px-4 py-16 md:py-20">
+      <div className="mx-auto max-w-6xl text-center">
+        <h2 className="text-3xl font-bold tracking-tight text-moons-navy md:text-4xl">
+          Trusted by jobseekers nationwide
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-base text-moons-muted md:text-lg">
+          Join lakhs of professionals and thousands of recruiters on Moons
+        </p>
+
+        <div className="mt-14 grid grid-cols-2 gap-10 md:grid-cols-4 md:gap-8">
+          {stats.map((stat) => (
+            <div key={stat.label} className="flex flex-col items-center">
+              <div className="inline-flex flex-col items-center">
+                <p className="text-3xl font-bold text-moons-blue md:text-4xl lg:text-[2.75rem]">
+                  {stat.value}
+                </p>
+                <span className="mt-2 h-1 w-full min-w-[3.5rem] rounded-full bg-blue-200 md:min-w-[4.5rem]" />
+              </div>
+              <p className="mt-5 text-sm font-bold text-moons-navy md:text-base">
+                {stat.label}
+              </p>
+              <p className="mt-1 text-xs text-moons-muted md:text-sm">{stat.sublabel}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -70,7 +87,7 @@ export function BrowseCategories() {
 
 export function TrendingJobs() {
   return (
-    <section className="border-y border-slate-200 bg-white py-10">
+    <section className="bg-white py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-moons-navy md:text-xl">
@@ -80,7 +97,7 @@ export function TrendingJobs() {
             View all jobs →
           </Link>
         </div>
-        <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           {mockJobs.map((job) => (
             <JobCard key={job.id} job={job} />
           ))}
@@ -100,19 +117,28 @@ export function TopCompanies() {
         Explore openings at India&apos;s leading employers
       </p>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {topCompanies.map((co) => (
           <Link
             key={co.name}
             href={`/jobs?q=${encodeURIComponent(co.name)}`}
-            className="group flex flex-col items-center rounded-lg border border-slate-200 bg-white p-3 transition hover:border-moons-blue hover:shadow-sm"
+            className="group relative aspect-[3/4] overflow-hidden rounded-lg ring-1 ring-slate-200 transition hover:ring-moons-blue hover:shadow-lg"
           >
-            <div className="relative h-10 w-10 overflow-hidden rounded-md ring-1 ring-slate-100">
-              <Image src={co.logo} alt={co.name} fill className="object-cover" sizes="40px" />
+            <Image
+              src={co.image}
+              alt={co.name}
+              fill
+              className="object-cover transition duration-500 group-hover:scale-105"
+              sizes="(max-width:640px) 50vw, 25vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              <p className="text-base font-bold text-white md:text-lg">{co.name}</p>
+              <div className="mt-2 h-px w-10 bg-white/60" />
+              <p className="mt-2 text-xs leading-relaxed text-white/85 md:text-sm">
+                {co.tagline}
+              </p>
             </div>
-            <span className="mt-2 text-xs font-semibold text-slate-700 group-hover:text-moons-blue">
-              {co.name}
-            </span>
           </Link>
         ))}
       </div>
@@ -131,66 +157,14 @@ export function JobsByCity() {
           Find opportunities in top metro cities
         </p>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {popularLocations.map((loc) => (
-            <Link
-              key={loc.city}
-              href={`/jobs?location=${encodeURIComponent(loc.city)}`}
-              className="group relative aspect-[3/4] overflow-hidden rounded-lg ring-1 ring-slate-200"
-            >
-              <Image
-                src={loc.image}
-                alt={loc.city}
-                fill
-                className="object-cover transition group-hover:scale-105"
-                sizes="180px"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-              <div className="absolute bottom-0 w-full p-3">
-                <p className="text-sm font-bold text-white">{loc.city}</p>
-                <p className="text-[11px] text-white/80">{loc.jobs} jobs</p>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <IndiaJobsMap />
       </div>
     </section>
   );
 }
 
 export function CareerServices() {
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-12">
-      <h2 className="text-lg font-bold text-moons-navy md:text-xl">
-        Career services on Moons
-      </h2>
-      <p className="mt-1 text-sm text-moons-muted">Free tools to help you get hired faster</p>
-
-      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {careerServices.map((service) => (
-          <Link
-            key={service.title}
-            href={service.href}
-            className="group flex flex-col items-center rounded-lg border border-slate-200 bg-white p-4 text-center transition hover:border-moons-blue hover:shadow-md"
-          >
-            <div className="relative h-14 w-14 overflow-hidden rounded-full ring-2 ring-blue-100">
-              <Image
-                src={service.image}
-                alt={service.title}
-                fill
-                className="object-cover"
-                sizes="56px"
-              />
-            </div>
-            <p className="mt-3 text-sm font-bold text-moons-navy group-hover:text-moons-blue">
-              {service.title}
-            </p>
-            <p className="mt-0.5 text-xs text-moons-muted">{service.desc}</p>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
+  return <CareerServicesSection />;
 }
 
 export function PopularSearchTags() {

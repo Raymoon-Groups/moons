@@ -1,13 +1,40 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { UserRole } from '@moons/shared';
+import { MoonsLogo } from '@/components/moons-logo';
 import { resolveAvatarUrl } from '@/lib/assets';
 import { useAuth } from '@/lib/auth-context';
 
+const navLinks = [
+  { label: 'Home', href: '/' },
+  { label: 'Jobs', href: '/jobs' },
+  { label: 'Companies', href: '/jobs' },
+  { label: 'Services', href: '/register' },
+  { label: 'For Employers', href: '/register?role=recruiter' },
+] as const;
+
+function isNavActive(pathname: string, label: string) {
+  switch (label) {
+    case 'Home':
+      return pathname === '/';
+    case 'Jobs':
+      return pathname === '/jobs' || pathname.startsWith('/jobs/');
+    case 'Companies':
+      return false;
+    case 'Services':
+      return pathname === '/register' || pathname === '/login';
+    case 'For Employers':
+      return pathname.startsWith('/recruiter');
+    default:
+      return false;
+  }
+}
+
 export function SiteHeader() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, ready, logout } = useAuth();
 
   const displayName = user?.fullName?.trim() || user?.email?.split('@')[0] || 'Account';
@@ -70,62 +97,67 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <div className="mx-auto flex h-[52px] max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-1.5">
-          <span className="text-[22px] font-extrabold tracking-tight text-moons-navy">
-            moons
-          </span>
-          <span className="rounded bg-moons-blue px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
-            jobs
-          </span>
-        </Link>
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:h-[68px]">
+        <MoonsLogo size="lg" priority />
 
-        <nav className="hidden items-center gap-7 text-[13px] font-semibold text-slate-700 md:flex">
-          <Link href="/jobs" className="text-moons-blue">
-            Jobs
-          </Link>
-          <Link href="/jobs" className="hover:text-moons-blue">
-            Companies
-          </Link>
-          <Link href="/register" className="hover:text-moons-blue">
-            Services
-          </Link>
-          <Link href="/register?role=recruiter" className="hover:text-moons-blue">
-            For Employers
-          </Link>
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center rounded-full bg-slate-100 p-1 md:flex">
+          {navLinks.map((link) => {
+            const active = isNavActive(pathname, link.label);
+            return (
+              <Link
+                key={link.label}
+                href={link.href}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  active
+                    ? 'bg-white text-moons-navy shadow-sm'
+                    : 'text-slate-600 hover:text-moons-navy'
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {ready && user ? (
-            <Link
-              href="/dashboard"
-              className="rounded bg-moons-orange px-3 py-1.5 text-xs font-bold text-white hover:bg-moons-orange-dark"
-            >
-              Dashboard
-            </Link>
+            <>
+              <Link
+                href="/dashboard"
+                className="hidden text-sm font-medium text-slate-700 hover:text-moons-navy sm:inline"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-moons-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                My Account
+              </Link>
+              {user.role === UserRole.RECRUITER && (
+                <Link
+                  href="/recruiter/jobs/new"
+                  className="hidden rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-moons-navy transition hover:bg-slate-50 lg:inline-block"
+                >
+                  Post a Job
+                </Link>
+              )}
+            </>
           ) : (
             <>
               <Link
-                href="/register?role=recruiter"
-                className="hidden rounded border border-moons-blue px-3 py-1.5 text-xs font-bold text-moons-blue hover:bg-blue-50 sm:inline-block"
+                href="/login"
+                className="text-sm font-medium text-slate-700 transition hover:text-moons-navy"
               >
-                Post a Job
+                Sign In
               </Link>
               <Link
                 href="/register"
-                className="rounded bg-moons-orange px-3 py-1.5 text-xs font-bold text-white hover:bg-moons-orange-dark"
+                className="rounded-full bg-moons-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Register Free
+                Get Started
               </Link>
             </>
-          )}
-          {ready && user?.role === UserRole.RECRUITER && (
-            <Link
-              href="/recruiter/jobs/new"
-              className="hidden rounded border border-moons-blue px-3 py-1.5 text-xs font-bold text-moons-blue hover:bg-blue-50 sm:inline-block"
-            >
-              Post a Job
-            </Link>
           )}
         </div>
       </div>
