@@ -25,6 +25,14 @@ export class RedisService implements OnModuleDestroy {
     await this.client.del(key);
   }
 
+  async incr(key: string) {
+    return this.client.incr(key);
+  }
+
+  async expire(key: string, ttlSeconds: number) {
+    await this.client.expire(key, ttlSeconds);
+  }
+
   onModuleDestroy() {
     this.client.disconnect();
   }

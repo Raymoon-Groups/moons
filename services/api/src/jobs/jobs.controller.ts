@@ -7,6 +7,7 @@ import {
   JwtPayload,
 } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
+import { OnboardingGuard } from '../common/guards/onboarding.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ListJobsDto } from './dto/list-jobs.dto';
@@ -23,7 +24,7 @@ export class JobsController {
   }
 
   @Get('mine')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, OnboardingGuard, RolesGuard)
   @Roles(UserRole.RECRUITER)
   @ApiBearerAuth()
   listMine(@CurrentUser() user: JwtPayload) {
@@ -36,7 +37,7 @@ export class JobsController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, OnboardingGuard, RolesGuard)
   @Roles(UserRole.RECRUITER)
   @ApiBearerAuth()
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateJobDto) {

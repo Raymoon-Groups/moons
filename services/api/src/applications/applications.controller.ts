@@ -16,6 +16,7 @@ import {
   JwtPayload,
 } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
+import { OnboardingGuard } from '../common/guards/onboarding.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
@@ -23,7 +24,7 @@ import { UpdateApplicationStatusDto } from './dto/update-application-status.dto'
 
 @ApiTags('applications')
 @Controller('applications')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, OnboardingGuard)
 @ApiBearerAuth()
 export class ApplicationsController {
   constructor(private applicationsService: ApplicationsService) {}

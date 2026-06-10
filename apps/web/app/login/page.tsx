@@ -1,28 +1,37 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { FormEvent, Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { UserRole } from '@moons/shared';
 import { AuthDivider } from '@/components/auth/auth-divider';
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout';
 import { PasswordField } from '@/components/auth/password-field';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
-import { apiFetch } from '@/lib/api-client';
+import { ApiError, apiFetch } from '@/lib/api-client';
+import { getPostAuthPath } from '@/lib/auth-redirect';
 import { useAuth } from '@/lib/auth-context';
 import type { AuthResponse } from '@moons/shared';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
+  const defaultRole =
+    searchParams.get('role') === 'recruiter' ? UserRole.RECRUITER : UserRole.CANDIDATE;
+  const resetSuccess = searchParams.get('reset') === 'success';
+
+  const [googleRole, setGoogleRole] = useState<UserRole>(defaultRole);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
+  const [isGoogleAccount, setIsGoogleAccount] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setIsGoogleAccount(false);
     setLoading(true);
     try {
       const data = await apiFetch<AuthResponse>('/auth/login', {
@@ -30,8 +39,11 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       login(data);
-      router.push('/dashboard');
+      router.push(getPostAuthPath(data.user));
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'GOOGLE_ACCOUNT') {
+        setIsGoogleAccount(true);
+      }
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
@@ -51,6 +63,12 @@ export default function LoginPage() {
         </>
       }
     >
+      {resetSuccess && (
+        <p className="mb-5 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">
+          Password reset successfully. You can now sign in.
+        </p>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label htmlFor="email" className="block text-sm font-bold text-moons-navy">
@@ -76,21 +94,28 @@ export default function LoginPage() {
           placeholder="Input your password"
         />
 
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex cursor-pointer items-center gap-2 text-slate-600">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-moons-navy focus:ring-moons-navy"
-            />
-            Remember Me
-          </label>
-          <span className="text-slate-500">Forgot Password?</span>
+        <div className="text-right text-sm">
+          <Link href="/forgot-password" className="text-moons-blue hover:underline">
+            Forgot Password?
+          </Link>
         </div>
 
         {error && (
-          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+          <div className="space-y-3">
+            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+            {isGoogleAccount && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-medium">Sign in with Google instead</p>
+                <p className="mt-1 text-amber-800">
+                  Or sign in with Google first, then create a password in{' '}
+                  <Link href="/settings/security" className="font-semibold underline">
+                    Settings → Security
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         <button
@@ -104,11 +129,56 @@ export default function LoginPage() {
 
       <AuthDivider />
 
-      <GoogleSignInButton variant="auth" />
+      <div>
+        <span className="block text-sm font-bold text-moons-navy">New user? I am a</span>
+        <p className="mt-1 text-xs text-slate-500">
+          Choose your role before Google sign-in. Existing accounts keep their current role.
+        </p>
+        <div className="mt-2 flex gap-3">
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-slate-50">
+            <input
+              type="radio"
+              name="googleRole"
+              className="accent-moons-navy"
+              checked={googleRole === UserRole.CANDIDATE}
+              onChange={() => setGoogleRole(UserRole.CANDIDATE)}
+            />
+            Jobseeker
+          </label>
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-slate-50">
+            <input
+              type="radio"
+              name="googleRole"
+              className="accent-moons-navy"
+              checked={googleRole === UserRole.RECRUITER}
+              onChange={() => setGoogleRole(UserRole.RECRUITER)}
+            />
+            Employer
+          </label>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <GoogleSignInButton role={googleRole} variant="auth" />
+      </div>
 
       <p className="mt-6 rounded-xl bg-blue-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
         Demo: candidate@moons.com or recruiter@moons.com · password123
       </p>
     </AuthSplitLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+          Loading…
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

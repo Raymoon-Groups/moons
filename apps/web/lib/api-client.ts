@@ -7,6 +7,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public code?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -41,16 +42,20 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     let message = 'Request failed';
+    let code: string | undefined;
     try {
       const body = await response.json();
       message = body.message ?? message;
       if (Array.isArray(message)) {
         message = message.join(', ');
       }
+      if (typeof body.code === 'string') {
+        code = body.code;
+      }
     } catch {
       // ignore parse errors
     }
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, code);
   }
 
   if (response.status === 204) {

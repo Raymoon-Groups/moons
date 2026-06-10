@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Profile, User, UserRole } from '@prisma/client';
+import { normalizeEmail } from '../common/utils/normalize-email';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -7,7 +8,9 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.user.findUnique({
+      where: { email: normalizeEmail(email) },
+    });
   }
 
   findByGoogleId(googleId: string) {
@@ -29,12 +32,14 @@ export class UsersService {
     email: string;
     passwordHash: string;
     role: UserRole;
+    emailVerified?: boolean;
   }): Promise<User> {
     return this.prisma.user.create({
       data: {
-        email: data.email,
+        email: normalizeEmail(data.email),
         passwordHash: data.passwordHash,
         role: data.role,
+        emailVerified: data.emailVerified ?? false,
         profile: { create: {} },
       },
     });
@@ -49,9 +54,10 @@ export class UsersService {
   }): Promise<User> {
     return this.prisma.user.create({
       data: {
-        email: data.email,
+        email: normalizeEmail(data.email),
         googleId: data.googleId,
         role: data.role,
+        emailVerified: true,
         profile: {
           create: {
             fullName: data.fullName ?? null,
@@ -69,7 +75,7 @@ export class UsersService {
   ) {
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: { googleId },
+      data: { googleId, emailVerified: true },
       include: { profile: true },
     });
 
@@ -92,6 +98,39 @@ export class UsersService {
     return this.findByIdWithProfile(userId);
   }
 
+  async setPassword(userId: string, passwordHash: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
+
+  async markOnboardingComplete(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { onboardingCompleted: true },
+    });
+  }
+
+  async updateOnboardingProfile(
+    userId: string,
+    data: {
+      fullName?: string | null;
+      phone?: string | null;
+      location?: string | null;
+      currentCompany?: string | null;
+      designation?: string | null;
+      companyWebsite?: string | null;
+      companySize?: string | null;
+      resumeUrl?: string | null;
+    },
+  ) {
+    return this.prisma.profile.update({
+      where: { userId },
+      data,
+    });
+  }
+
   toPublic(user: User, profile?: Profile | null) {
     return {
       id: user.id,
@@ -99,6 +138,10 @@ export class UsersService {
       role: user.role,
       fullName: profile?.fullName ?? null,
       avatarUrl: profile?.avatarUrl ?? null,
+      emailVerified: user.emailVerified,
+      onboardingCompleted: user.onboardingCompleted,
+      hasPassword: !!user.passwordHash,
+      hasGoogle: !!user.googleId,
     };
   }
 }

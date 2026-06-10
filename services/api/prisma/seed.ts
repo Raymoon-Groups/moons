@@ -13,6 +13,8 @@ async function main() {
       email: 'recruiter@moons.com',
       passwordHash,
       role: 'RECRUITER',
+      emailVerified: true,
+      onboardingCompleted: true,
       profile: {
         create: {
           fullName: 'Demo Recruiter',
@@ -31,6 +33,8 @@ async function main() {
       email: 'candidate@moons.com',
       passwordHash,
       role: 'CANDIDATE',
+      emailVerified: true,
+      onboardingCompleted: true,
       profile: {
         create: {
           fullName: 'Demo Candidate',

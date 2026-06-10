@@ -13,6 +13,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (ready && !user) {
       router.replace('/login');
+      return;
+    }
+    if (ready && user && !user.onboardingCompleted) {
+      router.replace('/onboarding');
     }
   }, [ready, user, router]);
 
@@ -51,6 +55,12 @@ export default function DashboardPage() {
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-moons-blue"
           >
             My profile
+          </Link>
+          <Link
+            href="/settings/security"
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-moons-blue"
+          >
+            Security
           </Link>
 
           {!isRecruiter && (

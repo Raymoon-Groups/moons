@@ -23,6 +23,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   ready: boolean;
   login: (data: AuthResponse) => void;
+  updateUser: (partial: Partial<AuthUser>) => void;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   syncUserFromProfile: (profile: Profile) => void;
@@ -78,6 +79,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   }, []);
 
+  const updateUser = useCallback((partial: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...partial };
+      updateStoredUser(updated);
+      return updated;
+    });
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authFetch('/auth/logout', { method: 'POST' });
@@ -89,8 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, ready, login, logout, refreshProfile, syncUserFromProfile }),
-    [user, ready, login, logout, refreshProfile, syncUserFromProfile],
+    () => ({ user, ready, login, updateUser, logout, refreshProfile, syncUserFromProfile }),
+    [user, ready, login, updateUser, logout, refreshProfile, syncUserFromProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

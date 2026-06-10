@@ -34,13 +34,15 @@ enum ApplicationStatus {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String?  @map("password_hash")
-  googleId     String?  @unique @map("google_id")
-  role         UserRole
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(uuid())
+  email               String   @unique
+  passwordHash        String?  @map("password_hash")
+  googleId            String?  @unique @map("google_id")
+  emailVerified       Boolean  @default(false) @map("email_verified")
+  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
+  role                UserRole
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   profile      Profile?
   jobs         Job[]         @relation("RecruiterJobs")
@@ -56,11 +58,15 @@ model Profile {
   avatarUrl       String?  @map("avatar_url")
   phone           String?
   headline        String?
+  designation     String?
   currentCompany  String?  @map("current_company")
+  companyWebsite  String?  @map("company_website")
+  companySize     String?  @map("company_size")
   experienceYears Int?     @map("experience_years")
   location        String?
   noticePeriod    String?  @map("notice_period")
   summary         String?
+  resumeUrl       String?  @map("resume_url")
   skills          String[]
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

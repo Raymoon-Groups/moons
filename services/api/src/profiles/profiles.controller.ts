@@ -18,6 +18,7 @@ import {
   JwtPayload,
 } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OnboardingGuard } from '../common/guards/onboarding.guard';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfilesService } from './profiles.service';
 
@@ -34,6 +35,7 @@ export class ProfilesController {
   }
 
   @Patch('me')
+  @UseGuards(OnboardingGuard)
   updateMyProfile(
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateProfileDto,
@@ -42,6 +44,7 @@ export class ProfilesController {
   }
 
   @Post('me/avatar')
+  @UseGuards(OnboardingGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -66,6 +69,7 @@ export class ProfilesController {
   }
 
   @Delete('me/avatar')
+  @UseGuards(OnboardingGuard)
   removeAvatar(@CurrentUser() user: JwtPayload) {
     return this.profilesService.removeAvatar(user.sub);
   }

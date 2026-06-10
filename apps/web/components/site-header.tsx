@@ -71,6 +71,10 @@ export function SiteHeader() {
                 Profile
               </Link>
               <span className="text-slate-300">|</span>
+              <Link href="/settings/security" className="hover:text-moons-blue">
+                Settings
+              </Link>
+              <span className="text-slate-300">|</span>
               <button
                 type="button"
                 onClick={handleLogout}

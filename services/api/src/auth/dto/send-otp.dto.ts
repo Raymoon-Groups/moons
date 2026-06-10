@@ -1,7 +1,7 @@
 import { UserRole } from '@prisma/client';
 import { IsEmail, IsEnum, IsString, MinLength } from 'class-validator';
 
-export class RegisterDto {
+export class SendOtpDto {
   @IsEmail()
   email!: string;
 
