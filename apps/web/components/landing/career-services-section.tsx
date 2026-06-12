@@ -78,7 +78,7 @@ export function CareerServicesSection() {
               className="inline-flex w-fit items-center gap-3 rounded-full bg-moons-orange px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-orange-dark"
             >
               All Services
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-base">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-elevated/20 text-base">
                 →
               </span>
             </Link>

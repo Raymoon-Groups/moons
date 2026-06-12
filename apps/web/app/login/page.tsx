@@ -81,7 +81,7 @@ function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Input your email"
-            className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-moons-navy focus:ring-1 focus:ring-moons-navy"
+            className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:ring-1 focus:ring-moons-blue"
           />
         </div>
 
@@ -104,7 +104,7 @@ function LoginForm() {
           <div className="space-y-3">
             <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
             {isGoogleAccount && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 <p className="font-medium">Sign in with Google instead</p>
                 <p className="mt-1 text-amber-800">
                   Or sign in with Google first, then create a password in{' '}
@@ -121,7 +121,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-full bg-moons-navy py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="w-full rounded-full bg-moons-blue py-3.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
         >
           {loading ? 'Signing in…' : 'Login'}
         </button>
@@ -131,11 +131,11 @@ function LoginForm() {
 
       <div>
         <span className="block text-sm font-bold text-moons-navy">New user? I am a</span>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-moons-muted">
           Choose your role before Google sign-in. Existing accounts keep their current role.
         </p>
         <div className="mt-2 flex gap-3">
-          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-slate-50">
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-surface">
             <input
               type="radio"
               name="googleRole"
@@ -145,7 +145,7 @@ function LoginForm() {
             />
             Jobseeker
           </label>
-          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-slate-50">
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-surface">
             <input
               type="radio"
               name="googleRole"
@@ -162,7 +162,7 @@ function LoginForm() {
         <GoogleSignInButton role={googleRole} variant="auth" />
       </div>
 
-      <p className="mt-6 rounded-xl bg-blue-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
+      <p className="mt-6 rounded-xl bg-blue-50 px-4 py-3 text-xs leading-relaxed text-foreground">
         Demo: candidate@moons.com or recruiter@moons.com · password123
       </p>
     </AuthSplitLayout>
@@ -173,7 +173,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+        <div className="flex min-h-screen items-center justify-center text-sm text-moons-muted">
           Loading…
         </div>
       }

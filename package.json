@@ -2,7 +2,7 @@
   "name": "moons",
   "private": true,
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "node scripts/free-port.mjs 3000 3001 && turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "db:up": "docker compose up -d",

@@ -17,12 +17,12 @@ export function SuccessModal({ open, message, onClose }: SuccessModalProps) {
         onClick={onClose}
         aria-label="Close"
       />
-      <div className="relative w-full max-w-sm rounded-lg bg-white p-6 text-center shadow-xl">
+      <div className="relative w-full max-w-sm rounded-lg bg-surface-elevated p-6 text-center shadow-xl">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-2xl text-green-600">
           ✓
         </div>
         <h2 className="mt-4 text-lg font-bold text-moons-navy">Saved successfully!</h2>
-        <p className="mt-2 text-sm text-slate-600">{message}</p>
+        <p className="mt-2 text-sm text-foreground">{message}</p>
         <button
           type="button"
           onClick={onClose}

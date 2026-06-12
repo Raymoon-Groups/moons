@@ -1,3 +1,11 @@
+import type {
+  CertificationEntry,
+  EducationEntry,
+  WorkExperienceEntry,
+} from '@moons/shared';
+
+export type { CertificationEntry, EducationEntry, WorkExperienceEntry };
+
 export interface Profile {
   id: string;
   userId: string;
@@ -7,11 +15,27 @@ export interface Profile {
   avatarUrl: string | null;
   phone: string | null;
   headline: string | null;
+  designation: string | null;
   currentCompany: string | null;
+  companyWebsite: string | null;
+  companySize: string | null;
+  companyLogoUrl: string | null;
+  industry: string | null;
+  companyType: string | null;
+  officeAddress: string | null;
   experienceYears: number | null;
   location: string | null;
   noticePeriod: string | null;
   summary: string | null;
+  resumeUrl: string | null;
+  currentCtc: string | null;
+  expectedCtc: string | null;
+  educations: EducationEntry[];
+  workExperiences: WorkExperienceEntry[];
+  certifications: CertificationEntry[];
+  preferredRoles: string[];
+  preferredLocations: string[];
+  preferredIndustries: string[];
   skills: string[];
   completionPercent: number;
   createdAt: string;
@@ -50,7 +74,18 @@ export interface ApplicantRow {
       phone: string | null;
       currentCompany: string | null;
       experienceYears: number | null;
+      noticePeriod: string | null;
+      summary: string | null;
+      resumeUrl: string | null;
+      currentCtc: string | null;
+      expectedCtc: string | null;
       skills: string[];
+      educations: EducationEntry[];
+      workExperiences: WorkExperienceEntry[];
+      certifications: CertificationEntry[];
+      preferredRoles: string[];
+      preferredLocations: string[];
+      preferredIndustries: string[];
     } | null;
   };
 }

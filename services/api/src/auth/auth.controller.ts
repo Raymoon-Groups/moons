@@ -130,6 +130,8 @@ export class AuthController {
         designation: { type: 'string' },
         companyWebsite: { type: 'string' },
         companySize: { type: 'string' },
+        headline: { type: 'string' },
+        industry: { type: 'string' },
         resume: { type: 'string', format: 'binary' },
       },
     },

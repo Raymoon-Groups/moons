@@ -24,6 +24,24 @@ export enum ApplicationStatus {
   REJECTED = 'REJECTED',
 }
 
+export enum NotificationType {
+  APPLICATION_RECEIVED = 'APPLICATION_RECEIVED',
+  APPLICATION_SUBMITTED = 'APPLICATION_SUBMITTED',
+  APPLICATION_VIEWED = 'APPLICATION_VIEWED',
+  APPLICATION_SHORTLISTED = 'APPLICATION_SHORTLISTED',
+  APPLICATION_REJECTED = 'APPLICATION_REJECTED',
+}
+
+export interface NotificationItem {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  linkUrl: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -88,4 +106,26 @@ export interface LoginRequest {
 export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
+}
+
+export interface EducationEntry {
+  degree: string;
+  institute: string;
+  fieldOfStudy?: string;
+  year: string;
+}
+
+export interface WorkExperienceEntry {
+  company: string;
+  designation: string;
+  startDate: string;
+  endDate?: string | null;
+  isCurrent: boolean;
+  description?: string;
+}
+
+export interface CertificationEntry {
+  name: string;
+  issuer?: string;
+  year?: string;
 }

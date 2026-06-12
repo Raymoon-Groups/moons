@@ -113,7 +113,7 @@ function RegisterForm() {
           <div>
             <span className="block text-sm font-bold text-moons-navy">I am a</span>
             <div className="mt-2 flex gap-3">
-              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-slate-50">
+              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-surface">
                 <input
                   type="radio"
                   name="role"
@@ -123,7 +123,7 @@ function RegisterForm() {
                 />
                 Jobseeker
               </label>
-              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-slate-50">
+              <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-surface">
                 <input
                   type="radio"
                   name="role"
@@ -147,7 +147,7 @@ function RegisterForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Input your email"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-moons-navy focus:ring-1 focus:ring-moons-navy"
+              className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:ring-1 focus:ring-moons-blue"
             />
           </div>
 
@@ -167,18 +167,18 @@ function RegisterForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-moons-navy py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="w-full rounded-full bg-moons-blue py-3.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
           >
             {loading ? 'Sending code…' : 'Continue'}
           </button>
         </form>
       ) : (
         <form onSubmit={handleVerifyOtp} className="space-y-5">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-foreground">
             We sent a 6-digit code to <strong>{email}</strong>
           </p>
           {info && (
-            <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-slate-700">{info}</p>
+            <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-moons-silver">{info}</p>
           )}
 
           <div>
@@ -195,7 +195,7 @@ function RegisterForm() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
               placeholder="000000"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-lg tracking-[0.5em] text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-moons-navy focus:ring-1 focus:ring-moons-navy"
+              className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-center text-lg tracking-[0.5em] text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:ring-1 focus:ring-moons-blue"
             />
           </div>
 
@@ -206,7 +206,7 @@ function RegisterForm() {
           <button
             type="submit"
             disabled={loading || otp.length !== 6}
-            className="w-full rounded-full bg-moons-navy py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="w-full rounded-full bg-moons-blue py-3.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
           >
             {loading ? 'Verifying…' : 'Verify & Create Account'}
           </button>
@@ -227,7 +227,7 @@ function RegisterForm() {
               setOtp('');
               setError('');
             }}
-            className="w-full text-sm text-slate-500 hover:text-moons-navy"
+            className="w-full text-sm text-moons-muted hover:text-moons-navy"
           >
             ← Back to edit email
           </button>
@@ -248,7 +248,7 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+        <div className="flex min-h-screen items-center justify-center text-sm text-moons-muted">
           Loading…
         </div>
       }

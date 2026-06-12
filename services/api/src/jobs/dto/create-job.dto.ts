@@ -1,5 +1,15 @@
 import { EmploymentType } from '@prisma/client';
-import { IsEnum, IsString, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateJobDto {
   @IsString()
@@ -19,4 +29,24 @@ export class CreateJobDto {
 
   @IsEnum(EmploymentType)
   employmentType!: EmploymentType;
+
+  @IsOptional()
+  @IsString()
+  salaryRange?: string;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  minExperienceYears?: number;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  maxExperienceYears?: number;
 }

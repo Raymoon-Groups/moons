@@ -4,19 +4,27 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { EmploymentType, UserRole } from '@moons/shared';
+import {
+  experienceBandToYears,
+  JobFormFields,
+  type JobFormValues,
+} from '@/components/job-form-fields';
 import { authFetch } from '@/lib/api-client';
 import { getStoredUser } from '@/lib/auth';
 import type { JobListing } from '@/lib/jobs';
+import type { Profile } from '@/lib/types';
 
 export default function NewJobPage() {
   const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
-  const [employmentType, setEmploymentType] = useState<EmploymentType>(
-    EmploymentType.FULL_TIME,
-  );
+  const [values, setValues] = useState<JobFormValues>({
+    title: '',
+    companyName: '',
+    description: '',
+    location: '',
+    employmentType: EmploymentType.FULL_TIME,
+    salaryRange: '',
+    experienceBand: '',
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,24 +32,44 @@ export default function NewJobPage() {
     const user = getStoredUser();
     if (!user) {
       router.replace('/login');
-    } else if (user.role !== UserRole.RECRUITER) {
-      router.replace('/dashboard');
+      return;
     }
+    if (user.role !== UserRole.RECRUITER) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    authFetch<Profile>('/profiles/me')
+      .then((profile) => {
+        setValues((v) => ({
+          ...v,
+          companyName: profile.currentCompany ?? v.companyName,
+          location: profile.location ?? v.location,
+        }));
+      })
+      .catch(() => undefined);
   }, [router]);
+
+  function onChange<K extends keyof JobFormValues>(key: K, value: JobFormValues[K]) {
+    setValues((v) => ({ ...v, [key]: value }));
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
+    const exp = experienceBandToYears(values.experienceBand);
     try {
       await authFetch<JobListing>('/jobs', {
         method: 'POST',
         body: JSON.stringify({
-          title,
-          companyName,
-          description,
-          location,
-          employmentType,
+          title: values.title,
+          companyName: values.companyName,
+          description: values.description,
+          location: values.location,
+          employmentType: values.employmentType,
+          salaryRange: values.salaryRange || undefined,
+          ...exp,
         }),
       });
       router.push('/recruiter/jobs');
@@ -54,75 +82,14 @@ export default function NewJobPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm text-moons-blue hover:underline">
-        ← Dashboard
+      <Link href="/recruiter/jobs" className="text-sm text-moons-blue hover:underline">
+        ← My jobs
       </Link>
       <h1 className="mt-4 text-xl font-bold text-moons-navy">Post a new job</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mt-6 space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Job title *</label>
-          <input
-            required
-            minLength={3}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-moons-blue"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Company name *</label>
-          <input
-            required
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-moons-blue"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Location *</label>
-          <input
-            required
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-moons-blue"
-            placeholder="Bangalore · Hybrid"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Employment type *</label>
-          <select
-            value={employmentType}
-            onChange={(e) => setEmploymentType(e.target.value as EmploymentType)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-moons-blue"
-          >
-            {Object.values(EmploymentType).map((type) => (
-              <option key={type} value={type}>
-                {type.replace('_', ' ')}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">
-            Description * (min 20 chars)
-          </label>
-          <textarea
-            required
-            minLength={20}
-            rows={6}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-moons-blue"
-            placeholder="Describe the role, responsibilities, and requirements…"
-          />
-        </div>
-
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-lg border border-border bg-surface-elevated p-6 shadow-sm">
+        <JobFormFields values={values} onChange={onChange} showProfileHint />
         {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-
         <button
           type="submit"
           disabled={loading}

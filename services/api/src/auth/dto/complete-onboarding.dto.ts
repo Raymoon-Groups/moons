@@ -28,4 +28,12 @@ export class CompleteOnboardingDto {
   @IsOptional()
   @IsString()
   companySize?: string;
+
+  @IsOptional()
+  @IsString()
+  headline?: string;
+
+  @IsOptional()
+  @IsString()
+  industry?: string;
 }

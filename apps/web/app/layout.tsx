@@ -35,7 +35,7 @@ export default function RootLayout({
       lang="en"
       className={`${plusJakarta.variable} ${caveat.variable} h-full font-sans antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-[#f7f8fa] text-moons-navy">
+      <body className="flex min-h-full flex-col bg-background text-foreground">
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

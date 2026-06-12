@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -11,12 +23,23 @@ import { OnboardingGuard } from '../common/guards/onboarding.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ListJobsDto } from './dto/list-jobs.dto';
+import { UpdateJobDto } from './dto/update-job.dto';
 import { JobsService } from './jobs.service';
 
 @ApiTags('jobs')
 @Controller('jobs')
 export class JobsController {
   constructor(private jobsService: JobsService) {}
+
+  @Get('trending')
+  trending() {
+    return this.jobsService.findTrending();
+  }
+
+  @Get('companies/top')
+  topCompanies() {
+    return this.jobsService.findTopCompanies();
+  }
 
   @Get()
   list(@Query() query: ListJobsDto) {
@@ -31,6 +54,14 @@ export class JobsController {
     return this.jobsService.findByRecruiter(user.sub);
   }
 
+  @Get('mine/stats')
+  @UseGuards(JwtAuthGuard, OnboardingGuard, RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  @ApiBearerAuth()
+  recruiterStats(@CurrentUser() user: JwtPayload) {
+    return this.jobsService.getRecruiterStats(user.sub);
+  }
+
   @Get(':id')
   getOne(@Param('id') id: string) {
     return this.jobsService.findById(id);
@@ -42,5 +73,34 @@ export class JobsController {
   @ApiBearerAuth()
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateJobDto) {
     return this.jobsService.create(user.sub, dto);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, OnboardingGuard, RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  @ApiBearerAuth()
+  update(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateJobDto,
+  ) {
+    return this.jobsService.update(user.sub, id, dto);
+  }
+
+  @Post(':id/close')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, OnboardingGuard, RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  @ApiBearerAuth()
+  close(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.jobsService.close(user.sub, id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, OnboardingGuard, RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  @ApiBearerAuth()
+  remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.jobsService.delete(user.sub, id);
   }
 }

@@ -33,6 +33,14 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum NotificationType {
+  APPLICATION_RECEIVED
+  APPLICATION_SUBMITTED
+  APPLICATION_VIEWED
+  APPLICATION_SHORTLISTED
+  APPLICATION_REJECTED
+}
+
 model User {
   id                  String   @id @default(uuid())
   email               String   @unique
@@ -44,9 +52,10 @@ model User {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
-  profile      Profile?
-  jobs         Job[]         @relation("RecruiterJobs")
-  applications Application[]
+  profile       Profile?
+  jobs          Job[]          @relation("RecruiterJobs")
+  applications  Application[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -67,6 +76,18 @@ model Profile {
   noticePeriod    String?  @map("notice_period")
   summary         String?
   resumeUrl       String?  @map("resume_url")
+  currentCtc      String?  @map("current_ctc")
+  expectedCtc     String?  @map("expected_ctc")
+  industry        String?
+  companyType     String?  @map("company_type")
+  companyLogoUrl  String?  @map("company_logo_url")
+  officeAddress   String?  @map("office_address")
+  educations      Json     @default("[]")
+  workExperiences Json     @default("[]") @map("work_experiences")
+  certifications  Json     @default("[]")
+  preferredRoles      String[] @default([]) @map("preferred_roles")
+  preferredLocations  String[] @default([]) @map("preferred_locations")
+  preferredIndustries String[] @default([]) @map("preferred_industries")
   skills          String[]
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -83,8 +104,11 @@ model Job {
   companyName    String         @map("company_name")
   description    String
   location       String
-  employmentType EmploymentType @map("employment_type")
-  status         JobStatus      @default(DRAFT)
+  employmentType       EmploymentType @map("employment_type")
+  salaryRange          String?        @map("salary_range")
+  minExperienceYears   Int?           @map("min_experience_years")
+  maxExperienceYears   Int?           @map("max_experience_years")
+  status               JobStatus      @default(DRAFT)
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
@@ -108,4 +132,21 @@ model Application {
 
   @@unique([jobId, candidateId])
   @@map("applications")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  body      String
+  linkUrl   String?          @map("link_url")
+  readAt    DateTime?        @map("read_at")
+  metadata  Json             @default("{}")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
 }

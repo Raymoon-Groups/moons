@@ -6,9 +6,9 @@ import {
   JobsByCity,
   PopularSearchTags,
   StatsBar,
-  TopCompanies,
-  TrendingJobs,
 } from '@/components/landing/landing-sections';
+import { TopCompaniesSection } from '@/components/landing/top-companies-section';
+import { TrendingJobsSection } from '@/components/landing/trending-jobs-section';
 import { SiteFooter } from '@/components/site-footer';
 
 export default function Home() {
@@ -17,8 +17,8 @@ export default function Home() {
       <JobPortalHero />
       <StatsBar />
       <BrowseCategories />
-      <TrendingJobs />
-      <TopCompanies />
+      <TrendingJobsSection />
+      <TopCompaniesSection />
       <JobsByCity />
       <CareerServices />
       <PopularSearchTags />

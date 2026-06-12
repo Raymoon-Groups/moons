@@ -122,6 +122,8 @@ export class UsersService {
       designation?: string | null;
       companyWebsite?: string | null;
       companySize?: string | null;
+      headline?: string | null;
+      industry?: string | null;
       resumeUrl?: string | null;
     },
   ) {

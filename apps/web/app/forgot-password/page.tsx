@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your account email"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-moons-navy focus:ring-1 focus:ring-moons-navy"
+              className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:ring-1 focus:ring-moons-blue"
             />
           </div>
 
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
             <div className="space-y-2">
               <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
               {errorCode === 'EMAIL_NOT_REGISTERED' && (
-                <p className="text-center text-sm text-slate-600">
+                <p className="text-center text-sm text-foreground">
                   <Link href="/register" className="font-semibold text-moons-blue hover:underline">
                     Create an account
                   </Link>
@@ -109,18 +109,18 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-moons-navy py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="w-full rounded-full bg-moons-blue py-3.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
           >
             {loading ? 'Sending…' : 'Send reset code'}
           </button>
         </form>
       ) : (
         <form onSubmit={handleResetPassword} className="space-y-5">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-foreground">
             Enter the code sent to <strong>{email}</strong>
           </p>
           {info && (
-            <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-slate-700">{info}</p>
+            <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-moons-silver">{info}</p>
           )}
 
           <div>
@@ -137,7 +137,7 @@ export default function ForgotPasswordPage() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
               placeholder="000000"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-lg tracking-[0.5em] text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-moons-navy focus:ring-1 focus:ring-moons-navy"
+              className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-center text-lg tracking-[0.5em] text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:ring-1 focus:ring-moons-blue"
             />
           </div>
 
@@ -166,7 +166,7 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={loading || otp.length !== 6}
-            className="w-full rounded-full bg-moons-navy py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="w-full rounded-full bg-moons-blue py-3.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
           >
             {loading ? 'Resetting…' : 'Reset password'}
           </button>
@@ -178,7 +178,7 @@ export default function ForgotPasswordPage() {
               setOtp('');
               setError('');
             }}
-            className="w-full text-sm text-slate-500 hover:text-moons-navy"
+            className="w-full text-sm text-moons-muted hover:text-moons-navy"
           >
             ← Use a different email
           </button>

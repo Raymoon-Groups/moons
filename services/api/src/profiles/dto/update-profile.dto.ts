@@ -9,7 +9,13 @@ import {
   MaxLength,
   Min,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
+import {
+  CertificationEntryDto,
+  EducationEntryDto,
+  WorkExperienceEntryDto,
+} from './profile-entry.dto';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional()
@@ -35,6 +41,42 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(120)
   currentCompany?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  designation?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  companyWebsite?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  companySize?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  industry?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  companyType?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  officeAddress?: string;
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()
@@ -63,9 +105,60 @@ export class UpdateProfileDto {
   @MaxLength(2000)
   summary?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  currentCtc?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  expectedCtc?: string;
+
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   skills?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preferredRoles?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preferredLocations?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preferredIndustries?: string[];
+
+  @ApiPropertyOptional({ type: [EducationEntryDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EducationEntryDto)
+  educations?: EducationEntryDto[];
+
+  @ApiPropertyOptional({ type: [WorkExperienceEntryDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WorkExperienceEntryDto)
+  workExperiences?: WorkExperienceEntryDto[];
+
+  @ApiPropertyOptional({ type: [CertificationEntryDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CertificationEntryDto)
+  certifications?: CertificationEntryDto[];
 }

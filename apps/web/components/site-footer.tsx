@@ -72,17 +72,17 @@ export function SiteFooter() {
   }
 
   return (
-    <footer className="relative overflow-hidden bg-[#eceef2] px-5 py-14 pb-28 sm:px-8 md:py-20 md:pb-36 lg:px-10">
+    <footer className="relative overflow-hidden bg-surface px-5 py-14 pb-28 sm:px-8 md:py-20 md:pb-36 lg:px-10">
       <p
         aria-hidden
-        className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2 translate-y-[28%] select-none whitespace-nowrap text-[clamp(9rem,34vw,19rem)] font-extrabold leading-none tracking-tight text-[#9aa3b2]"
+        className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2 translate-y-[28%] select-none whitespace-nowrap text-[clamp(9rem,34vw,19rem)] font-extrabold leading-none tracking-tight text-border"
       >
         moons
       </p>
 
       <div className="relative z-10 mx-auto grid w-full max-w-[1440px] gap-4 md:gap-6 lg:grid-cols-[minmax(300px,2fr)_minmax(400px,3fr)]">
         {/* Left — brand card */}
-        <div className="flex min-h-[420px] flex-col justify-between rounded-[28px] bg-gradient-to-br from-[#4d8fff] via-moons-blue to-[#1e4fd8] p-8 shadow-sm md:p-10">
+        <div className="flex min-h-[420px] flex-col justify-between rounded-[28px] border border-moons-blue/25 bg-gradient-to-br from-[#4a7fd4] via-moons-blue to-[#3568b8] p-8 shadow-[0_8px_32px_rgba(74,127,212,0.2)] md:p-10">
           <div>
             <MoonsLogo variant="white" size="xl" />
             <p className="mt-8 max-w-xs text-lg font-medium leading-snug text-white/95">
@@ -110,17 +110,17 @@ export function SiteFooter() {
         </div>
 
         {/* Right — links & newsletter */}
-        <div className="relative min-h-[420px] rounded-[28px] bg-[#f3f4f6] p-8 shadow-sm md:p-10">
+        <div className="relative min-h-[420px] rounded-[28px] border border-border bg-surface-elevated p-8 shadow-sm md:p-10">
           <div
             aria-hidden
-            className="absolute -right-3 -top-5 z-10 rotate-6 overflow-hidden rounded-2xl bg-white p-2 shadow-[0_20px_40px_rgba(69,126,255,0.45)] md:-right-4 md:-top-6"
+            className="absolute -right-3 -top-5 z-10 rotate-6 overflow-hidden rounded-2xl bg-surface-elevated p-2 shadow-[0_20px_40px_rgba(69,126,255,0.45)] md:-right-4 md:-top-6"
           >
             <MoonsLogo href="" variant="white" size="md" />
           </div>
 
           <div className="grid gap-10 sm:grid-cols-2">
             <div>
-              <h3 className="font-script text-2xl text-slate-500">Navigation</h3>
+              <h3 className="font-script text-2xl text-moons-muted">Navigation</h3>
               <ul className="mt-4 space-y-3">
                 {navigationLinks.map((link) => (
                   <li key={link.label}>
@@ -136,7 +136,7 @@ export function SiteFooter() {
             </div>
 
             <div>
-              <h3 className="font-script text-2xl text-slate-500">Company</h3>
+              <h3 className="font-script text-2xl text-moons-muted">Company</h3>
               <ul className="mt-4 space-y-3">
                 {companyLinks.map((link) => (
                   <li key={link.label}>
@@ -153,12 +153,12 @@ export function SiteFooter() {
           </div>
 
           <div className="mt-12 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-moons-muted">
               © {new Date().getFullYear()} Moons. All rights reserved.
             </p>
 
             <div className="w-full max-w-md lg:text-right">
-              <p className="text-sm text-slate-400">Jobs move fast.</p>
+              <p className="text-sm text-moons-muted">Jobs move fast.</p>
               <p className="text-lg font-bold text-moons-navy">Stay ahead with Moons.</p>
 
               <form onSubmit={handleSubscribe} className="relative mt-4">
@@ -168,11 +168,11 @@ export function SiteFooter() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter email address"
                   required
-                  className="w-full rounded-full border border-slate-200 bg-white py-3.5 pl-5 pr-32 text-sm text-moons-navy outline-none ring-moons-blue/30 placeholder:text-slate-400 focus:ring-2"
+                  className="w-full rounded-full border border-border bg-surface-elevated py-3.5 pl-5 pr-32 text-sm text-moons-navy outline-none ring-moons-blue/30 placeholder:text-moons-muted focus:ring-2"
                 />
                 <button
                   type="submit"
-                  className="absolute right-1.5 top-1.5 rounded-full bg-moons-navy px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  className="absolute right-1.5 top-1.5 rounded-full bg-moons-navy px-5 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
                 >
                   Subscribe
                 </button>

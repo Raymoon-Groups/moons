@@ -60,6 +60,50 @@ export class EmailService {
     await this.deliverEmail(from, email, subject, text, html, otp, 'OTP');
   }
 
+  async sendApplicationReceivedEmail(
+    recruiterEmail: string,
+    jobTitle: string,
+    candidateName: string,
+  ) {
+    const from = process.env.SMTP_FROM ?? 'Moons Jobs <noreply@moons.com>';
+    const subject = `New application for ${jobTitle}`;
+    const text = `${candidateName} applied to your job posting "${jobTitle}". Log in to Moons to review their profile.`;
+    const html = `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #1e293b;">New job application</h2>
+        <p style="color: #475569;"><strong>${candidateName}</strong> applied to <strong>${jobTitle}</strong>.</p>
+        <p style="color: #94a3b8; font-size: 14px;">Log in to Moons to review their profile and resume.</p>
+      </div>
+    `;
+    await this.deliverEmail(from, recruiterEmail, subject, text, html, subject, 'application');
+  }
+
+  async sendApplicationStatusEmail(
+    candidateEmail: string,
+    jobTitle: string,
+    companyName: string,
+    status: string,
+  ) {
+    const from = process.env.SMTP_FROM ?? 'Moons Jobs <noreply@moons.com>';
+    const subject = `Application update: ${jobTitle}`;
+    const text = `Your application for ${jobTitle} at ${companyName} is now ${status}.`;
+    const html = `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #1e293b;">Application status updated</h2>
+        <p style="color: #475569;">Your application for <strong>${jobTitle}</strong> at <strong>${companyName}</strong> is now <strong>${status}</strong>.</p>
+      </div>
+    `;
+    await this.deliverEmail(
+      from,
+      candidateEmail,
+      subject,
+      text,
+      html,
+      `${jobTitle}:${status}`,
+      'status',
+    );
+  }
+
   private async deliverEmail(
     from: string,
     to: string,

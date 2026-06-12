@@ -75,7 +75,7 @@ export default function SecuritySettingsPage() {
 
   if (!ready || !user) {
     return (
-      <div className="p-8 text-center text-sm text-slate-500">Loading…</div>
+      <div className="p-8 text-center text-sm text-moons-muted">Loading…</div>
     );
   }
 
@@ -89,32 +89,32 @@ export default function SecuritySettingsPage() {
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-surface-elevated p-6 shadow-sm">
         <h1 className="text-xl font-bold text-moons-navy">Security Settings</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-foreground">
           Manage how you sign in to your Moons account.
         </p>
 
-        <div className="mt-6 space-y-4 rounded-xl bg-slate-50 p-4 text-sm">
+        <div className="mt-6 space-y-4 rounded-xl bg-surface p-4 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-slate-600">Email</span>
-            <span className="font-medium text-slate-800">{user.email}</span>
+            <span className="text-foreground">Email</span>
+            <span className="font-medium text-foreground">{user.email}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-600">Email verified</span>
+            <span className="text-foreground">Email verified</span>
             <span className={`font-medium ${user.emailVerified ? 'text-green-700' : 'text-amber-700'}`}>
               {user.emailVerified ? 'Yes' : 'No'}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-600">Email &amp; Password</span>
+            <span className="text-foreground">Email &amp; Password</span>
             <span className={`font-medium ${user.hasPassword ? 'text-green-700' : 'text-amber-700'}`}>
               {user.hasPassword ? 'Enabled' : 'Not set'}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-600">Google Sign-In</span>
-            <span className={`font-medium ${user.hasGoogle ? 'text-green-700' : 'text-slate-500'}`}>
+            <span className="text-foreground">Google Sign-In</span>
+            <span className={`font-medium ${user.hasGoogle ? 'text-green-700' : 'text-moons-muted'}`}>
               {user.hasGoogle ? 'Linked' : 'Not linked'}
             </span>
           </div>
@@ -122,7 +122,7 @@ export default function SecuritySettingsPage() {
 
         {canCreatePassword ? (
           <form onSubmit={handleCreatePassword} className="mt-8 space-y-5">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-foreground">
               Your account was created with Google. Create a password to also sign in with your email.
             </p>
 
@@ -154,14 +154,14 @@ export default function SecuritySettingsPage() {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-full bg-moons-navy px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+              className="rounded-full bg-moons-blue px-6 py-3 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
             >
               {loading ? 'Saving…' : 'Create Password'}
             </button>
           </form>
         ) : (
           <form onSubmit={handleChangePassword} className="mt-8 space-y-5">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-foreground">
               Update your password. You will need your current password to make changes.
             </p>
 
@@ -202,7 +202,7 @@ export default function SecuritySettingsPage() {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-full bg-moons-navy px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+              className="rounded-full bg-moons-blue px-6 py-3 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
             >
               {loading ? 'Saving…' : 'Change Password'}
             </button>

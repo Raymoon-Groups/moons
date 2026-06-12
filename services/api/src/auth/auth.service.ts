@@ -420,6 +420,9 @@ export class AuthService {
       profileData.fullName = dto.fullName.trim();
       profileData.phone = dto.phone.trim();
       profileData.location = dto.location.trim();
+      if (dto.headline?.trim()) {
+        profileData.headline = dto.headline.trim();
+      }
     } else {
       if (!dto.companyName?.trim()) {
         throw new BadRequestException('Company name is required');
@@ -438,6 +441,9 @@ export class AuthService {
       profileData.companyWebsite = dto.companyWebsite.trim();
       profileData.companySize = dto.companySize.trim();
       profileData.fullName = dto.fullName?.trim() || dto.designation.trim();
+      if (dto.industry?.trim()) {
+        profileData.industry = dto.industry.trim();
+      }
     }
 
     if (resumeFile && user.role === UserRole.CANDIDATE) {

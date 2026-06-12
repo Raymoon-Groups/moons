@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -43,6 +44,13 @@ export class ApplicationsController {
     return this.applicationsService.findByCandidate(user.sub);
   }
 
+  @Get('mine/stats')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.CANDIDATE)
+  candidateStats(@CurrentUser() user: JwtPayload) {
+    return this.applicationsService.getCandidateStats(user.sub);
+  }
+
   @Get('check')
   @UseGuards(RolesGuard)
   @Roles(UserRole.CANDIDATE)
@@ -61,6 +69,13 @@ export class ApplicationsController {
     @Param('jobId') jobId: string,
   ) {
     return this.applicationsService.findByJob(jobId, user.sub);
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.CANDIDATE)
+  withdraw(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.applicationsService.withdraw(id, user.sub);
   }
 
   @Patch(':id/status')

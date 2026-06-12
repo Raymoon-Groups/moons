@@ -50,7 +50,7 @@ export function GoogleSignInButton({
 
   const wrapperClass =
     variant === 'auth'
-      ? 'overflow-hidden rounded-full border border-slate-200 [&>div]:flex [&>div]:w-full [&>div]:justify-center [&_iframe]:!max-w-full'
+      ? 'overflow-hidden rounded-full border border-border [&>div]:flex [&>div]:w-full [&>div]:justify-center [&_iframe]:!max-w-full'
       : 'flex justify-center [&>div]:w-full';
 
   return (

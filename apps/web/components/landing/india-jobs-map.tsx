@@ -103,7 +103,7 @@ export function IndiaJobsMap() {
 
   return (
     <div className="mt-6">
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 shadow-sm md:p-8">
+      <div className="overflow-hidden rounded-xl border border-border bg-gradient-to-b from-slate-50 to-white p-4 shadow-sm md:p-8">
         <svg
           viewBox={MAP_VIEWBOX}
           className="mx-auto h-auto w-full max-w-xl"
@@ -142,7 +142,7 @@ export function IndiaJobsMap() {
           <Link
             key={city.city}
             href={`/jobs?location=${encodeURIComponent(city.locationQuery)}`}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-moons-blue hover:text-moons-blue"
+            className="rounded-full border border-border bg-surface-elevated px-4 py-2 text-xs font-semibold text-moons-silver transition hover:border-moons-blue hover:text-moons-blue"
           >
             {city.city}
             <span className="ml-1.5 font-normal text-moons-muted">{city.jobs}</span>
