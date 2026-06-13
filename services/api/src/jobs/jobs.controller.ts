@@ -22,7 +22,9 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { OnboardingGuard } from '../common/guards/onboarding.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CreateJobDto } from './dto/create-job.dto';
+import { ListCompaniesDto } from './dto/list-companies.dto';
 import { ListJobsDto } from './dto/list-jobs.dto';
+import { SuggestLocationsDto } from './dto/suggest-locations.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { JobsService } from './jobs.service';
 
@@ -39,6 +41,17 @@ export class JobsController {
   @Get('companies/top')
   topCompanies() {
     return this.jobsService.findTopCompanies();
+  }
+
+  @Get('companies')
+  listCompanies(@Query() query: ListCompaniesDto) {
+    return this.jobsService.findCompanies(query);
+  }
+
+  @Get('locations/suggest')
+  suggestLocations(@Query() query: SuggestLocationsDto) {
+    const limit = Math.min(Math.max(Number(query.limit) || 8, 1), 12);
+    return this.jobsService.suggestLocations(query.q, limit);
   }
 
   @Get()
@@ -60,6 +73,14 @@ export class JobsController {
   @ApiBearerAuth()
   recruiterStats(@CurrentUser() user: JwtPayload) {
     return this.jobsService.getRecruiterStats(user.sub);
+  }
+
+  @Get('mine/:id')
+  @UseGuards(JwtAuthGuard, OnboardingGuard, RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  @ApiBearerAuth()
+  findMineOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.jobsService.findOwnedByRecruiter(user.sub, id);
   }
 
   @Get(':id')

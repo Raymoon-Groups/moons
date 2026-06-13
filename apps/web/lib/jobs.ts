@@ -3,6 +3,7 @@ export interface JobListing {
   recruiterId?: string;
   title: string;
   companyName: string;
+  postedByCompanyName?: string | null;
   description: string;
   location: string;
   employmentType: string;
@@ -38,6 +39,28 @@ export interface TopCompany {
   location: string | null;
 }
 
+export interface CompanyListing {
+  recruiterId: string;
+  companyName: string;
+  openJobs: number;
+  companyLogoUrl: string | null;
+  industry: string | null;
+  companyType: string | null;
+  companySize: string | null;
+  location: string | null;
+  companyWebsite: string | null;
+  companySummary: string | null;
+  featuredJobs: Array<{ id: string; title: string; location: string }>;
+}
+
+export interface CompaniesPage {
+  items: CompanyListing[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface PublicCompanyProfile {
   recruiterId: string;
   companyName: string | null;
@@ -65,10 +88,44 @@ export function formatJobExperience(job: Pick<JobListing, 'minExperienceYears' |
   const max = job.maxExperienceYears;
   if (min == null && max == null) return null;
   if (min === 0 && (max === 0 || max == null)) return 'Fresher';
-  if (min != null && max != null) return `${min}–${max} yrs`;
-  if (min != null) return `${min}+ yrs`;
-  if (max != null) return `Up to ${max} yrs`;
+  if (min != null && max != null && min === max) {
+    return min === 1 ? '1 year' : `${min} years`;
+  }
+  if (min != null && max != null) {
+    return `${min}–${max} years`;
+  }
+  if (min != null) {
+    return min === 1 ? 'Min. 1 year' : `Min. ${min} years`;
+  }
+  if (max != null) {
+    return max === 1 ? 'Up to 1 year' : `Up to ${max} years`;
+  }
   return null;
+}
+
+/** Longer label for job detail panels */
+export function formatExperienceRequiredDetail(
+  job: Pick<JobListing, 'minExperienceYears' | 'maxExperienceYears'>,
+) {
+  const min = job.minExperienceYears;
+  const max = job.maxExperienceYears;
+  if (min == null && max == null) return null;
+  if (min === 0 && (max === 0 || max == null)) return 'Fresher (less than 1 year)';
+  return formatJobExperience(job);
+}
+
+export function isPostedByOtherCompany(
+  job: Pick<JobListing, 'companyName' | 'postedByCompanyName'>,
+): boolean {
+  const poster = job.postedByCompanyName?.trim();
+  if (!poster) return false;
+  return poster.toLowerCase() !== job.companyName.trim().toLowerCase();
+}
+
+export function getEmployerCompanyMeta(
+  job: Pick<JobListing, 'industry' | 'companyType'>,
+): string {
+  return [job.industry, job.companyType].filter(Boolean).join(' · ');
 }
 
 export const SALARY_OPTIONS = [

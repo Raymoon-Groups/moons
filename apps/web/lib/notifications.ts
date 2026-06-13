@@ -19,6 +19,13 @@ export function markAllNotificationsRead() {
   return authFetch<{ success: boolean }>('/notifications/read-all', { method: 'POST' });
 }
 
+/** Tell open notification UIs to refresh immediately (e.g. after apply). */
+export function notifyNotificationsRefresh() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('moons:notifications-refresh'));
+  }
+}
+
 export function formatNotificationTime(iso: string) {
   const date = new Date(iso);
   const now = new Date();

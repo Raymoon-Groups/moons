@@ -1,19 +1,59 @@
+import Link from 'next/link';
 import { resolveAssetUrl } from '@/lib/assets';
-import type { JobListing } from '@/lib/jobs';
+import { getEmployerCompanyMeta, isPostedByOtherCompany, type JobListing } from '@/lib/jobs';
+
+export function PostedByLine({
+  job,
+  className = '',
+}: {
+  job: Pick<JobListing, 'companyName' | 'postedByCompanyName' | 'recruiterId'>;
+  className?: string;
+}) {
+  const poster = job.postedByCompanyName?.trim();
+  if (!poster) return null;
+  if (poster.toLowerCase() === job.companyName.trim().toLowerCase()) return null;
+
+  return (
+    <p className={`text-xs text-moons-muted ${className}`}>
+      Posted by{' '}
+      {job.recruiterId ? (
+        <Link
+          href={`/companies/${job.recruiterId}`}
+          className="font-semibold text-moons-blue hover:underline"
+        >
+          {poster}
+        </Link>
+      ) : (
+        <span className="font-semibold text-foreground">{poster}</span>
+      )}
+    </p>
+  );
+}
 
 export function JobCompanyHeader({
   job,
   size = 'md',
+  variant = 'hiring',
 }: {
   job: Pick<
     JobListing,
-    'companyName' | 'companyLogoUrl' | 'industry' | 'companyType' | 'companyWebsite'
+    | 'companyName'
+    | 'postedByCompanyName'
+    | 'companyLogoUrl'
+    | 'industry'
+    | 'companyType'
+    | 'companyWebsite'
   >;
   size?: 'sm' | 'md';
+  /** hiring = client company on the listing; employer = recruiter profile on MoonsJob */
+  variant?: 'hiring' | 'employer';
 }) {
-  const logoSrc = job.companyLogoUrl ? resolveAssetUrl(job.companyLogoUrl) : null;
+  const showRecruiterMeta = variant === 'employer' || !isPostedByOtherCompany(job);
+  const logoSrc =
+    showRecruiterMeta && job.companyLogoUrl ? resolveAssetUrl(job.companyLogoUrl) : null;
   const logoSize = size === 'sm' ? 'h-10 w-10' : 'h-14 w-14';
-  const meta = [job.industry, job.companyType].filter(Boolean).join(' · ');
+  const meta = showRecruiterMeta ? getEmployerCompanyMeta(job) : '';
+  const website = showRecruiterMeta ? job.companyWebsite : null;
 
   return (
     <div className="flex items-start gap-3">
@@ -34,9 +74,9 @@ export function JobCompanyHeader({
       </div>
       <div>
         <p className={`font-semibold text-moons-silver ${size === 'sm' ? 'text-sm' : 'text-lg'}`}>
-          {job.companyWebsite ? (
+          {website ? (
             <a
-              href={job.companyWebsite}
+              href={website}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-moons-blue hover:underline"

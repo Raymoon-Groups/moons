@@ -14,7 +14,8 @@ import {
   type NotificationItem,
 } from '@/lib/notifications';
 
-const POLL_MS = 30_000;
+const POLL_MS = 10_000;
+const INITIAL_DELAY_MS = 1200;
 
 function notificationIcon(type: NotificationType) {
   switch (type) {
@@ -54,6 +55,11 @@ export function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const openRef = useRef(false);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   const refreshUnread = useCallback(async () => {
     if (!user) return;
@@ -65,30 +71,80 @@ export function NotificationBell() {
     }
   }, [user]);
 
-  const loadNotifications = useCallback(async () => {
+  const loadNotifications = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!user) return;
+      if (!opts?.silent) setLoading(true);
+      try {
+        const [data, { count }] = await Promise.all([
+          fetchNotifications(),
+          fetchUnreadCount(),
+        ]);
+        setItems(data);
+        setUnreadCount(count);
+      } catch {
+        if (!opts?.silent) setItems([]);
+      } finally {
+        if (!opts?.silent) setLoading(false);
+      }
+    },
+    [user],
+  );
+
+  const refreshLive = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
-    try {
-      const data = await fetchNotifications();
-      setItems(data);
+    if (openRef.current) {
+      await loadNotifications({ silent: true });
+    } else {
       await refreshUnread();
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
     }
-  }, [user, refreshUnread]);
+  }, [user, loadNotifications, refreshUnread]);
 
   useEffect(() => {
     if (!ready || !user) return;
-    refreshUnread();
-    const interval = setInterval(refreshUnread, POLL_MS);
-    return () => clearInterval(interval);
-  }, [ready, user, refreshUnread]);
+
+    const initialTimer = window.setTimeout(() => {
+      void refreshUnread();
+      void loadNotifications({ silent: true });
+    }, INITIAL_DELAY_MS);
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void refreshLive();
+      }
+    }, POLL_MS);
+
+    function onVisible() {
+      if (document.visibilityState === 'visible') {
+        void refreshLive();
+      }
+    }
+
+    let manualRefreshTimer: number | undefined;
+    function onManualRefresh() {
+      if (manualRefreshTimer) window.clearTimeout(manualRefreshTimer);
+      manualRefreshTimer = window.setTimeout(() => {
+        void refreshLive();
+      }, INITIAL_DELAY_MS);
+    }
+
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('moons:notifications-refresh', onManualRefresh);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      if (manualRefreshTimer) window.clearTimeout(manualRefreshTimer);
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('moons:notifications-refresh', onManualRefresh);
+    };
+  }, [ready, user, refreshUnread, loadNotifications, refreshLive]);
 
   useEffect(() => {
     if (open && user) {
-      loadNotifications();
+      void loadNotifications();
     }
   }, [open, user, loadNotifications]);
 
@@ -124,16 +180,20 @@ export function NotificationBell() {
     }
   }
 
-  async function handleMarkAllRead() {
+  async function markAllRead() {
+    setUnreadCount(0);
+    setItems((prev) =>
+      prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
+    );
     try {
       await markAllNotificationsRead();
-      setUnreadCount(0);
-      setItems((prev) =>
-        prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
-      );
     } catch {
-      // ignore
+      await loadNotifications();
     }
+  }
+
+  function handleBellClick() {
+    setOpen((prev) => !prev);
   }
 
   if (!ready || !user) return null;
@@ -142,7 +202,7 @@ export function NotificationBell() {
     <div className="relative" ref={panelRef}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleBellClick}
         className="relative rounded-full p-1 text-moons-muted transition hover:bg-surface-hover hover:text-moons-blue"
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={open}
@@ -175,7 +235,7 @@ export function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 type="button"
-                onClick={handleMarkAllRead}
+                onClick={markAllRead}
                 className="text-xs font-medium text-moons-blue hover:underline"
               >
                 Mark all read

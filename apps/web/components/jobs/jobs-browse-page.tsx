@@ -2,13 +2,17 @@
 
 import { EmploymentType } from '@moons/shared';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { HeroJobSearchForm } from '@/components/jobs/hero-job-search-form';
 import { JobDetailPanel } from '@/components/jobs/job-detail-panel';
+import { formatJobListMeta } from '@/components/jobs/job-key-details';
 import { JobTags } from '@/components/jobs/job-tags';
 import { apiFetch } from '@/lib/api-client';
 import { formatPostedAgo } from '@/lib/job-formatters';
 import { resolveAssetUrl } from '@/lib/assets';
-import { SALARY_OPTIONS, type JobListing, type JobsPage } from '@/lib/jobs';
+import { SALARY_OPTIONS, isPostedByOtherCompany, type JobListing, type JobsPage } from '@/lib/jobs';
+import { normalizeExperienceValue } from '@/lib/experience-options';
+import { EXPERIENCE_FILTER_OPTIONS } from '@/lib/jobs-search';
 
 function normalizeJobsPage(data: JobsPage | JobListing[], page: number): JobsPage {
   if (Array.isArray(data)) {
@@ -93,7 +97,10 @@ function JobListCard({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const logoSrc = job.companyLogoUrl ? resolveAssetUrl(job.companyLogoUrl) : null;
+  const logoSrc =
+    !isPostedByOtherCompany(job) && job.companyLogoUrl
+      ? resolveAssetUrl(job.companyLogoUrl)
+      : null;
 
   return (
     <button
@@ -118,10 +125,21 @@ function JobListCard({
         <div className="min-w-0 flex-1">
           <p className="truncate font-bold text-moons-navy">{job.title}</p>
           <p className="mt-0.5 text-sm text-moons-muted">{job.companyName}</p>
+          {job.postedByCompanyName &&
+            job.postedByCompanyName.trim().toLowerCase() !==
+              job.companyName.trim().toLowerCase() && (
+              <p className="mt-0.5 text-[10px] text-moons-muted">
+                Posted by {job.postedByCompanyName}
+              </p>
+            )}
         </div>
       </div>
 
-      <p className="mt-3 text-xs text-moons-muted">{formatPostedAgo(job.createdAt)}</p>
+      <p className="mt-2 text-xs text-moons-muted">
+        {formatJobListMeta(job) || 'Location & salary not specified'}
+      </p>
+
+      <p className="mt-2 text-xs text-moons-muted">{formatPostedAgo(job.createdAt)}</p>
 
       <div className="mt-3">
         <JobTags job={job} />
@@ -136,12 +154,11 @@ export function JobsBrowsePage() {
 
   const q = searchParams.get('q') ?? '';
   const location = searchParams.get('location') ?? '';
-  const experience = searchParams.get('experience') ?? '';
+  const experienceRaw = searchParams.get('experience') ?? '';
+  const experience = experienceRaw ? normalizeExperienceValue(experienceRaw) : '';
   const page = Number(searchParams.get('page') ?? '1') || 1;
   const selectedJobId = searchParams.get('job') ?? '';
 
-  const [searchQ, setSearchQ] = useState(q);
-  const [searchLocation, setSearchLocation] = useState(location);
   const [data, setData] = useState<JobsPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -153,9 +170,8 @@ export function JobsBrowsePage() {
   const [filterIndustry, setFilterIndustry] = useState('');
 
   useEffect(() => {
-    setSearchQ(q);
-    setSearchLocation(location);
-  }, [q, location]);
+    if (selectedJobId) setMobileShowDetail(true);
+  }, [selectedJobId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -195,6 +211,11 @@ export function JobsBrowsePage() {
     });
   }, [jobs, filterCompany, filterJobType, filterSalary, filterIndustry]);
 
+  const selectedJob = useMemo(
+    () => filteredJobs.find((j) => j.id === selectedJobId) ?? null,
+    [filteredJobs, selectedJobId],
+  );
+
   const companyOptions = useMemo(() => {
     const names = [...new Set(jobs.map((j) => j.companyName))].sort();
     return names.map((name) => ({ label: name, value: name }));
@@ -221,43 +242,19 @@ export function JobsBrowsePage() {
 
   useEffect(() => {
     if (loading || filteredJobs.length === 0) return;
-    const exists = filteredJobs.some((j) => j.id === selectedJobId);
-    if (!selectedJobId || !exists) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('job', filteredJobs[0].id);
-      router.replace(`/jobs?${params.toString()}`, { scroll: false });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to list/selection changes
+    if (selectedJobId) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('job', filteredJobs[0].id);
+    router.replace(`/jobs?${params.toString()}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only auto-pick when no job in URL
   }, [loading, filteredJobs, selectedJobId]);
-
-  function handleSearch(e: FormEvent) {
-    e.preventDefault();
-    router.push(
-      buildUrl({
-        q: searchQ.trim() || null,
-        location: searchLocation.trim() || null,
-        page: null,
-        job: null,
-      }),
-    );
-  }
-
-  function clearSearch() {
-    setSearchQ('');
-    setSearchLocation('');
-    router.push('/jobs');
-  }
 
   function pageHref(nextPage: number) {
     return buildUrl({ page: String(nextPage) });
   }
 
-  const experienceOptions = [
-    { label: 'Fresher', value: 'fresher' },
-    { label: '1–3 years', value: '1-3' },
-    { label: '3–6 years', value: '3-6' },
-    { label: '6+ years', value: '6+' },
-  ];
+  const experienceOptions = [...EXPERIENCE_FILTER_OPTIONS];
 
   const jobTypeOptions = Object.values(EmploymentType).map((t) => ({
     label: t.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -267,7 +264,7 @@ export function JobsBrowsePage() {
   return (
     <div className="min-h-screen bg-[#f0f3f8]">
       {/* Search hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#1a2744] via-[#243b6b] to-[#1a3a6e] px-4 pb-16 pt-10 md:pb-20 md:pt-12">
+      <section className="relative overflow-x-clip overflow-y-visible bg-gradient-to-br from-[#1a2744] via-[#243b6b] to-[#1a3a6e] px-4 pb-16 pt-10 md:pb-20 md:pt-12">
         <div
           className="pointer-events-none absolute inset-0 opacity-20"
           style={{
@@ -285,45 +282,13 @@ export function JobsBrowsePage() {
           </p>
         </div>
 
-        <form
-          onSubmit={handleSearch}
-          className="relative mx-auto mt-8 flex max-w-4xl flex-col gap-2 rounded-2xl border border-white/20 bg-white p-2 shadow-xl sm:flex-row sm:items-center"
-        >
-          <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2">
-            <SearchIcon />
-            <input
-              value={searchQ}
-              onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="Job title or keyword"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-moons-muted"
-            />
-          </div>
-          <div className="hidden h-8 w-px bg-border sm:block" />
-          <div className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2">
-            <PinIcon />
-            <input
-              value={searchLocation}
-              onChange={(e) => setSearchLocation(e.target.value)}
-              placeholder="City or remote"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-moons-muted"
-            />
-          </div>
-          <div className="flex items-center gap-2 px-1 pb-1 sm:pb-0">
-            <button
-              type="button"
-              onClick={clearSearch}
-              className="px-3 py-2 text-sm font-medium text-moons-muted hover:text-foreground"
-            >
-              Clear
-            </button>
-            <button
-              type="submit"
-              className="rounded-xl bg-moons-blue px-6 py-2.5 text-sm font-semibold text-white hover:bg-moons-blue-dark"
-            >
-              Search
-            </button>
-          </div>
-        </form>
+        <HeroJobSearchForm
+          variant="compact"
+          initialQ={q}
+          initialLocation={location}
+          initialExperience={experience}
+          showClear
+        />
       </section>
 
       {/* Filters */}
@@ -386,13 +351,13 @@ export function JobsBrowsePage() {
           <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</p>
         )}
 
-        {!loading && !error && filteredJobs.length === 0 && (
+        {!loading && !error && filteredJobs.length === 0 && !selectedJobId && (
           <p className="rounded-xl border border-border bg-white p-8 text-center text-sm text-moons-muted">
             No jobs found. Try a different search or clear filters.
           </p>
         )}
 
-        {!loading && !error && filteredJobs.length > 0 && (
+        {!loading && !error && (filteredJobs.length > 0 || selectedJobId) && (
           <div className="grid h-[calc(100vh-22rem)] min-h-[520px] gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
             {/* Job list */}
             <div
@@ -401,14 +366,20 @@ export function JobsBrowsePage() {
               }`}
             >
               <div className="flex-1 space-y-3 overflow-y-auto p-1 pr-2">
-                {filteredJobs.map((job) => (
-                  <JobListCard
-                    key={job.id}
-                    job={job}
-                    selected={job.id === selectedJobId}
-                    onSelect={() => selectJob(job.id)}
-                  />
-                ))}
+                {filteredJobs.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-border bg-white p-6 text-center text-sm text-moons-muted">
+                    No matching jobs in this list. View the selected job on the right.
+                  </p>
+                ) : (
+                  filteredJobs.map((job) => (
+                    <JobListCard
+                      key={job.id}
+                      job={job}
+                      selected={job.id === selectedJobId}
+                      onSelect={() => selectJob(job.id)}
+                    />
+                  ))
+                )}
               </div>
 
               {data && data.totalPages > 1 && (
@@ -450,6 +421,7 @@ export function JobsBrowsePage() {
             >
               <JobDetailPanel
                 jobId={selectedJobId || null}
+                initialJob={selectedJob}
                 showClose={mobileShowDetail}
                 onClose={() => setMobileShowDetail(false)}
               />
@@ -458,23 +430,6 @@ export function JobsBrowsePage() {
         )}
       </div>
     </div>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg className="h-4 w-4 shrink-0 text-moons-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-  );
-}
-
-function PinIcon() {
-  return (
-    <svg className="h-4 w-4 shrink-0 text-moons-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
   );
 }
 

@@ -69,7 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = getAccessToken();
     if (stored && token) {
       setUser(stored);
-      refreshProfile();
+      const timer = window.setTimeout(() => {
+        refreshProfile();
+      }, 800);
+      setReady(true);
+      return () => window.clearTimeout(timer);
     }
     setReady(true);
   }, [refreshProfile]);

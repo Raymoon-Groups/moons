@@ -30,8 +30,8 @@ export default function CompanyPage() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
         <p className="text-sm text-red-600">{error || 'Company not found'}</p>
-        <Link href="/jobs" className="mt-4 inline-block text-sm text-moons-blue hover:underline">
-          ← Browse jobs
+        <Link href="/companies" className="mt-4 inline-block text-sm text-moons-blue hover:underline">
+          ← Browse companies
         </Link>
       </div>
     );
@@ -43,7 +43,7 @@ export default function CompanyPage() {
     <div className="min-h-screen bg-background">
       <div className="border-b border-border bg-surface-elevated">
         <div className="mx-auto max-w-4xl px-4 py-6">
-          <Link href="/jobs" className="text-xs text-moons-blue hover:underline">← Back to jobs</Link>
+          <Link href="/companies" className="text-xs text-moons-blue hover:underline">← Back to companies</Link>
           <div className="mt-4 flex items-start gap-4">
             <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-elevated">
               {logoSrc ? (

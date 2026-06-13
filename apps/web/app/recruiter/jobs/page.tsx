@@ -1,13 +1,138 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@moons/shared';
-import { JobCompanyHeader } from '@/components/job-company-header';
+import { PostedByLine } from '@/components/job-company-header';
+import { JobTags } from '@/components/jobs/job-tags';
 import { authDelete, authFetch } from '@/lib/api-client';
+import { resolveAssetUrl } from '@/lib/assets';
 import { getStoredUser } from '@/lib/auth';
-import type { JobListing } from '@/lib/jobs';
+import { formatEmploymentType, formatPostedAgo } from '@/lib/job-formatters';
+import { isPostedByOtherCompany, type JobListing } from '@/lib/jobs';
+
+function StatusBadge({ status }: { status: string }) {
+  const styles =
+    status === 'PUBLISHED'
+      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+      : status === 'CLOSED'
+        ? 'bg-amber-50 text-amber-800 ring-amber-200'
+        : 'bg-surface text-moons-muted ring-border';
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${styles}`}>
+      {status === 'PUBLISHED' ? 'Live' : status.charAt(0) + status.slice(1).toLowerCase()}
+    </span>
+  );
+}
+
+function JobCard({
+  job,
+  closingId,
+  deletingId,
+  onClose,
+  onDelete,
+}: {
+  job: JobListing;
+  closingId: string | null;
+  deletingId: string | null;
+  onClose: (job: JobListing) => void;
+  onDelete: (job: JobListing) => void;
+}) {
+  const logoSrc =
+    !isPostedByOtherCompany(job) && job.companyLogoUrl
+      ? resolveAssetUrl(job.companyLogoUrl)
+      : null;
+
+  return (
+    <article className="rounded-xl border border-border bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+            {logoSrc ? (
+              <img src={logoSrc} alt="" className="h-full w-full object-contain p-1.5" />
+            ) : (
+              <span className="text-lg font-bold text-moons-muted">
+                {job.companyName.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={job.status} />
+              <JobTags job={job} size="sm" />
+            </div>
+
+            <Link
+              href={`/recruiter/jobs/${job.id}`}
+              className="mt-3 block text-lg font-bold tracking-tight text-moons-navy transition hover:text-moons-blue"
+            >
+              {job.title}
+            </Link>
+
+            <p className="mt-1.5 text-sm text-moons-muted">
+              <span className="font-semibold text-foreground">{job.companyName}</span>
+              {job.location ? ` · ${job.location}` : ''}
+              {' · '}
+              Posted {formatPostedAgo(job.createdAt)}
+            </p>
+
+            <PostedByLine job={job} className="mt-1.5" />
+
+            <p className="mt-2 text-xs text-moons-muted">
+              {formatEmploymentType(job.employmentType)}
+              {job.salaryRange ? ` · ${job.salaryRange}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2 sm:min-w-[200px]">
+          <Link
+            href={`/recruiter/jobs/${job.id}`}
+            className="rounded-lg bg-moons-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+          >
+            View job
+          </Link>
+          <Link
+            href={`/recruiter/jobs/${job.id}/applicants`}
+            className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+          >
+            View applicants
+          </Link>
+          <Link
+            href={`/recruiter/jobs/${job.id}/edit`}
+            className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-moons-navy"
+          >
+            Edit job
+          </Link>
+
+          <div className="mt-1 flex gap-2">
+            {job.status === 'PUBLISHED' && (
+              <button
+                type="button"
+                onClick={() => onClose(job)}
+                disabled={closingId === job.id}
+                className="flex-1 rounded-lg border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-60"
+              >
+                {closingId === job.id ? 'Closing…' : 'Close'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onDelete(job)}
+              disabled={deletingId === job.id}
+              className="flex-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+            >
+              {deletingId === job.id ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function RecruiterJobsPage() {
   const router = useRouter();
@@ -16,6 +141,12 @@ export default function RecruiterJobsPage() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
+
+  const stats = useMemo(() => {
+    const live = jobs.filter((j) => j.status === 'PUBLISHED').length;
+    const closed = jobs.filter((j) => j.status === 'CLOSED').length;
+    return { total: jobs.length, live, closed };
+  }, [jobs]);
 
   useEffect(() => {
     const user = getStoredUser();
@@ -68,90 +199,135 @@ export default function RecruiterJobsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/dashboard" className="text-xs text-moons-blue hover:underline">
-            ← Dashboard
-          </Link>
-          <h1 className="mt-1 text-xl font-bold text-moons-navy">My posted jobs</h1>
-          <p className="mt-1 text-sm text-moons-muted">Post, manage, and review applicants</p>
-        </div>
+    <div className="min-h-screen bg-[#f0f3f8]">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <Link
-          href="/recruiter/jobs/new"
-          className="rounded-md bg-moons-orange px-4 py-2 text-sm font-bold text-white hover:bg-moons-orange-dark"
+          href="/dashboard"
+          className="inline-flex items-center gap-1 text-sm font-medium text-moons-blue hover:underline"
         >
-          + Post job
+          ← Dashboard
         </Link>
-      </div>
 
-      {loading && <p className="mt-6 text-sm text-moons-muted">Loading…</p>}
-      {error && <p className="mt-6 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-
-      <div className="mt-6 space-y-3">
-        {!loading && jobs.length === 0 && (
-          <p className="rounded-lg border border-border bg-surface-elevated p-8 text-center text-sm text-moons-muted">
-            No jobs posted yet.{' '}
-            <Link href="/recruiter/jobs/new" className="text-moons-blue hover:underline">
-              Post your first job
-            </Link>
-          </p>
-        )}
-        {jobs.map((job) => (
-          <div
-            key={job.id}
-            className="rounded-lg border border-border bg-surface-elevated p-4 shadow-sm"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <Link
-                  href={`/jobs/${job.id}`}
-                  className="font-semibold text-moons-navy hover:text-moons-blue hover:underline"
-                >
-                  {job.title}
-                </Link>
-                <div className="mt-2">
-                  <JobCompanyHeader job={job} size="sm" />
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] lg:items-start">
+          <div className="min-w-0 space-y-5">
+            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
+                    Recruiter
+                  </p>
+                  <h1 className="mt-2 text-2xl font-bold tracking-tight text-moons-navy md:text-3xl">
+                    My posted jobs
+                  </h1>
+                  <p className="mt-2 text-sm text-moons-muted">
+                    Manage listings, review applicants, and keep your openings up to date.
+                  </p>
                 </div>
-                <p className="mt-2 text-xs text-moons-muted">
-                  {job.location} · {job.employmentType.replace('_', ' ')} · {job.status}
-                </p>
+                <Link
+                  href="/recruiter/jobs/new"
+                  className="inline-flex shrink-0 items-center justify-center rounded-lg bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+                >
+                  + Post a job
+                </Link>
               </div>
-              <div className="flex flex-wrap gap-2">
+            </section>
+
+            {error && (
+              <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {error}
+              </p>
+            )}
+
+            {loading && (
+              <div className="rounded-xl border border-border bg-white p-10 text-center text-sm text-moons-muted shadow-sm">
+                Loading your jobs…
+              </div>
+            )}
+
+            {!loading && jobs.length === 0 && (
+              <div className="rounded-xl border border-dashed border-moons-blue/40 bg-white p-10 text-center shadow-sm">
+                <p className="text-base font-semibold text-moons-navy">No jobs posted yet</p>
+                <p className="mt-2 text-sm text-moons-muted">
+                  Create your first listing to start receiving applications from candidates.
+                </p>
                 <Link
-                  href={`/recruiter/jobs/${job.id}/applicants`}
-                  className="rounded-md border border-moons-blue px-4 py-2 text-sm font-semibold text-moons-blue hover:bg-surface-hover"
+                  href="/recruiter/jobs/new"
+                  className="mt-5 inline-flex rounded-lg bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
                 >
-                  View applicants
+                  Post your first job
+                </Link>
+              </div>
+            )}
+
+            {!loading && jobs.length > 0 && (
+              <div className="space-y-4">
+                {jobs.map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    closingId={closingId}
+                    deletingId={deletingId}
+                    onClose={handleClose}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <aside className="space-y-4 lg:sticky lg:top-24">
+            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-moons-navy">Overview</h3>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-moons-muted">Total listings</dt>
+                  <dd className="font-semibold text-moons-navy">{stats.total}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-moons-muted">Live</dt>
+                  <dd className="font-semibold text-emerald-700">{stats.live}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-moons-muted">Closed</dt>
+                  <dd className="font-semibold text-amber-700">{stats.closed}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-moons-navy">Quick actions</h3>
+              <div className="mt-4 flex flex-col gap-2">
+                <Link
+                  href="/recruiter/jobs/new"
+                  className="rounded-lg bg-moons-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+                >
+                  Post a new job
                 </Link>
                 <Link
-                  href={`/recruiter/jobs/${job.id}/edit`}
-                  className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-moons-silver hover:border-moons-blue"
+                  href="/dashboard"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
                 >
-                  Edit
+                  Back to dashboard
                 </Link>
-                {job.status === 'PUBLISHED' && (
-                  <button
-                    type="button"
-                    onClick={() => handleClose(job)}
-                    disabled={closingId === job.id}
-                    className="rounded-md border border-amber-200 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60"
-                  >
-                    {closingId === job.id ? 'Closing…' : 'Close'}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(job)}
-                  disabled={deletingId === job.id}
-                  className="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                <Link
+                  href="/profile"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-moons-navy"
                 >
-                  {deletingId === job.id ? 'Deleting…' : 'Delete'}
-                </button>
+                  Company profile
+                </Link>
               </div>
             </div>
-          </div>
-        ))}
+
+            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-moons-navy">Tips</h3>
+              <ul className="mt-4 space-y-3 text-sm text-moons-muted">
+                <li>Keep live listings updated so candidates see accurate role details.</li>
+                <li>Close jobs when the role is filled instead of deleting them.</li>
+                <li>Review applicants regularly from each job&apos;s applicants page.</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { GoogleLogin } from '@react-oauth/google';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { UserRole, type AuthResponse } from '@moons/shared';
 import { apiFetch } from '@/lib/api-client';
 import { getPostAuthPath } from '@/lib/auth-redirect';
@@ -20,7 +20,26 @@ export function GoogleSignInButton({
   const router = useRouter();
   const { login } = useAuth();
   const [error, setError] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [btnWidth, setBtnWidth] = useState(320);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    function measure() {
+      const w = el!.getBoundingClientRect().width;
+      if (w > 0) {
+        setBtnWidth(Math.min(Math.floor(w), 400));
+      }
+    }
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   async function handleSuccess(idToken: string | undefined) {
     if (!idToken) {
@@ -48,20 +67,25 @@ export function GoogleSignInButton({
     );
   }
 
-  const wrapperClass =
-    variant === 'auth'
-      ? 'overflow-hidden rounded-full border border-border [&>div]:flex [&>div]:w-full [&>div]:justify-center [&_iframe]:!max-w-full'
-      : 'flex justify-center [&>div]:w-full';
+  const isAuth = variant === 'auth';
 
   return (
     <div className="space-y-3">
-      <div className={wrapperClass}>
+      <div
+        ref={containerRef}
+        className={
+          isAuth
+            ? 'google-sign-in-auth w-full min-h-[44px]'
+            : 'flex w-full justify-center'
+        }
+      >
         <GoogleLogin
           text="continue_with"
-          shape={variant === 'auth' ? 'pill' : 'rectangular'}
+          shape={isAuth ? 'pill' : 'rectangular'}
           theme="outline"
           size="large"
-          width={variant === 'auth' ? 400 : 360}
+          logo_alignment="left"
+          width={btnWidth}
           onSuccess={(res) => handleSuccess(res.credential)}
           onError={() => setError('Google sign-in was cancelled or failed')}
         />

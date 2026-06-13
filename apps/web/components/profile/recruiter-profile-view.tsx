@@ -53,6 +53,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [photoKey, setPhotoKey] = useState(0);
+  const [logoKey, setLogoKey] = useState(0);
 
   const displayName = fullName.trim() || companyName.trim() || profile.email.split('@')[0];
 
@@ -99,6 +100,59 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
   const liveCompletion = Math.round(
     (completionItems.filter((i) => i.done).length / completionItems.length) * 100,
   );
+
+  async function refreshProfileAfterUpload() {
+    const saved = await authFetch<Profile>('/profiles/me');
+    setProfile(saved);
+    onSaved(saved);
+    setShowSuccess(true);
+  }
+
+  async function saveAvatarOnly() {
+    if (!pendingPhoto && !pendingRemovePhoto) return;
+    setSaving(true);
+    setError('');
+    try {
+      if (pendingRemovePhoto) {
+        await authDelete<Profile>('/profiles/me/avatar');
+      } else if (pendingPhoto) {
+        const formData = new FormData();
+        formData.append('avatar', pendingPhoto);
+        await authUpload<Profile>('/profiles/me/avatar', formData);
+      }
+      setPendingPhoto(null);
+      setPendingRemovePhoto(false);
+      setPhotoKey((k) => k + 1);
+      await refreshProfileAfterUpload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save photo');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveLogoOnly() {
+    if (!pendingLogo && !pendingRemoveLogo) return;
+    setSaving(true);
+    setError('');
+    try {
+      if (pendingRemoveLogo) {
+        await authDelete<Profile>('/profiles/me/company-logo');
+      } else if (pendingLogo) {
+        const formData = new FormData();
+        formData.append('logo', pendingLogo);
+        await authUpload<Profile>('/profiles/me/company-logo', formData);
+      }
+      setPendingLogo(null);
+      setPendingRemoveLogo(false);
+      setLogoKey((k) => k + 1);
+      await refreshProfileAfterUpload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save logo');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -147,6 +201,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
       setPendingLogo(null);
       setPendingRemoveLogo(false);
       setPhotoKey((k) => k + 1);
+      setLogoKey((k) => k + 1);
       setShowSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
@@ -169,7 +224,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
       >
         <form id="profile-form" onSubmit={handleSubmit} className="space-y-4">
           <ProfilePhotoSection
-            key={photoKey}
+            key={`photo-${photoKey}`}
             profile={profile}
             email={profile.email}
             displayName={displayName}
@@ -180,6 +235,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
               setPendingPhoto(file);
               setPendingRemovePhoto(remove);
             }}
+            onSave={saveAvatarOnly}
             onError={setError}
           />
 
@@ -280,6 +336,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
           />
 
           <CompanyLogoSection
+            key={`logo-${logoKey}`}
             profile={profile}
             companyName={companyName || 'Company'}
             saving={saving}
@@ -287,6 +344,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
               setPendingLogo(file);
               setPendingRemoveLogo(remove);
             }}
+            onSave={saveLogoOnly}
             onError={setError}
           />
 

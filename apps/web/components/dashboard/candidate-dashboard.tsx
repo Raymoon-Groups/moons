@@ -26,7 +26,7 @@ const JOURNEY_OPTIONS = [
 const NAV_ITEMS = [
   { label: 'My home', href: '/dashboard', icon: HomeIcon },
   { label: 'Jobs', href: '/jobs', icon: BriefcaseIcon },
-  { label: 'Companies', href: '/jobs', icon: BuildingIcon },
+  { label: 'Companies', href: '/companies', icon: BuildingIcon },
   { label: 'Applications', href: '/applications', icon: FileIcon },
 ] as const;
 

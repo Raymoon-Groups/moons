@@ -448,6 +448,10 @@ export class AuthService {
 
     if (resumeFile && user.role === UserRole.CANDIDATE) {
       profileData.resumeUrl = await this.saveResume(userId, resumeFile);
+      profileData.resumeFileName = resumeFile.originalname
+        .replace(/[/\\]/g, '')
+        .trim()
+        .slice(0, 255) || 'resume.pdf';
     } else if (user.role === UserRole.CANDIDATE && !resumeFile) {
       throw new BadRequestException('Resume upload is required');
     }

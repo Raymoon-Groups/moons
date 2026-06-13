@@ -27,6 +27,11 @@ const ALLOWED_RESUME_MIME = new Set([
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const MAX_RESUME_BYTES = 5 * 1024 * 1024;
 
+function sanitizeResumeFileName(originalName: string): string {
+  const base = originalName.replace(/[/\\]/g, '').trim();
+  return base.slice(0, 255) || 'resume.pdf';
+}
+
 type ProfileRecord = {
   id: string;
   userId: string;
@@ -47,6 +52,7 @@ type ProfileRecord = {
   noticePeriod: string | null;
   summary: string | null;
   resumeUrl: string | null;
+  resumeFileName: string | null;
   currentCtc: string | null;
   expectedCtc: string | null;
   educations: Prisma.JsonValue;
@@ -66,13 +72,6 @@ export class ProfilesService {
   constructor(private prisma: PrismaService) {}
 
   async getPublicCompany(recruiterId: string) {
-    const publishedJobs = await this.prisma.job.count({
-      where: { recruiterId, status: JobStatus.PUBLISHED },
-    });
-    if (publishedJobs === 0) {
-      throw new NotFoundException('Company not found');
-    }
-
     const profile = await this.prisma.profile.findUnique({
       where: { userId: recruiterId },
       include: {
@@ -80,6 +79,14 @@ export class ProfilesService {
       },
     });
     if (!profile || profile.user.role !== UserRole.RECRUITER) {
+      throw new NotFoundException('Company not found');
+    }
+
+    const publishedJobs = await this.prisma.job.count({
+      where: { recruiterId, status: JobStatus.PUBLISHED },
+    });
+    const hasJobs = await this.prisma.job.count({ where: { recruiterId } });
+    if (hasJobs === 0) {
       throw new NotFoundException('Company not found');
     }
 
@@ -363,9 +370,10 @@ export class ProfilesService {
     writeFileSync(filepath, file.buffer);
 
     const resumeUrl = `/uploads/resumes/${filename}`;
+    const resumeFileName = sanitizeResumeFileName(file.originalname);
     const updated = await this.prisma.profile.update({
       where: { userId },
-      data: { resumeUrl },
+      data: { resumeUrl, resumeFileName },
       include: { user: { select: { email: true, role: true } } },
     });
 
@@ -381,7 +389,7 @@ export class ProfilesService {
     this.deleteFilesInDir(RESUME_DIR, userId);
     const updated = await this.prisma.profile.update({
       where: { userId },
-      data: { resumeUrl: null },
+      data: { resumeUrl: null, resumeFileName: null },
       include: { user: { select: { email: true, role: true } } },
     });
     return this.toProfileResponse(updated);
@@ -436,6 +444,7 @@ export class ProfilesService {
       noticePeriod: profile.noticePeriod,
       summary: profile.summary,
       resumeUrl: profile.resumeUrl,
+      resumeFileName: profile.resumeFileName,
       currentCtc: profile.currentCtc,
       expectedCtc: profile.expectedCtc,
       educations: this.asArray(profile.educations),

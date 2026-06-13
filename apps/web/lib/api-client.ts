@@ -1,4 +1,5 @@
 import type { AuthResponse } from '@moons/shared';
+import { cachedFetch } from './api-cache';
 import { getAccessToken, setAuthSession } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
@@ -16,7 +17,7 @@ export class ApiError extends Error {
 
 async function refreshAccessToken(): Promise<string | null> {
   try {
-    const data = await apiFetch<AuthResponse>('/auth/refresh', { method: 'POST' });
+    const data = await apiFetchRaw<AuthResponse>('/auth/refresh', { method: 'POST' });
     setAuthSession(data);
     return data.accessToken;
   } catch {
@@ -24,11 +25,11 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-export async function apiFetch<T>(
+async function apiFetchRaw<T>(
   path: string,
-  options: RequestInit & { token?: string; skipAuthRetry?: boolean } = {},
+  options: RequestInit & { token?: string } = {},
 ): Promise<T> {
-  const { token, headers, skipAuthRetry, ...rest } = options;
+  const { token, headers, ...rest } = options;
 
   const response = await fetch(`${API_URL}${path}`, {
     ...rest,
@@ -63,6 +64,21 @@ export async function apiFetch<T>(
   }
 
   return response.json() as Promise<T>;
+}
+
+export async function apiFetch<T>(
+  path: string,
+  options: RequestInit & { token?: string; skipAuthRetry?: boolean; cache?: boolean } = {},
+): Promise<T> {
+  const { cache = true, token, ...rest } = options;
+  const method = (rest.method ?? 'GET').toUpperCase();
+  const isPublicGet = method === 'GET' && !token;
+
+  if (isPublicGet && cache) {
+    return cachedFetch(`GET:${path}`, () => apiFetchRaw<T>(path, { ...rest, token }));
+  }
+
+  return apiFetchRaw<T>(path, { ...rest, token });
 }
 
 async function withAuthRetry<T>(

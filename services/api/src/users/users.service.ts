@@ -125,6 +125,7 @@ export class UsersService {
       headline?: string | null;
       industry?: string | null;
       resumeUrl?: string | null;
+      resumeFileName?: string | null;
     },
   ) {
     return this.prisma.profile.update({

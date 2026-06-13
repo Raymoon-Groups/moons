@@ -21,6 +21,7 @@ const applicantProfileSelect = {
   noticePeriod: true,
   summary: true,
   resumeUrl: true,
+  resumeFileName: true,
   currentCtc: true,
   expectedCtc: true,
   skills: true,

@@ -28,6 +28,7 @@ export interface Profile {
   noticePeriod: string | null;
   summary: string | null;
   resumeUrl: string | null;
+  resumeFileName: string | null;
   currentCtc: string | null;
   expectedCtc: string | null;
   educations: EducationEntry[];
@@ -77,6 +78,7 @@ export interface ApplicantRow {
       noticePeriod: string | null;
       summary: string | null;
       resumeUrl: string | null;
+      resumeFileName: string | null;
       currentCtc: string | null;
       expectedCtc: string | null;
       skills: string[];

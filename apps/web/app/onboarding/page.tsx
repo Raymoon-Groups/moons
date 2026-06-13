@@ -135,6 +135,11 @@ export default function OnboardingPage() {
                   onChange={(e) => setResume(e.target.files?.[0] ?? null)}
                   className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm text-foreground file:mr-4 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium"
                 />
+                {resume && (
+                  <p className="mt-2 text-sm text-foreground">
+                    Selected file: <strong>{resume.name}</strong>
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-moons-muted">PDF or Word, max 5 MB</p>
               </div>
             </>

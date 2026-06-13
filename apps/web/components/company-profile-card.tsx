@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { JobCompanyHeader } from '@/components/job-company-header';
+import { JobCompanyHeader, PostedByLine } from '@/components/job-company-header';
 import type { JobListing } from '@/lib/jobs';
 
 function Detail({ label, value }: { label: string; value?: string | null }) {
@@ -19,6 +19,7 @@ export function CompanyProfileCard({
   job: Pick<
     JobListing,
     | 'companyName'
+    | 'postedByCompanyName'
     | 'companyLogoUrl'
     | 'industry'
     | 'companyType'
@@ -40,11 +41,32 @@ export function CompanyProfileCard({
     return null;
   }
 
+  const poster = job.postedByCompanyName?.trim();
+  const hiringCompany = job.companyName.trim();
+  const postedByOther =
+    !!poster && poster.toLowerCase() !== hiringCompany.toLowerCase();
+
   return (
-    <section className="rounded-lg border border-border bg-surface/50 p-5">
-      <h2 className="text-sm font-bold text-moons-navy">About the company</h2>
+    <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+      <h2 className="text-base font-bold text-moons-navy">
+        {postedByOther ? 'About the employer' : 'About the company'}
+      </h2>
+      {postedByOther && (
+        <p className="mt-2 rounded-lg bg-surface px-3 py-2 text-xs text-moons-muted">
+          This role is listed for{' '}
+          <span className="font-semibold text-foreground">{hiringCompany}</span>. Profile below is
+          the posting employer on MoonsJob.
+        </p>
+      )}
       <div className="mt-4">
-        <JobCompanyHeader job={job} size="md" />
+        <JobCompanyHeader
+          job={{
+            ...job,
+            companyName: postedByOther && poster ? poster : job.companyName,
+          }}
+          variant="employer"
+          size="md"
+        />
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Detail label="Company size" value={job.companySize} />

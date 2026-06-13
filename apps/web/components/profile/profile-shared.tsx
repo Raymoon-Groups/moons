@@ -10,6 +10,21 @@ export const inputClass =
 
 export const cardClass = 'overflow-hidden rounded-xl border border-border bg-white shadow-sm';
 
+export function getResumeDisplayName(
+  profile: Pick<Profile, 'resumeUrl' | 'resumeFileName'>,
+  pendingResume?: File | null,
+  pendingRemoveResume?: boolean,
+): string | null {
+  if (pendingRemoveResume) return null;
+  if (pendingResume) return pendingResume.name;
+  if (profile.resumeFileName?.trim()) return profile.resumeFileName.trim();
+  if (!profile.resumeUrl) return null;
+  const ext = profile.resumeUrl.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf') return 'Resume.pdf';
+  if (ext === 'doc' || ext === 'docx') return `Resume.${ext}`;
+  return 'Resume';
+}
+
 export type CompletionItem = {
   id: string;
   label: string;
@@ -360,6 +375,7 @@ interface ProfilePhotoSectionProps {
   metaLine: string;
   saving: boolean;
   onPhotoChange: (file: File | null, remove: boolean) => void;
+  onSave: () => void;
   onError: (message: string) => void;
 }
 
@@ -368,6 +384,7 @@ export function ProfilePhotoSection({
   displayName,
   saving,
   onPhotoChange,
+  onSave,
   onError,
 }: ProfilePhotoSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -469,17 +486,39 @@ export function ProfilePhotoSection({
               </button>
             )}
             {pendingPhoto && (
-              <p className="mt-2 text-xs text-amber-700">
-                Photo selected — click <strong>Save changes</strong> in any section to keep it.
-              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onSave}
+                  disabled={saving}
+                  className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Save photo'}
+                </button>
+              </div>
             )}
             {pendingRemove && (
-              <p className="mt-2 text-xs text-amber-700">
-                Photo will be removed on save.{' '}
-                <button type="button" onClick={handleUndoRemove} className="font-semibold text-moons-blue hover:underline">
-                  Undo
-                </button>
-              </p>
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-amber-700">Photo will be removed when you save.</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onSave}
+                    disabled={saving}
+                    className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                  >
+                    {saving ? 'Saving…' : 'Save changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUndoRemove}
+                    disabled={saving}
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-60"
+                  >
+                    Undo
+                  </button>
+                </div>
+              </div>
             )}
             <input
               ref={fileInputRef}
@@ -500,6 +539,7 @@ interface CompanyLogoSectionProps {
   companyName: string;
   saving: boolean;
   onLogoChange: (file: File | null, remove: boolean) => void;
+  onSave: () => void;
   onError: (message: string) => void;
 }
 
@@ -508,6 +548,7 @@ export function CompanyLogoSection({
   companyName,
   saving,
   onLogoChange,
+  onSave,
   onError,
 }: CompanyLogoSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -607,15 +648,39 @@ export function CompanyLogoSection({
               </button>
             )}
             {pendingLogo && (
-              <p className="mt-2 text-xs text-amber-700">Logo selected — save profile to upload.</p>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={onSave}
+                  disabled={saving}
+                  className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Save logo'}
+                </button>
+              </div>
             )}
             {pendingRemove && (
-              <p className="mt-2 text-xs text-amber-700">
-                Logo will be removed on save.{' '}
-                <button type="button" onClick={handleUndoRemove} className="font-semibold text-moons-blue hover:underline">
-                  Undo
-                </button>
-              </p>
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-amber-700">Logo will be removed when you save.</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onSave}
+                    disabled={saving}
+                    className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                  >
+                    {saving ? 'Saving…' : 'Save changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUndoRemove}
+                    disabled={saving}
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-60"
+                  >
+                    Undo
+                  </button>
+                </div>
+              </div>
             )}
             <input
               ref={fileInputRef}

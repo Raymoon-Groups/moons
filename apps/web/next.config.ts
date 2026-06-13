@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  experimental: {
+    optimizePackageImports: ['@moons/shared', '@tanstack/react-query'],
+  },
   images: {
     remotePatterns: [
       {

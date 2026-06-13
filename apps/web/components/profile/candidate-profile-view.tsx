@@ -22,6 +22,7 @@ import {
   EditableCard,
   Field,
   formatExperience,
+  getResumeDisplayName,
   inputClass,
   ProfilePageShell,
   ProfilePhotoSection,
@@ -96,6 +97,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
 
   const displayName = fullName.trim() || profile.email.split('@')[0];
   const resumeUrl = profile.resumeUrl ? resolveAssetUrl(profile.resumeUrl) : null;
+  const resumeFileName = getResumeDisplayName(profile, pendingResume, pendingRemoveResume);
   const experienceLabel =
     experienceYears === ''
       ? ''
@@ -178,6 +180,32 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
     setError('');
     setPendingResume(file);
     setPendingRemoveResume(false);
+  }
+
+  async function saveAvatarOnly() {
+    if (!pendingPhoto && !pendingRemovePhoto) return;
+    setSaving(true);
+    setError('');
+    try {
+      if (pendingRemovePhoto) {
+        await authDelete<Profile>('/profiles/me/avatar');
+      } else if (pendingPhoto) {
+        const formData = new FormData();
+        formData.append('avatar', pendingPhoto);
+        await authUpload<Profile>('/profiles/me/avatar', formData);
+      }
+      const saved = await authFetch<Profile>('/profiles/me');
+      setProfile(saved);
+      onSaved(saved);
+      setPendingPhoto(null);
+      setPendingRemovePhoto(false);
+      setPhotoKey((k) => k + 1);
+      setShowSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save photo');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -266,6 +294,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
               setPendingPhoto(file);
               setPendingRemovePhoto(remove);
             }}
+            onSave={saveAvatarOnly}
             onError={setError}
           />
 
@@ -490,17 +519,23 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             saving={saving}
             viewContent={
               <div className="text-sm text-foreground">
-                {resumeUrl && !pendingRemoveResume && !pendingResume ? (
+                {resumeUrl && resumeFileName ? (
                   <a
                     href={resumeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium text-moons-blue hover:underline"
+                    className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 font-medium text-moons-blue hover:bg-surface-hover hover:underline"
                   >
-                    View current resume
+                    <ResumeDocIcon />
+                    <span className="truncate">{resumeFileName}</span>
                   </a>
                 ) : pendingResume ? (
-                  <p>Pending upload: <strong>{pendingResume.name}</strong></p>
+                  <p className="inline-flex max-w-full items-center gap-2">
+                    <ResumeDocIcon />
+                    <span>
+                      Pending upload: <strong className="truncate">{pendingResume.name}</strong>
+                    </span>
+                  </p>
                 ) : (
                   <p className="text-moons-muted">No resume uploaded yet.</p>
                 )}
@@ -508,19 +543,23 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             }
             editContent={
               <div className="space-y-4">
-                {resumeUrl && !pendingRemoveResume && !pendingResume && (
+                {resumeUrl && resumeFileName && !pendingResume && (
                   <a
                     href={resumeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-moons-blue hover:bg-surface-hover"
+                    className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-moons-blue hover:bg-surface-hover"
                   >
-                    View current resume
+                    <ResumeDocIcon />
+                    <span className="truncate">{resumeFileName}</span>
                   </a>
                 )}
                 {pendingResume && (
-                  <p className="text-sm text-amber-800">
-                    New resume selected: <strong>{pendingResume.name}</strong> — save to upload.
+                  <p className="inline-flex max-w-full items-center gap-2 text-sm text-amber-800">
+                    <ResumeDocIcon />
+                    <span>
+                      New resume selected: <strong>{pendingResume.name}</strong> — save to upload.
+                    </span>
                   </p>
                 )}
                 {pendingRemoveResume && (
@@ -661,5 +700,13 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
         </form>
       </ProfilePageShell>
     </>
+  );
+}
+
+function ResumeDocIcon() {
+  return (
+    <svg className="h-4 w-4 shrink-0 text-moons-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
   );
 }

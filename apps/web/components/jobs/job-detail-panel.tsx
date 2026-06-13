@@ -1,35 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, ReactNode, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { UserRole } from '@moons/shared';
 import { CompanyProfileCard } from '@/components/company-profile-card';
-import { JobCompanyHeader } from '@/components/job-company-header';
+import { JobCompanyHeader, PostedByLine } from '@/components/job-company-header';
+import { JobKeyDetailsList } from '@/components/jobs/job-key-details';
 import { JobTags } from '@/components/jobs/job-tags';
 import { apiFetch, authFetch } from '@/lib/api-client';
 import { getAccessToken, getStoredUser } from '@/lib/auth';
-import { experienceLevelLabel, formatEmploymentType, formatPostedAgo } from '@/lib/job-formatters';
-import { formatJobExperience, type JobListing } from '@/lib/jobs';
-
-function MetaRow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  return (
-    <div className="flex items-start gap-2.5 text-sm text-foreground">
-      <span className="mt-0.5 shrink-0 text-moons-muted">{icon}</span>
-      <span>{children}</span>
-    </div>
-  );
-}
+import { formatPostedAgo } from '@/lib/job-formatters';
+import type { JobListing } from '@/lib/jobs';
+import { notifyNotificationsRefresh } from '@/lib/notifications';
 
 export function JobDetailPanel({
   jobId,
+  initialJob,
   onClose,
   showClose = false,
 }: {
   jobId: string | null;
+  initialJob?: JobListing | null;
   onClose?: () => void;
   showClose?: boolean;
 }) {
-  const [job, setJob] = useState<JobListing | null>(null);
+  const [job, setJob] = useState<JobListing | null>(
+    initialJob && initialJob.id === jobId ? initialJob : null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [applied, setApplied] = useState(false);
@@ -50,18 +47,29 @@ export function JobDetailPanel({
 
     let cancelled = false;
 
-    async function load() {
-      setLoading(true);
+    const hasPreview = initialJob?.id === jobId;
+    if (hasPreview) {
+      setJob(initialJob);
+      setLoading(false);
       setError('');
+    }
+
+    async function load() {
+      if (!hasPreview) {
+        setLoading(true);
+        setError('');
+      }
       setApplied(false);
       setApplyError('');
       setApplySuccess(false);
       setCoverNote('');
 
       try {
-        const data = await apiFetch<JobListing>(`/jobs/${jobId}`);
+        const data = hasPreview
+          ? initialJob!
+          : await apiFetch<JobListing>(`/jobs/${jobId}`);
         if (cancelled) return;
-        setJob(data);
+        if (!hasPreview) setJob(data);
 
         if (getStoredUser()?.role === UserRole.CANDIDATE && getAccessToken()) {
           const check = await authFetch<{ applied: boolean }>(
@@ -70,7 +78,7 @@ export function JobDetailPanel({
           if (!cancelled) setApplied(check.applied);
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && !hasPreview) {
           setError(err instanceof Error ? err.message : 'Job not found');
           setJob(null);
         }
@@ -83,7 +91,7 @@ export function JobDetailPanel({
     return () => {
       cancelled = true;
     };
-  }, [jobId]);
+  }, [jobId, initialJob]);
 
   async function handleApply(e: FormEvent) {
     e.preventDefault();
@@ -97,6 +105,7 @@ export function JobDetailPanel({
       });
       setApplied(true);
       setApplySuccess(true);
+      notifyNotificationsRefresh();
     } catch (err) {
       setApplyError(err instanceof Error ? err.message : 'Apply failed');
     } finally {
@@ -128,8 +137,22 @@ export function JobDetailPanel({
     );
   }
 
-  const exp = formatJobExperience(job);
-  const companyMeta = [job.industry, job.companyType].filter(Boolean).join(' · ');
+  function detailIcon(label: string) {
+    switch (label) {
+      case 'Location':
+        return <PinIcon />;
+      case 'Employment type':
+        return <BriefcaseIcon />;
+      case 'Experience required':
+        return <ExperienceIcon />;
+      case 'Salary':
+        return <DollarIcon />;
+      case 'Work mode':
+        return <ListIcon />;
+      default:
+        return <ListIcon />;
+    }
+  }
 
   return (
     <div className="h-full overflow-y-auto">
@@ -143,6 +166,7 @@ export function JobDetailPanel({
               {' · '}
               {formatPostedAgo(job.createdAt)}
             </p>
+            <PostedByLine job={job} className="mt-1.5" />
           </div>
           {showClose && onClose && (
             <button
@@ -155,25 +179,8 @@ export function JobDetailPanel({
           )}
         </div>
 
-        <div className="mt-4 space-y-2.5">
-          <MetaRow icon={<BriefcaseIcon />}>
-            {formatEmploymentType(job.employmentType)}
-            {exp ? ` · ${exp}` : ''}
-            {' · '}
-            {experienceLevelLabel(job)}
-          </MetaRow>
-          {companyMeta && (
-            <MetaRow icon={<BuildingIcon />}>
-              {job.companySize ? `${job.companySize} · ` : ''}
-              {companyMeta}
-            </MetaRow>
-          )}
-          {job.salaryRange && (
-            <MetaRow icon={<DollarIcon />}>{job.salaryRange}</MetaRow>
-          )}
-          <MetaRow icon={<ListIcon />}>
-            {job.location} · {formatEmploymentType(job.employmentType)}
-          </MetaRow>
+        <div className="mt-4">
+          <JobKeyDetailsList job={job} iconForLabel={detailIcon} />
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
@@ -246,6 +253,7 @@ export function JobDetailPanel({
 
         <div className="mb-6">
           <JobCompanyHeader job={job} />
+          <PostedByLine job={job} className="mt-2" />
         </div>
 
         <CompanyProfileCard job={job} recruiterId={job.recruiterId} />
@@ -261,6 +269,15 @@ export function JobDetailPanel({
   );
 }
 
+function PinIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
 function BriefcaseIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -269,10 +286,10 @@ function BriefcaseIcon() {
   );
 }
 
-function BuildingIcon() {
+function ExperienceIcon() {
   return (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }
