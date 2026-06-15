@@ -1,7 +1,6 @@
 import dynamic from 'next/dynamic';
 import { JobPortalHero } from '@/components/landing/job-search-hero';
 import { StatsBar } from '@/components/landing/landing-sections';
-import { SiteFooter } from '@/components/site-footer';
 
 const BrowseCategories = dynamic(
   () => import('@/components/landing/landing-sections').then((m) => m.BrowseCategories),
@@ -54,7 +53,6 @@ export default function Home() {
       <CareerServices />
       <PopularSearchTags />
       <EmployerBanner />
-      <SiteFooter />
     </>
   );
 }

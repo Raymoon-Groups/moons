@@ -71,7 +71,33 @@ function SettingsIcon() {
   );
 }
 
-function ProfileMenuButton({ onLogout }: { onLogout: () => void }) {
+function HamburgerIcon({ className }: { className?: string }) {
+  return (
+    <span className={`flex flex-col justify-center gap-[5px] ${className ?? ''}`} aria-hidden>
+      <span className="h-0.5 w-5 rounded-full bg-moons-navy transition-transform" />
+      <span className="h-0.5 w-5 rounded-full bg-moons-navy" />
+      <span className="h-0.5 w-5 rounded-full bg-moons-navy transition-transform" />
+    </span>
+  );
+}
+
+function DashboardIcon() {
+  return (
+    <svg className="h-4 w-4 text-moons-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+    </svg>
+  );
+}
+
+function ProfileMenuButton({
+  onLogout,
+  pathname,
+  extraMenuLinks,
+}: {
+  onLogout: () => void;
+  pathname?: string;
+  extraMenuLinks?: readonly { label: string; href: string }[];
+}) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -90,46 +116,79 @@ function ProfileMenuButton({ onLogout }: { onLogout: () => void }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  const hasExtraLinks = extraMenuLinks && extraMenuLinks.length > 0;
+
   return (
     <div ref={menuRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 transition focus:outline-none focus:ring-2 focus:ring-moons-blue/30 md:h-10 md:w-10 ${
+        className={`flex shrink-0 items-center gap-2 rounded-full border-2 py-1 pl-1 pr-2.5 transition focus:outline-none focus:ring-2 focus:ring-moons-blue/30 ${
           open
-            ? 'border-moons-blue shadow-md'
-            : 'border-white shadow-sm ring-1 ring-border hover:ring-moons-blue/40'
+            ? 'border-moons-blue bg-surface-elevated shadow-md'
+            : 'border-border bg-surface-elevated shadow-sm hover:border-moons-blue/30'
         }`}
-        aria-label={`${displayName} profile menu`}
+        aria-label={`${displayName} menu`}
         aria-expanded={open}
         aria-haspopup="menu"
         title={displayName}
       >
-        {avatarSrc ? (
-          <img
-            src={avatarSrc}
-            alt=""
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-navy to-moons-blue text-sm font-bold text-white">
-            {displayName.charAt(0).toUpperCase()}
-          </span>
-        )}
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-border">
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt=""
+              className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-navy to-moons-blue text-sm font-bold text-white">
+              {displayName.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </span>
+        <HamburgerIcon />
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 min-w-[180px] overflow-hidden rounded-xl border border-border bg-white py-1 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 min-w-[220px] overflow-hidden rounded-xl border border-border bg-white py-1 shadow-lg"
         >
+          {hasExtraLinks && (
+            <div className="border-b border-border py-1">
+              {extraMenuLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className={`flex w-full items-center px-4 py-2.5 text-sm font-medium transition hover:bg-surface ${
+                    pathname === link.href ? 'text-moons-blue' : 'text-foreground'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
           <div className="border-b border-border px-4 py-2.5">
             <p className="truncate text-sm font-semibold text-moons-navy">{displayName}</p>
             {user?.email && (
               <p className="truncate text-xs text-moons-muted">{user.email}</p>
             )}
           </div>
+          <Link
+            href="/dashboard"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium transition hover:bg-surface ${
+              pathname === '/dashboard' ? 'text-moons-blue' : 'text-foreground'
+            }`}
+          >
+            <DashboardIcon />
+            Dashboard
+          </Link>
           <Link
             href="/profile"
             role="menuitem"
@@ -192,13 +251,7 @@ function JobseekerHeader({ pathname, onLogout }: { pathname: string; onLogout: (
 
       <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
         <NotificationBell />
-        <Link
-          href="/dashboard"
-          className="hidden text-sm font-medium text-foreground hover:text-moons-blue sm:inline"
-        >
-          Dashboard
-        </Link>
-        <ProfileMenuButton onLogout={onLogout} />
+        <ProfileMenuButton onLogout={onLogout} pathname={pathname} />
       </div>
     </div>
   );
@@ -267,25 +320,19 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-3">
           {ready && user ? (
             <>
               <NotificationBell />
-              <Link
-                href="/dashboard"
-                className="hidden text-sm font-medium text-foreground hover:text-moons-blue sm:inline"
-              >
-                Dashboard
-              </Link>
-              <ProfileMenuButton onLogout={handleLogout} />
-              {isRecruiter && (
-                <Link
-                  href="/recruiter/jobs/new"
-                  className="hidden rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-moons-navy transition hover:border-moons-blue/40 hover:bg-surface-hover lg:inline-block"
-                >
-                  Post a Job
-                </Link>
-              )}
+              <ProfileMenuButton
+                onLogout={handleLogout}
+                pathname={pathname}
+                extraMenuLinks={
+                  isRecruiter
+                    ? [{ label: 'Post a Job', href: '/recruiter/jobs/new' }]
+                    : undefined
+                }
+              />
             </>
           ) : (
             <>

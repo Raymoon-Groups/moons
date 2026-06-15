@@ -1,8 +1,9 @@
 'use client';
 
 import { EmploymentType } from '@moons/shared';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { HeroJobSearchForm } from '@/components/jobs/hero-job-search-form';
 import { JobDetailPanel } from '@/components/jobs/job-detail-panel';
 import { formatJobListMeta } from '@/components/jobs/job-key-details';
@@ -148,6 +149,88 @@ function JobListCard({
   );
 }
 
+function OtherJobsCarousel({ jobs }: { jobs: JobListing[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  function scroll(dir: 'left' | 'right') {
+    scrollRef.current?.scrollBy({ left: dir === 'left' ? -300 : 300, behavior: 'smooth' });
+  }
+
+  if (jobs.length === 0) return null;
+
+  return (
+    <div className="relative mt-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-bold text-moons-navy">Other jobs you may like</h3>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => scroll('left')}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white shadow-sm transition hover:bg-surface"
+            aria-label="Scroll left"
+          >
+            <svg className="h-4 w-4 text-moons-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => scroll('right')}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white shadow-sm transition hover:bg-surface"
+            aria-label="Scroll right"
+          >
+            <svg className="h-4 w-4 text-moons-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto pb-2"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {jobs.map((job) => {
+          const logoSrc =
+            !isPostedByOtherCompany(job) && job.companyLogoUrl
+              ? resolveAssetUrl(job.companyLogoUrl)
+              : null;
+
+          return (
+            <Link
+              key={job.id}
+              href={`/jobs?job=${job.id}`}
+              className="w-[260px] shrink-0 rounded-xl border border-border bg-white p-4 shadow-sm transition hover:border-moons-blue/40 hover:shadow-md"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface text-sm font-bold text-moons-muted">
+                  {logoSrc ? (
+                    <img src={logoSrc} alt="" className="h-full w-full object-contain p-1" />
+                  ) : (
+                    job.companyName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-moons-navy">{job.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-moons-muted">{job.companyName}</p>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-moons-muted">
+                {formatJobListMeta(job) || 'Location & salary not specified'}
+              </p>
+              <p className="mt-1 text-xs text-moons-muted">{formatPostedAgo(job.createdAt)}</p>
+              <div className="mt-3">
+                <JobTags job={job} />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function JobsBrowsePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -168,6 +251,7 @@ export function JobsBrowsePage() {
   const [filterJobType, setFilterJobType] = useState('');
   const [filterSalary, setFilterSalary] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
+  const [otherJobs, setOtherJobs] = useState<JobListing[]>([]);
 
   useEffect(() => {
     if (selectedJobId) setMobileShowDetail(true);
@@ -210,6 +294,40 @@ export function JobsBrowsePage() {
       return true;
     });
   }, [jobs, filterCompany, filterJobType, filterSalary, filterIndustry]);
+
+  useEffect(() => {
+    if (loading || filteredJobs.length > 0) {
+      setOtherJobs([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadOtherJobs() {
+      try {
+        const trending = await apiFetch<JobListing[]>('/jobs/trending');
+        if (cancelled) return;
+
+        if (trending.length > 0) {
+          setOtherJobs(trending.slice(0, 12));
+          return;
+        }
+
+        const fallback = await apiFetch<JobsPage | JobListing[]>('/jobs?limit=12');
+        if (cancelled) return;
+
+        const items = Array.isArray(fallback) ? fallback : (fallback.items ?? []);
+        setOtherJobs(items.slice(0, 12));
+      } catch {
+        if (!cancelled) setOtherJobs([]);
+      }
+    }
+
+    loadOtherJobs();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, filteredJobs.length]);
 
   const selectedJob = useMemo(
     () => filteredJobs.find((j) => j.id === selectedJobId) ?? null,
@@ -351,13 +469,29 @@ export function JobsBrowsePage() {
           <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</p>
         )}
 
-        {!loading && !error && filteredJobs.length === 0 && !selectedJobId && (
-          <p className="rounded-xl border border-border bg-white p-8 text-center text-sm text-moons-muted">
-            No jobs found. Try a different search or clear filters.
-          </p>
+        {!loading && !error && filteredJobs.length === 0 && (
+          <div className="rounded-xl border border-border bg-white p-8 md:p-10">
+            <div className="text-center">
+              <p className="text-base font-semibold text-moons-navy">
+                {q || location || experience || filterCompany || filterJobType || filterSalary || filterIndustry
+                  ? 'No matching jobs in this list.'
+                  : 'No jobs found. Try a different search or clear filters.'}
+              </p>
+              <p className="mt-2 text-sm text-moons-muted">
+                Browse other openings below or explore all jobs on Moons.
+              </p>
+              <Link
+                href="/jobs"
+                className="mt-5 inline-block rounded-full bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+              >
+                Browse all jobs
+              </Link>
+            </div>
+            <OtherJobsCarousel jobs={otherJobs} />
+          </div>
         )}
 
-        {!loading && !error && (filteredJobs.length > 0 || selectedJobId) && (
+        {!loading && !error && filteredJobs.length > 0 && (
           <div className="grid h-[calc(100vh-22rem)] min-h-[520px] gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
             {/* Job list */}
             <div
@@ -366,20 +500,14 @@ export function JobsBrowsePage() {
               }`}
             >
               <div className="flex-1 space-y-3 overflow-y-auto p-1 pr-2">
-                {filteredJobs.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-border bg-white p-6 text-center text-sm text-moons-muted">
-                    No matching jobs in this list. View the selected job on the right.
-                  </p>
-                ) : (
-                  filteredJobs.map((job) => (
-                    <JobListCard
-                      key={job.id}
-                      job={job}
-                      selected={job.id === selectedJobId}
-                      onSelect={() => selectJob(job.id)}
-                    />
-                  ))
-                )}
+                {filteredJobs.map((job) => (
+                  <JobListCard
+                    key={job.id}
+                    job={job}
+                    selected={job.id === selectedJobId}
+                    onSelect={() => selectJob(job.id)}
+                  />
+                ))}
               </div>
 
               {data && data.totalPages > 1 && (

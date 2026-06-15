@@ -203,7 +203,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={handleBellClick}
-        className="relative rounded-full p-1 text-moons-muted transition hover:bg-surface-hover hover:text-moons-blue"
+        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-white text-moons-navy shadow-sm transition hover:border-moons-blue/30 hover:bg-surface-hover hover:text-moons-blue md:h-10 md:w-10"
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={open}
       >
@@ -222,7 +222,7 @@ export function NotificationBell() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
