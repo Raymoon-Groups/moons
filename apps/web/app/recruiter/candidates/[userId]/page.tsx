@@ -8,7 +8,7 @@ import { CandidateProfileReadonly } from '@/components/profile/candidate-profile
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 import { getStoredUser } from '@/lib/auth';
-import { getResumeDisplayName } from '@/components/profile/profile-shared';
+import { formatExperience, getResumeDisplayName } from '@/components/profile/profile-shared';
 import type { Profile } from '@/lib/types';
 
 export default function RecruiterCandidateProfilePage() {

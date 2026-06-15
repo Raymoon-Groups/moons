@@ -25,6 +25,12 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+type ApiFetchOptions = Omit<RequestInit, 'cache'> & {
+  token?: string;
+  skipAuthRetry?: boolean;
+  cache?: boolean;
+};
+
 async function apiFetchRaw<T>(
   path: string,
   options: RequestInit & { token?: string } = {},
@@ -68,7 +74,7 @@ async function apiFetchRaw<T>(
 
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit & { token?: string; skipAuthRetry?: boolean; cache?: boolean } = {},
+  options: ApiFetchOptions = {},
 ): Promise<T> {
   const { cache = true, token, ...rest } = options;
   const method = (rest.method ?? 'GET').toUpperCase();
@@ -104,7 +110,7 @@ async function withAuthRetry<T>(
 
 export function authFetch<T>(
   path: string,
-  options: RequestInit = {},
+  options: Omit<ApiFetchOptions, 'token'> = {},
 ): Promise<T> {
   return withAuthRetry((token) => apiFetch<T>(path, { ...options, token }));
 }
