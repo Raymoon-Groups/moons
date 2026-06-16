@@ -173,17 +173,22 @@ export class AuthController {
   ) {
     const refreshToken = req.cookies?.[REFRESH_COOKIE];
     await this.authService.logout(refreshToken);
-    res.clearCookie(REFRESH_COOKIE);
+    res.clearCookie(REFRESH_COOKIE, this.refreshCookieOptions());
     return { success: true };
   }
 
-  private setRefreshCookie(res: Response, token: string) {
-    res.cookie(REFRESH_COOKIE, token, {
+  private refreshCookieOptions() {
+    const isProd = process.env.NODE_ENV === 'production';
+    return {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: isProd ? ('none' as const) : ('lax' as const),
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
-    });
+    };
+  }
+
+  private setRefreshCookie(res: Response, token: string) {
+    res.cookie(REFRESH_COOKIE, token, this.refreshCookieOptions());
   }
 }

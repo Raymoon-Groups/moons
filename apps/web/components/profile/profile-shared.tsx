@@ -6,9 +6,10 @@ import { resolveAssetUrl } from '@/lib/assets';
 import type { Profile } from '@/lib/types';
 
 export const inputClass =
-  'w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/20';
+  'w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/20';
 
-export const cardClass = 'overflow-hidden rounded-xl border border-border bg-white shadow-sm';
+export const cardClass =
+  'overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_4px_24px_rgba(26,39,68,0.06)] transition hover:shadow-[0_8px_32px_rgba(26,39,68,0.08)]';
 
 export function getResumeDisplayName(
   profile: Pick<Profile, 'resumeUrl' | 'resumeFileName'>,
@@ -187,9 +188,9 @@ function XIcon() {
 
 export function ReadOnlyValue({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="text-xs font-medium text-moons-muted">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-moons-navy">{value || '—'}</p>
+    <div className="rounded-xl border border-border/60 bg-gradient-to-br from-surface/80 to-white px-4 py-3.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-moons-muted">{label}</p>
+      <p className="mt-1.5 text-sm font-semibold text-moons-navy">{value || '—'}</p>
     </div>
   );
 }
@@ -202,21 +203,30 @@ export function CompletionDonut({ percent }: { percent: number }) {
   return (
     <div className="relative mx-auto flex h-40 w-40 items-center justify-center">
       <svg viewBox="0 0 160 160" className="h-full w-full -rotate-90">
-        <circle cx="80" cy="80" r={r} fill="none" stroke="#e8ecf2" strokeWidth="14" />
+        <circle cx="80" cy="80" r={r} fill="none" stroke="#e8ecf2" strokeWidth="12" />
         <circle
           cx="80"
           cy="80"
           r={r}
           fill="none"
-          stroke="#22c55e"
-          strokeWidth="14"
+          stroke="url(#profile-ring)"
+          strokeWidth="12"
           strokeDasharray={c}
           strokeDashoffset={offset}
           strokeLinecap="round"
           className="transition-all duration-500"
         />
+        <defs>
+          <linearGradient id="profile-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4a7fd4" />
+            <stop offset="100%" stopColor="#1a2744" />
+          </linearGradient>
+        </defs>
       </svg>
-      <span className="absolute text-3xl font-bold text-moons-navy">{percent}%</span>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-3xl font-bold text-moons-navy">{percent}%</span>
+        <span className="text-[10px] font-medium uppercase tracking-wide text-moons-muted">complete</span>
+      </div>
     </div>
   );
 }
@@ -235,34 +245,46 @@ export function ProfileCompletionSidebar({
   }
 
   return (
-    <div className={`${cardClass} p-6`}>
-      <h3 className="text-center text-base font-bold text-moons-navy">Complete your profile</h3>
-      <div className="mt-4">
-        <CompletionDonut percent={completion} />
+    <div className={`${cardClass} overflow-hidden`}>
+      <div className="bg-gradient-to-br from-moons-blue/10 via-white to-moons-navy/5 px-6 pb-6 pt-5">
+        <p className="font-script text-xl text-moons-blue">Profile strength</p>
+        <h3 className="mt-0.5 text-base font-bold text-moons-navy">Complete your profile</h3>
+        <div className="mt-5">
+          <CompletionDonut percent={completion} />
+        </div>
+        {completion < 100 && (
+          <p className="mt-4 text-center text-xs leading-relaxed text-moons-muted">
+            A complete profile gets up to 3× more recruiter views.
+          </p>
+        )}
       </div>
-      <ul className="mt-6 space-y-3">
+      <ul className="divide-y divide-border/60 px-4 py-2">
         {items.map((item) => (
           <li key={item.id}>
             <button
               type="button"
               onClick={() => scrollToSection(item.sectionId)}
-              className="flex w-full items-center justify-between gap-2 text-left text-sm"
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-3 text-left text-sm transition hover:bg-surface/80"
             >
               <span className="flex items-center gap-2.5">
                 <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                    item.done ? 'bg-moons-navy text-white' : 'bg-surface text-moons-muted'
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${
+                    item.done
+                      ? 'bg-gradient-to-br from-moons-blue to-moons-navy text-white shadow-sm'
+                      : 'border border-border bg-white text-moons-muted'
                   }`}
                 >
                   {item.done ? <CheckIcon /> : <XIcon />}
                 </span>
-                <span className={item.done ? 'text-moons-muted line-through' : 'text-foreground'}>
+                <span className={item.done ? 'text-moons-muted line-through' : 'font-medium text-foreground'}>
                   {item.label}
                 </span>
               </span>
               <span
-                className={`shrink-0 text-xs font-semibold ${
-                  item.done ? 'text-moons-muted' : 'text-emerald-500'
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  item.done
+                    ? 'bg-surface text-moons-muted'
+                    : 'bg-moons-blue/10 text-moons-blue'
                 }`}
               >
                 {item.done ? `${weight}%` : `+${weight}%`}
@@ -294,13 +316,18 @@ export function EditableCard({
 
   return (
     <section id={id} className={cardClass}>
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
-        <h3 className="text-base font-bold text-moons-navy">{title}</h3>
+      <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-moons-blue/[0.06] via-white to-white px-6 py-4">
+        <h3 className="flex items-center gap-2.5 text-base font-bold text-moons-navy">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-moons-blue/15 to-moons-navy/10 text-moons-blue">
+            <SectionDotIcon />
+          </span>
+          {title}
+        </h3>
         {editing ? (
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="text-sm font-medium text-moons-muted transition hover:text-foreground"
+            className="rounded-full border border-border bg-white px-3.5 py-1.5 text-sm font-medium text-moons-muted transition hover:border-moons-blue/30 hover:text-foreground"
           >
             Cancel
           </button>
@@ -308,7 +335,7 @@ export function EditableCard({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1.5 text-sm font-medium text-moons-muted transition hover:text-moons-blue"
+            className="flex items-center gap-1.5 rounded-full border border-moons-blue/20 bg-moons-blue/5 px-3.5 py-1.5 text-sm font-semibold text-moons-blue transition hover:bg-moons-blue/10"
           >
             <PencilIcon />
             Edit
@@ -320,11 +347,11 @@ export function EditableCard({
         {editing ? (
           <div className="space-y-4">
             {editContent}
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end border-t border-border/60 pt-4">
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-lg bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                className="rounded-xl bg-moons-navy px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue disabled:opacity-60"
               >
                 {saving ? 'Saving…' : 'Save changes'}
               </button>
@@ -335,6 +362,14 @@ export function EditableCard({
         )}
       </div>
     </section>
+  );
+}
+
+function SectionDotIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
   );
 }
 
@@ -444,54 +479,60 @@ export function ProfilePhotoSection({
         alt={displayName}
         onClose={() => setShowLightbox(false)}
       />
-      <section id="photo" className={`${cardClass} p-6`}>
-        <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            onClick={() => canView && setShowLightbox(true)}
-            disabled={!canView}
-            className={`relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-white bg-surface shadow-md ring-2 ring-border ${
-              canView ? 'cursor-zoom-in hover:ring-moons-blue/30' : 'cursor-default'
-            }`}
-          >
-            {displayUrl ? (
-              <img src={displayUrl} alt={displayName} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-blue to-moons-blue-dark text-2xl font-bold text-white">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </button>
-
-          <div className="flex-1">
+      <section id="photo" className={cardClass}>
+        <div className="h-24 bg-gradient-to-r from-moons-navy via-moons-blue to-[#5a8fd4]" aria-hidden />
+        <div className="px-6 pb-6">
+          <div className="-mt-14 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={saving}
-              className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:border-moons-blue/40 hover:bg-surface disabled:opacity-60"
+              onClick={() => canView && setShowLightbox(true)}
+              disabled={!canView}
+              className={`relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-surface shadow-lg ring-2 ring-moons-blue/20 ${
+                canView ? 'cursor-zoom-in hover:ring-moons-blue/40' : 'cursor-default'
+              }`}
             >
-              Upload new photo
+              {displayUrl ? (
+                <img src={displayUrl} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-blue to-moons-navy text-3xl font-bold text-white">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
             </button>
-            <p className="mt-2 text-xs text-moons-muted">
-              At least 800×800 px recommended. JPG, PNG or WEBP is allowed.
-            </p>
-            {(showSaved || pendingPhoto) && !pendingRemove && (
-              <button
-                type="button"
-                onClick={handleRemove}
-                disabled={saving}
-                className="mt-2 text-xs font-medium text-red-500 hover:underline disabled:opacity-60"
-              >
-                Remove photo
-              </button>
-            )}
+
+            <div className="flex-1 pb-1 sm:pb-2">
+              <p className="text-lg font-bold text-moons-navy">{displayName}</p>
+              <p className="mt-0.5 text-sm text-moons-muted">Profile photo</p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={saving}
+                  className="rounded-xl bg-moons-navy px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue disabled:opacity-60"
+                >
+                  Upload new photo
+                </button>
+                {(showSaved || pendingPhoto) && !pendingRemove && (
+                  <button
+                    type="button"
+                    onClick={handleRemove}
+                    disabled={saving}
+                    className="text-sm font-medium text-red-500 transition hover:text-red-600 disabled:opacity-60"
+                  >
+                    Remove photo
+                  </button>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-moons-muted">
+                At least 800×800 px recommended. JPG, PNG or WEBP is allowed.
+              </p>
             {pendingPhoto && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={onSave}
                   disabled={saving}
-                  className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                  className="rounded-xl bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
                 >
                   {saving ? 'Saving…' : 'Save photo'}
                 </button>
@@ -505,7 +546,7 @@ export function ProfilePhotoSection({
                     type="button"
                     onClick={onSave}
                     disabled={saving}
-                    className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                    className="rounded-xl bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
                   >
                     {saving ? 'Saving…' : 'Save changes'}
                   </button>
@@ -513,7 +554,7 @@ export function ProfilePhotoSection({
                     type="button"
                     onClick={handleUndoRemove}
                     disabled={saving}
-                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-60"
+                    className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-60"
                   >
                     Undo
                   </button>
@@ -527,6 +568,7 @@ export function ProfilePhotoSection({
               className="hidden"
               onChange={handleSelect}
             />
+            </div>
           </div>
         </div>
       </section>
@@ -708,15 +750,27 @@ export function ProfilePageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="min-h-screen bg-gradient-to-b from-[#eef2f9] via-[#f4f6fb] to-[#eef2f9]">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <a href="/dashboard" className="text-xs font-medium text-moons-blue hover:underline">
+        <a
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-moons-blue shadow-sm backdrop-blur-sm transition hover:border-moons-blue/30 hover:bg-white"
+        >
           ← Back to dashboard
         </a>
-        <h1 className="mt-2 text-2xl font-bold text-moons-navy md:text-3xl">{title}</h1>
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="font-script text-2xl text-moons-blue md:text-3xl">Your profile</p>
+            <h1 className="text-2xl font-bold text-moons-navy md:text-3xl">{title}</h1>
+          </div>
+          <div className="hidden items-center gap-2 rounded-full border border-moons-blue/20 bg-white px-4 py-2 shadow-sm sm:flex">
+            <span className="h-2 w-2 rounded-full bg-moons-blue" />
+            <span className="text-sm font-semibold text-moons-navy">{completion}% complete</span>
+          </div>
+        </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_300px] lg:items-start">
-          <div className="space-y-4">{children}</div>
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
+          <div className="space-y-5">{children}</div>
           <aside className="lg:sticky lg:top-24">
             <ProfileCompletionSidebar items={completionItems} completion={completion} />
           </aside>
