@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Post,
@@ -28,6 +29,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { parseResume } from './resume-parser.util';
 
 const REFRESH_COOKIE = 'moons_refresh';
 
@@ -162,6 +164,29 @@ export class AuthController {
       user: result.user,
       accessToken: result.accessToken,
     };
+  }
+
+  @Post('resume/parse')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { resume: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('resume', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  async parseResume(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No resume file uploaded');
+    }
+    return parseResume(file.buffer, file.mimetype);
   }
 
   @Post('logout')
