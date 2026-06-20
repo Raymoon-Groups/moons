@@ -56,7 +56,7 @@ function ProfileRing({
   return (
     <div className="relative mx-auto h-[88px] w-[88px]">
       <svg viewBox="0 0 88 88" className="absolute inset-0 h-full w-full -rotate-90">
-        <circle cx="44" cy="44" r={r} fill="none" stroke="#e8ecf2" strokeWidth="5" />
+        <circle cx="44" cy="44" r={r} fill="none" stroke="var(--border)" strokeWidth="5" />
         <circle
           cx="44"
           cy="44"
@@ -69,7 +69,7 @@ function ProfileRing({
           strokeLinecap="round"
         />
       </svg>
-      <div className="absolute inset-[6px] overflow-hidden rounded-full border-2 border-white bg-surface shadow-sm">
+      <div className="absolute inset-[6px] overflow-hidden rounded-full border-2 border-surface-elevated bg-surface shadow-sm">
         {image ? (
           <img src={image} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -99,10 +99,10 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
       <button
         type="button"
         onClick={() => scroll('right')}
-        className="absolute -right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-white shadow-md hover:bg-surface"
+        className="absolute -right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface-elevated shadow-md hover:bg-surface"
         aria-label="Scroll jobs"
       >
-        <svg className="h-4 w-4 text-moons-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="h-4 w-4 text-heading" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </button>
@@ -118,7 +118,7 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
             <Link
               key={job.id}
               href={`/recruiter/jobs/${job.id}`}
-              className="w-[220px] shrink-0 rounded-xl border border-border bg-white p-4 shadow-sm transition hover:border-moons-blue/40 hover:shadow-md"
+              className="w-[220px] shrink-0 rounded-xl border border-border bg-surface-elevated p-4 shadow-sm transition hover:border-moons-blue/40 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface text-sm font-bold text-moons-muted">
@@ -136,7 +136,7 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
                   {isActive ? 'Active' : job.status}
                 </span>
               </div>
-              <p className="mt-3 truncate text-sm font-bold text-moons-navy">{job.title}</p>
+              <p className="mt-3 truncate text-sm font-bold text-heading">{job.title}</p>
               <p className="mt-0.5 truncate text-xs text-moons-muted">{job.location}</p>
               <p className="mt-2 text-[10px] text-moons-muted">Posted {formatPostedAgo(job.createdAt)}</p>
             </Link>
@@ -208,21 +208,21 @@ export function RecruiterDashboard() {
   const displayJobs = activeTab === 'active' ? activeJobs : jobs;
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="dash-page">
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[248px_minmax(0,1fr)_272px] lg:items-start">
         {/* Left sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
             <ProfileRing
               percent={completion}
               logoUrl={logoSrc}
               avatarUrl={avatarSrc}
               name={companyName}
             />
-            <h2 className="mt-4 text-center text-sm font-bold text-moons-navy">{companyName}</h2>
-            <p className="mt-1 text-center text-xs text-moons-muted">{industryLine}</p>
-            <p className="mt-0.5 text-center text-xs text-moons-muted">{locationLine}</p>
-            <p className="mt-2 text-center text-[10px] text-moons-muted">Last updated {lastUpdated}</p>
+            <h2 className="mt-4 text-center text-sm font-bold text-heading">{companyName}</h2>
+            <p className="mt-1 text-center text-xs text-foreground/70">{industryLine}</p>
+            <p className="mt-0.5 text-center text-xs text-foreground/70">{locationLine}</p>
+            <p className="mt-2 text-center text-[10px] text-foreground/55">Last updated {lastUpdated}</p>
             {completion < 100 && (
               <Link
                 href="/profile"
@@ -233,16 +233,16 @@ export function RecruiterDashboard() {
             )}
           </div>
 
-          <div className="rounded-xl border border-moons-blue/20 bg-blue-50/60 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-moons-navy">Hiring performance</p>
+          <div className="rounded-xl border border-moons-blue/25 bg-surface p-4 shadow-sm">
+            <p className="text-xs font-semibold text-heading">Hiring performance</p>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xl font-bold text-moons-navy">{stats?.activeJobsCount ?? 0}</p>
-                <p className="text-[10px] text-moons-muted">Active jobs</p>
+                <p className="text-xl font-bold text-heading">{stats?.activeJobsCount ?? 0}</p>
+                <p className="text-[10px] text-foreground/70">Active jobs</p>
               </div>
               <div>
-                <p className="text-xl font-bold text-moons-navy">{stats?.applicantsCount ?? 0}</p>
-                <p className="text-[10px] text-moons-muted">Total applicants</p>
+                <p className="text-xl font-bold text-heading">{stats?.applicantsCount ?? 0}</p>
+                <p className="text-[10px] text-foreground/70">Total applicants</p>
               </div>
             </div>
             <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-moons-blue">
@@ -251,7 +251,7 @@ export function RecruiterDashboard() {
             </p>
           </div>
 
-          <nav className="rounded-xl border border-border bg-white p-2 shadow-sm">
+          <nav className="rounded-xl border border-border bg-surface-elevated p-2 shadow-sm">
             {NAV_ITEMS.map((item) => {
               const active =
                 pathname === item.href ||
@@ -262,7 +262,9 @@ export function RecruiterDashboard() {
                   key={item.label}
                   href={item.href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    active ? 'bg-surface text-moons-navy' : 'text-moons-muted hover:bg-surface hover:text-foreground'
+                    active
+                      ? 'bg-moons-blue/10 text-moons-blue ring-1 ring-moons-blue/20'
+                      : 'text-foreground/70 hover:bg-surface hover:text-foreground'
                   }`}
                 >
                   <Icon active={active} />
@@ -305,9 +307,9 @@ export function RecruiterDashboard() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-moons-navy">Your posted jobs</h3>
+              <h3 className="text-base font-bold text-heading">Your posted jobs</h3>
               <Link href="/recruiter/jobs" className="text-sm font-semibold text-moons-blue hover:underline">
                 View all
               </Link>
@@ -353,9 +355,9 @@ export function RecruiterDashboard() {
           </div>
 
           {recentApplicants.length > 0 && (
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-base font-bold text-moons-navy">
+                <h3 className="flex items-center gap-2 text-base font-bold text-heading">
                   <UsersIcon />
                   Recent applicants
                 </h3>
@@ -382,8 +384,8 @@ export function RecruiterDashboard() {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-moons-navy">{name}</p>
-                        <p className="truncate text-xs text-moons-muted">
+                        <p className="truncate text-sm font-semibold text-heading">{name}</p>
+                        <p className="truncate text-xs text-foreground/70">
                           Applied for {app.jobTitle}
                           {p?.location ? ` · ${p.location}` : ''}
                         </p>
@@ -401,9 +403,9 @@ export function RecruiterDashboard() {
 
         {/* Right sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold text-violet-600">Needs attention</p>
-            <h3 className="mt-1 text-sm font-bold text-moons-navy">Where are you in your hiring journey?</h3>
+          <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+            <p className="text-xs font-semibold text-violet-600 dark:text-violet-300">Needs attention</p>
+            <h3 className="mt-1 text-sm font-bold text-heading">Where are you in your hiring journey?</h3>
             <div className="mt-4 flex flex-wrap gap-2">
               {HIRING_JOURNEY.map((option) => (
                 <button
@@ -412,8 +414,8 @@ export function RecruiterDashboard() {
                   onClick={() => setJourney(option)}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                     journey === option
-                      ? 'border-moons-blue bg-blue-50 text-moons-blue'
-                      : 'border-border bg-white text-foreground hover:border-moons-blue/40'
+                      ? 'border-moons-blue bg-moons-blue/10 text-moons-blue ring-1 ring-moons-blue/20'
+                      : 'border-border bg-surface-elevated text-foreground/80 hover:border-moons-blue/40 hover:text-foreground'
                   }`}
                 >
                   {option}
@@ -422,10 +424,10 @@ export function RecruiterDashboard() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-border bg-surface-elevated shadow-sm">
             <div className="h-32 bg-gradient-to-br from-moons-navy/20 via-surface to-moons-blue/10" />
             <div className="p-4">
-              <h4 className="text-sm font-bold text-moons-navy">Attract more quality candidates</h4>
+              <h4 className="text-sm font-bold text-heading">Attract more quality candidates</h4>
               <p className="mt-1 text-xs leading-relaxed text-moons-muted">
                 Complete your company profile with logo, industry, and summary to build trust with job seekers.
               </p>
@@ -435,7 +437,7 @@ export function RecruiterDashboard() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-border bg-surface-elevated p-4 shadow-sm">
             <p className="text-sm text-moons-muted">Quick links</p>
             <div className="mt-3 space-y-2">
               <Link href="/recruiter/jobs/new" className="block text-sm font-medium text-moons-blue hover:underline">

@@ -103,7 +103,7 @@ export function IndiaJobsMap() {
 
   return (
     <div className="mt-6">
-      <div className="overflow-hidden rounded-xl border border-border bg-gradient-to-b from-slate-50 to-white p-4 shadow-sm md:p-8">
+      <div className="india-map-card overflow-hidden rounded-xl border border-border bg-gradient-to-b from-surface to-surface-elevated p-4 shadow-sm md:p-8">
         <svg
           viewBox={MAP_VIEWBOX}
           className="mx-auto h-auto w-full max-w-xl"
@@ -118,7 +118,7 @@ export function IndiaJobsMap() {
                 fill="#e8f0fe"
                 stroke="#93c5fd"
                 strokeWidth={0.8}
-                className="transition-colors duration-200 hover:fill-blue-100"
+                className="india-map-state transition-colors duration-200 hover:fill-blue-100"
               />
             ))}
           </g>

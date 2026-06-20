@@ -84,14 +84,14 @@ export default function NewJobPage() {
 
   if (profileLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-[#f0f3f8] text-sm text-moons-muted">
+      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
         Loading…
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="dash-page">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <Link
           href="/recruiter/jobs"
@@ -102,11 +102,11 @@ export default function NewJobPage() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] lg:items-start">
           <div className="min-w-0 space-y-5">
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
                 New listing
               </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-moons-navy md:text-3xl">
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-heading md:text-3xl">
                 Post a job
               </h1>
               <p className="mt-2 text-sm text-moons-muted">
@@ -116,7 +116,7 @@ export default function NewJobPage() {
 
             <form
               onSubmit={handleSubmit}
-              className="rounded-xl border border-border bg-white p-6 shadow-sm"
+              className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm"
             >
               <JobFormFields
                 values={values}
@@ -132,7 +132,7 @@ export default function NewJobPage() {
               <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
                 <Link
                   href="/recruiter/jobs"
-                  className="text-center text-sm font-semibold text-moons-muted transition hover:text-moons-navy"
+                  className="text-center text-sm font-semibold text-moons-muted transition hover:text-heading"
                 >
                   Cancel
                 </Link>
@@ -148,32 +148,32 @@ export default function NewJobPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Quick links</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Quick links</h3>
               <div className="mt-4 flex flex-col gap-2">
                 <Link
                   href="/recruiter/jobs"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   My posted jobs
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   Back to dashboard
                 </Link>
                 <Link
                   href="/profile"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-moons-navy"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
                 >
                   Company profile
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Posting tips</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Posting tips</h3>
               <ul className="mt-4 space-y-3 text-sm text-moons-muted">
                 <li>Use a specific job title so candidates can find your role in search.</li>
                 <li>

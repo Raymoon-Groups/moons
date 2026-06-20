@@ -34,7 +34,7 @@ export function JobCard({
           </div>
 
           <div className="min-w-0 flex-1">
-            <h3 className="text-xl font-bold leading-snug text-moons-navy md:text-2xl">
+            <h3 className="text-xl font-bold leading-snug text-heading md:text-2xl">
               {job.title}{' '}
               <span className="text-base font-normal text-moons-muted md:text-lg">
                 ({job.location} · {job.type})

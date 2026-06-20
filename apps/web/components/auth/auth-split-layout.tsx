@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { MoonsLogo } from '@/components/moons-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const AUTH_BG_IMAGE =
   'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1600&q=80&auto=format&fit=crop';
@@ -31,12 +32,15 @@ export function AuthSplitLayout({ title, subtitle, footer, children }: AuthSplit
 
         <div className="relative z-10 flex items-center justify-between gap-4">
           <MoonsLogo size="xl" priority />
-          <Link
-            href="/"
-            className="text-sm font-medium text-moons-silver/90 transition hover:text-white"
-          >
-            ← Back to Website
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link
+              href="/"
+              className="text-sm font-medium text-moons-silver/90 transition hover:text-white"
+            >
+              ← Back to Website
+            </Link>
+          </div>
         </div>
 
         <div className="relative z-10 mt-auto max-w-lg pb-4 lg:pb-8">
@@ -56,7 +60,7 @@ export function AuthSplitLayout({ title, subtitle, footer, children }: AuthSplit
 
       <div className="flex flex-1 items-center justify-center bg-background p-6 sm:p-10 lg:min-h-screen lg:p-12">
         <div className="w-full max-w-md rounded-3xl border border-border bg-surface-elevated p-8 shadow-[0_8px_40px_rgba(26,39,68,0.08)] sm:p-10">
-          <h1 className="text-2xl font-bold text-moons-navy sm:text-3xl">{title}</h1>
+          <h1 className="text-2xl font-bold text-heading sm:text-3xl">{title}</h1>
           <p className="mt-2 text-sm text-moons-muted sm:text-base">{subtitle}</p>
           <div className="mt-8">{children}</div>
           <div className="mt-8 text-center text-sm text-moons-muted">{footer}</div>

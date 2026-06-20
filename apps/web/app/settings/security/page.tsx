@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@moons/shared';
 import { PasswordField } from '@/components/auth/password-field';
+import { SettingsShell } from '@/components/settings/settings-shell';
 import { authFetch } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
 
@@ -19,15 +20,15 @@ function StatusItem({
 }) {
   const valueClass =
     tone === 'success'
-      ? 'text-emerald-700'
+      ? 'text-emerald-700 dark:text-emerald-300'
       : tone === 'warning'
-        ? 'text-amber-700'
+        ? 'text-amber-700 dark:text-amber-300'
         : tone === 'muted'
-          ? 'text-moons-muted'
-          : 'text-moons-navy';
+          ? 'text-foreground/70'
+          : 'text-heading';
 
   return (
-    <div className="rounded-lg border border-border bg-surface/40 px-4 py-3">
+    <div className="rounded-lg border border-border bg-surface px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-moons-muted">{label}</p>
       <p className={`mt-1 text-sm font-semibold ${valueClass}`}>{value}</p>
     </div>
@@ -102,7 +103,7 @@ export default function SecuritySettingsPage() {
 
   if (!ready || !user) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-[#f0f3f8] text-sm text-moons-muted">
+      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
         Loading…
       </div>
     );
@@ -112,31 +113,14 @@ export default function SecuritySettingsPage() {
   const isRecruiter = user.role === UserRole.RECRUITER;
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1 text-sm font-medium text-moons-blue hover:underline"
-        >
-          ← Back to dashboard
-        </Link>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] lg:items-start">
-          <div className="min-w-0 space-y-5">
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
-                Account
-              </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-moons-navy md:text-3xl">
-                Security settings
-              </h1>
-              <p className="mt-2 text-sm text-moons-muted">
-                Manage how you sign in to your MoonsJob account.
-              </p>
-            </section>
-
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
-              <h2 className="text-base font-bold text-moons-navy">Sign-in methods</h2>
+    <SettingsShell
+      title="Security settings"
+      subtitle="Manage how you sign in to your MoonsJob account."
+    >
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+        <div className="min-w-0 space-y-5">
+          <section className="rounded-2xl border border-border bg-surface-elevated p-6 shadow-sm">
+              <h2 className="text-base font-bold text-heading">Sign-in methods</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <StatusItem label="Email" value={user.email} />
                 <StatusItem
@@ -157,8 +141,8 @@ export default function SecuritySettingsPage() {
               </div>
             </section>
 
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
-              <h2 className="text-base font-bold text-moons-navy">
+          <section className="rounded-2xl border border-border bg-surface-elevated p-6 shadow-sm">
+              <h2 className="text-base font-bold text-heading">
                 {canCreatePassword ? 'Create a password' : 'Change password'}
               </h2>
               <p className="mt-2 text-sm text-moons-muted">
@@ -198,7 +182,7 @@ export default function SecuritySettingsPage() {
                   <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
                     <Link
                       href="/dashboard"
-                      className="text-center text-sm font-semibold text-moons-muted transition hover:text-moons-navy"
+                      className="text-center text-sm font-semibold text-moons-muted transition hover:text-heading"
                     >
                       Cancel
                     </Link>
@@ -250,7 +234,7 @@ export default function SecuritySettingsPage() {
                   <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
                     <Link
                       href="/dashboard"
-                      className="text-center text-sm font-semibold text-moons-muted transition hover:text-moons-navy"
+                      className="text-center text-sm font-semibold text-moons-muted transition hover:text-heading"
                     >
                       Cancel
                     </Link>
@@ -265,22 +249,22 @@ export default function SecuritySettingsPage() {
                 </form>
               )}
             </section>
-          </div>
+        </div>
 
-          <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Account overview</h3>
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <div className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Account overview</h3>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Account type</dt>
-                  <dd className="font-semibold text-moons-navy">
+                  <dd className="font-semibold text-heading">
                     {isRecruiter ? 'Recruiter' : 'Jobseeker'}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Password login</dt>
                   <dd
-                    className={`font-semibold ${user.hasPassword ? 'text-emerald-700' : 'text-amber-700'}`}
+                    className={`font-semibold ${user.hasPassword ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}
                   >
                     {user.hasPassword ? 'Active' : 'Not set'}
                   </dd>
@@ -288,7 +272,7 @@ export default function SecuritySettingsPage() {
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Google linked</dt>
                   <dd
-                    className={`font-semibold ${user.hasGoogle ? 'text-emerald-700' : 'text-moons-muted'}`}
+                    className={`font-semibold ${user.hasGoogle ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground/75'}`}
                   >
                     {user.hasGoogle ? 'Yes' : 'No'}
                   </dd>
@@ -296,32 +280,32 @@ export default function SecuritySettingsPage() {
               </dl>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Quick links</h3>
+          <div className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Quick links</h3>
               <div className="mt-4 flex flex-col gap-2">
                 <Link
                   href="/profile"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   Edit profile
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   Back to dashboard
                 </Link>
                 <Link
                   href={isRecruiter ? '/recruiter/jobs' : '/applications'}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-moons-navy"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
                 >
                   {isRecruiter ? 'My posted jobs' : 'My applications'}
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Security tips</h3>
+          <div className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Security tips</h3>
               <ul className="mt-4 space-y-3 text-sm text-moons-muted">
                 <li>Use at least 8 characters with a mix of letters, numbers, and symbols.</li>
                 <li>Do not reuse passwords from other websites or apps.</li>
@@ -330,9 +314,8 @@ export default function SecuritySettingsPage() {
                 </li>
               </ul>
             </div>
-          </aside>
-        </div>
+        </aside>
       </div>
-    </div>
+    </SettingsShell>
   );
 }

@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
+import { ApplicationStatus, UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   CurrentUser,
@@ -59,6 +59,30 @@ export class ApplicationsController {
     @Query('jobId') jobId: string,
   ) {
     return this.applicationsService.hasApplied(user.sub, jobId);
+  }
+
+  @Get('recruiter/candidates')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  listCandidatesForRecruiter(
+    @CurrentUser() user: JwtPayload,
+    @Query('q') q?: string,
+    @Query('jobId') jobId?: string,
+    @Query('status') status?: ApplicationStatus,
+    @Query('location') location?: string,
+    @Query('experienceMin') experienceMin?: string,
+    @Query('experienceMax') experienceMax?: string,
+    @Query('noticePeriod') noticePeriod?: string,
+  ) {
+    return this.applicationsService.findCandidatesForRecruiter(user.sub, {
+      q,
+      jobId,
+      status,
+      location,
+      experienceMin: experienceMin != null && experienceMin !== '' ? Number(experienceMin) : undefined,
+      experienceMax: experienceMax != null && experienceMax !== '' ? Number(experienceMax) : undefined,
+      noticePeriod,
+    });
   }
 
   @Get('job/:jobId')

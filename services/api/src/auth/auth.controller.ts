@@ -5,6 +5,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -28,6 +29,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { parseResume } from './resume-parser.util';
 
@@ -58,6 +60,7 @@ export class AuthController {
     return {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     };
   }
 
@@ -71,6 +74,7 @@ export class AuthController {
     return {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     };
   }
 
@@ -84,6 +88,7 @@ export class AuthController {
     return {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     };
   }
 
@@ -155,14 +160,19 @@ export class AuthController {
   @Post('refresh')
   async refresh(
     @Req() req: Request,
+    @Body() dto: RefreshTokenDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] ?? dto.refreshToken;
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token');
+    }
     const result = await this.authService.refresh(refreshToken);
     this.setRefreshCookie(res, result.refreshToken);
     return {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     };
   }
 
@@ -194,9 +204,10 @@ export class AuthController {
   @ApiBearerAuth()
   async logout(
     @Req() req: Request,
+    @Body() dto: RefreshTokenDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] ?? dto.refreshToken;
     await this.authService.logout(refreshToken);
     res.clearCookie(REFRESH_COOKIE, this.refreshCookieOptions());
     return { success: true };

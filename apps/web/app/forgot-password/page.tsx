@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
       footer={
         <>
           Remember your password?{' '}
-          <Link href="/login" className="font-bold text-moons-navy hover:underline">
+          <Link href="/login" className="font-bold text-heading hover:underline">
             Back to login
           </Link>
         </>
@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
       {step === 'email' ? (
         <form onSubmit={handleSendReset} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block text-sm font-bold text-moons-navy">
+            <label htmlFor="email" className="block text-sm font-bold text-heading">
               Email
             </label>
             <input
@@ -124,7 +124,7 @@ export default function ForgotPasswordPage() {
           )}
 
           <div>
-            <label htmlFor="otp" className="block text-sm font-bold text-moons-navy">
+            <label htmlFor="otp" className="block text-sm font-bold text-heading">
               Reset Code
             </label>
             <input
@@ -178,7 +178,7 @@ export default function ForgotPasswordPage() {
               setOtp('');
               setError('');
             }}
-            className="w-full text-sm text-moons-muted hover:text-moons-navy"
+            className="w-full text-sm text-moons-muted hover:text-heading"
           >
             ← Use a different email
           </button>

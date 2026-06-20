@@ -102,7 +102,7 @@ function RegisterForm() {
       footer={
         <>
           Already registered?{' '}
-          <Link href="/login" className="font-bold text-moons-navy hover:underline">
+          <Link href="/login" className="font-bold text-heading hover:underline">
             Login here
           </Link>
         </>
@@ -111,7 +111,7 @@ function RegisterForm() {
       {step === 'credentials' ? (
         <form onSubmit={handleSendOtp} className="space-y-5">
           <div>
-            <span className="block text-sm font-bold text-moons-navy">I am a</span>
+            <span className="block text-sm font-bold text-heading">I am a</span>
             <div className="mt-2 flex gap-3">
               <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium transition has-[:checked]:border-moons-navy has-[:checked]:bg-surface">
                 <input
@@ -137,7 +137,7 @@ function RegisterForm() {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-bold text-moons-navy">
+            <label htmlFor="email" className="block text-sm font-bold text-heading">
               Email
             </label>
             <input
@@ -182,7 +182,7 @@ function RegisterForm() {
           )}
 
           <div>
-            <label htmlFor="otp" className="block text-sm font-bold text-moons-navy">
+            <label htmlFor="otp" className="block text-sm font-bold text-heading">
               Verification Code
             </label>
             <input
@@ -227,7 +227,7 @@ function RegisterForm() {
               setOtp('');
               setError('');
             }}
-            className="w-full text-sm text-moons-muted hover:text-moons-navy"
+            className="w-full text-sm text-moons-muted hover:text-heading"
           >
             ← Back to edit email
           </button>

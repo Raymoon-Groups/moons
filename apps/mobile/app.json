@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "MoonsJob",
+    "slug": "moonsjob",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "moonsjob",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1a2744"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.moonsjob.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1a2744"
+      },
+      "package": "com.moonsjob.app"
+    },
+    "plugins": ["expo-router", "expo-secure-store", "expo-font"],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/moonsjob_logo.png"
+    },
+    "extra": {
+      "apiUrl": "http://localhost:3001/api/v1"
+    }
+  }
+}

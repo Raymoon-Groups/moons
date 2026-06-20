@@ -55,7 +55,7 @@ export default function CompanyPage() {
               )}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-moons-navy">{company.companyName}</h1>
+              <h1 className="text-2xl font-bold text-heading">{company.companyName}</h1>
               <p className="text-sm text-moons-muted">
                 {company.openJobsCount} open job{company.openJobsCount === 1 ? '' : 's'}
                 {company.industry ? ` · ${company.industry}` : ''}
@@ -82,7 +82,7 @@ export default function CompanyPage() {
 
         <section className="rounded-lg border border-border bg-surface-elevated shadow-sm">
           <div className="border-b border-border px-5 py-4">
-            <h2 className="font-bold text-moons-navy">Open positions</h2>
+            <h2 className="font-bold text-heading">Open positions</h2>
           </div>
           <div className="divide-y divide-border">
             {company.openJobs.length === 0 && (
@@ -94,7 +94,7 @@ export default function CompanyPage() {
                 href={`/jobs/${job.id}`}
                 className="block p-5 hover:bg-surface-hover/40"
               >
-                <p className="font-semibold text-moons-navy">{job.title}</p>
+                <p className="font-semibold text-heading">{job.title}</p>
                 <p className="mt-1 text-sm text-moons-muted">
                   {job.location} · {job.employmentType.replace('_', ' ')}
                   {job.salaryRange ? ` · ${job.salaryRange}` : ''}

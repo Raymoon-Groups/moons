@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { UserRole } from '@moons/shared';
 import { MoonsLogo } from '@/components/moons-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { NavUniversalSearch } from '@/components/nav-universal-search';
 import { NotificationBell } from '@/components/notification-bell';
 import { resolveAvatarUrl } from '@/lib/assets';
@@ -24,12 +25,19 @@ const jobseekerNavLinks = [
   { label: 'Companies', href: '/companies' },
 ] as const;
 
+const recruiterNavLinks = [
+  { label: 'Jobs', href: '/recruiter/jobs' },
+  { label: 'Candidates', href: '/recruiter/candidates' },
+] as const;
+
 function isNavActive(pathname: string, label: string) {
   switch (label) {
     case 'Home':
       return pathname === '/';
     case 'Jobs':
       return pathname === '/jobs' || pathname.startsWith('/jobs/');
+    case 'Candidates':
+      return pathname.startsWith('/recruiter/candidates');
     case 'Companies':
       return pathname.startsWith('/companies');
     case 'Services':
@@ -74,9 +82,9 @@ function SettingsIcon() {
 function HamburgerIcon({ className }: { className?: string }) {
   return (
     <span className={`flex flex-col justify-center gap-[5px] ${className ?? ''}`} aria-hidden>
-      <span className="h-0.5 w-5 rounded-full bg-moons-navy transition-transform" />
-      <span className="h-0.5 w-5 rounded-full bg-moons-navy" />
-      <span className="h-0.5 w-5 rounded-full bg-moons-navy transition-transform" />
+      <span className="h-0.5 w-5 rounded-full bg-foreground transition-transform" />
+      <span className="h-0.5 w-5 rounded-full bg-foreground" />
+      <span className="h-0.5 w-5 rounded-full bg-foreground transition-transform" />
     </span>
   );
 }
@@ -153,7 +161,7 @@ function ProfileMenuButton({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 min-w-[220px] overflow-hidden rounded-xl border border-border bg-white py-1 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 min-w-[220px] overflow-hidden rounded-xl border border-border bg-surface-elevated py-1 shadow-lg"
         >
           {hasExtraLinks && (
             <div className="border-b border-border py-1">
@@ -173,7 +181,7 @@ function ProfileMenuButton({
             </div>
           )}
           <div className="border-b border-border px-4 py-2.5">
-            <p className="truncate text-sm font-semibold text-moons-navy">{displayName}</p>
+            <p className="truncate text-sm font-semibold text-heading">{displayName}</p>
             {user?.email && (
               <p className="truncate text-xs text-moons-muted">{user.email}</p>
             )}
@@ -214,7 +222,7 @@ function ProfileMenuButton({
               setOpen(false);
               onLogout();
             }}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-500/10"
           >
             <LogoutIcon />
             Logout
@@ -250,7 +258,46 @@ function JobseekerHeader({ pathname, onLogout }: { pathname: string; onLogout: (
       <NavUniversalSearch stretched className="min-w-0 flex-1" />
 
       <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
+        <ThemeToggle />
         <NotificationBell />
+        <ProfileMenuButton onLogout={onLogout} pathname={pathname} />
+      </div>
+    </div>
+  );
+}
+
+function RecruiterHeader({ pathname, onLogout }: { pathname: string; onLogout: () => void }) {
+  return (
+    <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 md:h-[68px] md:gap-4">
+      <MoonsLogo size="lg" priority />
+
+      <nav className="hidden shrink-0 items-center gap-1 lg:flex">
+        {recruiterNavLinks.map((link) => {
+          const active = isNavActive(pathname, link.label);
+          return (
+            <Link
+              key={link.label}
+              href={link.href}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                active ? 'text-moons-blue' : 'text-foreground hover:text-moons-blue'
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <NavUniversalSearch stretched className="min-w-0 flex-1" />
+
+      <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
+        <Link
+          href="/recruiter/jobs/new"
+          className="hidden rounded-full bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark md:inline-flex"
+        >
+          Post a Job
+        </Link>
+        <ThemeToggle />
         <ProfileMenuButton onLogout={onLogout} pathname={pathname} />
       </div>
     </div>
@@ -274,6 +321,14 @@ export function SiteHeader() {
     return (
       <header className="sticky top-0 z-50 border-b border-border bg-surface-elevated/95 shadow-sm backdrop-blur-md">
         <JobseekerHeader pathname={pathname} onLogout={handleLogout} />
+      </header>
+    );
+  }
+
+  if (isRecruiter) {
+    return (
+      <header className="sticky top-0 z-50 border-b border-border bg-surface-elevated/95 shadow-sm backdrop-blur-md">
+        <RecruiterHeader pathname={pathname} onLogout={handleLogout} />
       </header>
     );
   }
@@ -311,7 +366,7 @@ export function SiteHeader() {
                 className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                   active
                     ? 'bg-surface-elevated text-moons-blue shadow-sm'
-                    : 'text-moons-muted hover:text-moons-navy'
+                    : 'text-moons-muted hover:text-heading'
                 }`}
               >
                 {link.label}
@@ -321,6 +376,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2 md:gap-3">
+          <ThemeToggle />
           {ready && user ? (
             <>
               <NotificationBell />

@@ -31,7 +31,7 @@ function CompanyRow({ company }: { company: CompanyListing }) {
     `Hiring for ${company.openJobs} open role${company.openJobs === 1 ? '' : 's'}${company.location ? ` in ${company.location}` : ''}. Explore team culture, benefits, and active openings.`;
 
   return (
-    <article className="group rounded-2xl border border-border bg-white p-5 shadow-sm transition hover:border-moons-blue/35 hover:shadow-md md:p-6">
+    <article className="group rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm transition hover:border-moons-blue/35 hover:shadow-md md:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-surface">
           {logo ? (
@@ -46,7 +46,7 @@ function CompanyRow({ company }: { company: CompanyListing }) {
             <div>
               <Link
                 href={`/companies/${company.recruiterId}`}
-                className="text-lg font-bold text-moons-navy hover:text-moons-blue md:text-xl"
+                className="text-lg font-bold text-heading hover:text-moons-blue md:text-xl"
               >
                 {company.companyName}
               </Link>
@@ -136,7 +136,7 @@ function CompanyRow({ company }: { company: CompanyListing }) {
             </Link>
             <Link
               href={`/jobs?q=${encodeURIComponent(company.companyName)}`}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-moons-navy hover:border-moons-blue/40 hover:bg-surface"
+              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-heading hover:border-moons-blue/40 hover:bg-surface"
             >
               Browse all jobs
             </Link>
@@ -259,7 +259,7 @@ export function CompaniesBrowsePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="dash-page">
       <section className="border-b border-border bg-gradient-to-br from-moons-navy via-[#243b6b] to-[#1a3a6e] px-4 py-10 md:py-12">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-2xl font-bold text-white md:text-3xl">Top companies hiring now</h1>
@@ -276,7 +276,7 @@ export function CompaniesBrowsePage() {
             </div>
           )}
 
-          <div className="mt-6 flex max-w-2xl flex-col gap-2 rounded-2xl border border-white/15 bg-white/95 p-2 shadow-xl backdrop-blur sm:flex-row sm:items-center">
+          <div className="mt-6 flex max-w-2xl flex-col gap-2 rounded-2xl border border-white/15 bg-surface-elevated p-2 shadow-xl backdrop-blur sm:flex-row sm:items-center">
             <div className="flex flex-1 items-center gap-2 px-3 py-2">
               <SearchIcon />
               <input
@@ -301,9 +301,9 @@ export function CompaniesBrowsePage() {
       </section>
 
       {!loading && featured.length > 0 && activeCategory === 'all' && !searchQ && !locationQ && (
-        <section className="border-b border-border bg-white px-4 py-6">
+        <section className="border-b border-border bg-surface-elevated px-4 py-6">
           <div className="mx-auto max-w-7xl">
-            <h2 className="text-sm font-bold text-moons-navy">Featured employers</h2>
+            <h2 className="text-sm font-bold text-heading">Featured employers</h2>
             <p className="mt-1 text-xs text-moons-muted">Companies with the most active openings right now</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {featured.map((co) => (
@@ -312,7 +312,7 @@ export function CompaniesBrowsePage() {
                   href={`/companies/${co.recruiterId}`}
                   className="rounded-xl border border-border bg-surface p-4 transition hover:border-moons-blue/40 hover:shadow-sm"
                 >
-                  <p className="font-bold text-moons-navy">{co.companyName}</p>
+                  <p className="font-bold text-heading">{co.companyName}</p>
                   <p className="mt-1 text-xs text-moons-muted">{co.industry || co.companyType || 'Employer'}</p>
                   <p className="mt-2 text-sm font-semibold text-moons-blue">{co.openJobs} open roles →</p>
                 </Link>
@@ -322,7 +322,7 @@ export function CompaniesBrowsePage() {
         </section>
       )}
 
-      <section className="border-b border-border bg-white px-4 py-5">
+      <section className="border-b border-border bg-surface-elevated px-4 py-5">
         <div className="relative mx-auto max-w-7xl">
           <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-1 md:px-10" style={{ scrollbarWidth: 'none' }}>
             {CATEGORIES.map((cat) => {
@@ -334,10 +334,10 @@ export function CompaniesBrowsePage() {
                   type="button"
                   onClick={() => setActiveCategory(cat.id)}
                   className={`flex min-w-[160px] shrink-0 flex-col rounded-xl border px-4 py-3 text-left transition md:min-w-[180px] ${
-                    active ? 'border-moons-blue bg-blue-50 shadow-sm' : 'border-border bg-white hover:border-moons-blue/30'
+                    active ? 'border-moons-blue bg-blue-50 shadow-sm' : 'border-border bg-surface-elevated hover:border-moons-blue/30'
                   }`}
                 >
-                  <span className="text-sm font-bold text-moons-navy">{cat.label}</span>
+                  <span className="text-sm font-bold text-heading">{cat.label}</span>
                   <span className="mt-0.5 text-xs text-moons-muted">{cat.subtitle}</span>
                   <span className="mt-2 text-xs font-semibold text-moons-blue">{countLabel(count)} Companies →</span>
                 </button>
@@ -349,8 +349,8 @@ export function CompaniesBrowsePage() {
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[272px_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-moons-navy">All filters</h2>
+          <div className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm">
+            <h2 className="text-sm font-bold text-heading">All filters</h2>
 
             <div className="mt-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">Company type</p>
@@ -442,7 +442,7 @@ export function CompaniesBrowsePage() {
           </div>
 
           <div className="rounded-2xl border border-moons-blue/20 bg-blue-50/50 p-5 shadow-sm">
-            <h3 className="text-sm font-bold text-moons-navy">Why explore companies?</h3>
+            <h3 className="text-sm font-bold text-heading">Why explore companies?</h3>
             <ul className="mt-3 space-y-2 text-xs leading-relaxed text-moons-muted">
               <li>· Compare culture, size, and industry before you apply</li>
               <li>· See all open roles from one employer in one place</li>
@@ -457,14 +457,14 @@ export function CompaniesBrowsePage() {
         <main>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-moons-muted">
-              Showing <span className="font-semibold text-moons-navy">{filtered.length}</span> companies
+              Showing <span className="font-semibold text-heading">{filtered.length}</span> companies
             </p>
             <label className="flex items-center gap-2 text-sm text-moons-muted">
               Sort by
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortKey)}
-                className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-foreground outline-none focus:border-moons-blue"
+                className="rounded-lg border border-border bg-surface-elevated px-3 py-1.5 text-sm text-foreground outline-none focus:border-moons-blue"
               >
                 <option value="jobs">Most open roles</option>
                 <option value="name">Company name (A–Z)</option>
@@ -473,7 +473,7 @@ export function CompaniesBrowsePage() {
           </div>
 
           {loading && (
-            <p className="mt-6 rounded-2xl border border-border bg-white p-8 text-center text-sm text-moons-muted">
+            <p className="mt-6 rounded-2xl border border-border bg-surface-elevated p-8 text-center text-sm text-moons-muted">
               Loading companies…
             </p>
           )}
@@ -483,7 +483,7 @@ export function CompaniesBrowsePage() {
           )}
 
           {!loading && !error && filtered.length === 0 && (
-            <div className="mt-6 rounded-2xl border border-border bg-white p-8 text-center">
+            <div className="mt-6 rounded-2xl border border-border bg-surface-elevated p-8 text-center">
               <p className="text-sm text-moons-muted">No companies match your filters.</p>
               <button
                 type="button"

@@ -7,8 +7,8 @@ import { formatExperience, getResumeDisplayName } from './profile-shared';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
-      <h3 className="text-base font-bold text-moons-navy">{title}</h3>
+    <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
+      <h3 className="text-base font-bold text-heading">{title}</h3>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -19,7 +19,7 @@ function DetailItem({ label, value }: { label: string; value?: string | null }) 
   return (
     <div className="rounded-lg border border-border bg-surface/40 px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-moons-muted">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-moons-navy">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-heading">{value}</p>
     </div>
   );
 }
@@ -32,7 +32,7 @@ export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+      <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-border bg-surface ring-2 ring-moons-blue/10">
             {avatarSrc ? (
@@ -53,7 +53,7 @@ export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
             <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
               Candidate profile
             </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-moons-navy">{displayName}</h2>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-heading">{displayName}</h2>
             {profile.headline && (
               <p className="mt-2 text-sm text-foreground">{profile.headline}</p>
             )}
@@ -106,7 +106,7 @@ export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
           <div className="space-y-3">
             {profile.workExperiences.map((exp, i) => (
               <div key={i} className="rounded-lg border border-border bg-surface/40 p-4">
-                <p className="font-semibold text-moons-navy">{exp.designation}</p>
+                <p className="font-semibold text-heading">{exp.designation}</p>
                 <p className="text-sm text-foreground">{exp.company}</p>
                 <p className="mt-1 text-xs text-moons-muted">
                   {exp.startDate}
@@ -127,7 +127,7 @@ export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
           <div className="space-y-4">
             {profile.educations.map((edu, i) => (
               <div key={i} className="rounded-lg border border-border bg-surface/40 px-4 py-3">
-                <p className="font-semibold text-moons-navy">
+                <p className="font-semibold text-heading">
                   {edu.degree}
                   {edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''}
                 </p>
@@ -184,7 +184,7 @@ export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
           <div className="space-y-3">
             {profile.certifications.map((cert, i) => (
               <div key={i} className="rounded-lg border border-border bg-surface/40 px-4 py-3">
-                <p className="text-sm font-semibold text-moons-navy">{cert.name}</p>
+                <p className="text-sm font-semibold text-heading">{cert.name}</p>
                 <p className="mt-1 text-sm text-moons-muted">
                   {[cert.issuer, cert.year ? String(cert.year) : null].filter(Boolean).join(' · ')}
                 </p>

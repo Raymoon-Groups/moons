@@ -46,7 +46,7 @@ function ProfileRing({
   return (
     <div className="relative mx-auto h-[88px] w-[88px]">
       <svg viewBox="0 0 88 88" className="absolute inset-0 h-full w-full -rotate-90">
-        <circle cx="44" cy="44" r={r} fill="none" stroke="#e8ecf2" strokeWidth="4" />
+        <circle cx="44" cy="44" r={r} fill="none" stroke="var(--border)" strokeWidth="4" />
         <circle
           cx="44"
           cy="44"
@@ -65,7 +65,7 @@ function ProfileRing({
           </linearGradient>
         </defs>
       </svg>
-      <div className="absolute inset-[7px] overflow-hidden rounded-full border-2 border-white bg-surface shadow-md ring-1 ring-moons-blue/15">
+      <div className="absolute inset-[7px] overflow-hidden rounded-full border-2 border-surface-elevated bg-surface shadow-md ring-1 ring-moons-blue/15">
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -92,10 +92,10 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
       <button
         type="button"
         onClick={() => scroll('right')}
-        className="absolute -right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-white shadow-md hover:bg-surface"
+        className="absolute -right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface-elevated shadow-md hover:bg-surface-hover"
         aria-label="Scroll jobs"
       >
-        <svg className="h-4 w-4 text-moons-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="h-4 w-4 text-heading" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </button>
@@ -110,7 +110,7 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
             <Link
               key={job.id}
               href={`/jobs?job=${job.id}`}
-              className="group w-[240px] shrink-0 overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-moons-blue/30 hover:shadow-lg"
+              className="group w-[240px] shrink-0 overflow-hidden rounded-2xl border border-border bg-surface-elevated shadow-sm transition hover:-translate-y-0.5 hover:border-moons-blue/30 hover:shadow-lg"
             >
               <div className="h-1 bg-gradient-to-r from-moons-blue to-moons-navy" />
               <div className="p-4">
@@ -126,7 +126,7 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
                     {formatPostedAgo(job.createdAt)}
                   </span>
                 </div>
-                <p className="mt-3 truncate text-sm font-bold text-moons-navy group-hover:text-moons-blue">
+                <p className="mt-3 truncate text-sm font-bold text-heading group-hover:text-moons-blue">
                   {job.title}
                 </p>
                 <p className="mt-0.5 truncate text-xs text-moons-muted">{job.companyName}</p>
@@ -182,14 +182,14 @@ export function CandidateDashboard() {
   const earlyAccess = trending.length > 0 ? trending.slice(0, 3) : jobs.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#eef2f9] via-[#f4f6fb] to-[#eef2f9]">
+    <div className="dash-page">
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[248px_minmax(0,1fr)_272px] lg:items-start">
         {/* Left sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-            <div className="bg-gradient-to-br from-moons-blue/10 via-white to-moons-navy/5 px-5 pb-5 pt-6">
+          <div className="dash-card overflow-hidden">
+            <div className="bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-5 pb-5 pt-6">
               <ProfileRing percent={completion} avatarUrl={avatarSrc} name={displayName} />
-              <h2 className="mt-4 text-center text-base font-bold text-moons-navy">{displayName}</h2>
+              <h2 className="mt-4 text-center text-base font-bold text-heading">{displayName}</h2>
               <p className="mt-1 text-center text-xs text-moons-muted">{educationLine}</p>
               <p className="mt-0.5 text-center text-xs text-moons-muted">{locationLine}</p>
             </div>
@@ -199,14 +199,14 @@ export function CandidateDashboard() {
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-moons-muted">
                     Profile complete
                   </p>
-                  <p className="text-lg font-bold text-moons-navy">{completion}%</p>
+                  <p className="text-lg font-bold text-heading">{completion}%</p>
                 </div>
                 <div className="h-10 w-px bg-border" />
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-moons-muted">
                     Applied
                   </p>
-                  <p className="text-lg font-bold text-moons-navy">{stats?.applicationsCount ?? 0}</p>
+                  <p className="text-lg font-bold text-heading">{stats?.applicationsCount ?? 0}</p>
                 </div>
               </div>
               {completion < 100 && (
@@ -221,7 +221,7 @@ export function CandidateDashboard() {
             </div>
           </div>
 
-          <nav className="rounded-2xl border border-border bg-white p-2 shadow-sm">
+          <nav className="dash-card p-2">
             {NAV_ITEMS.map((item) => {
               const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
               const Icon = item.icon;
@@ -231,7 +231,7 @@ export function CandidateDashboard() {
                   href={item.href}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                     active
-                      ? 'bg-gradient-to-r from-moons-blue/10 to-transparent text-moons-navy'
+                      ? 'bg-gradient-to-r from-moons-blue/15 to-transparent text-heading'
                       : 'text-moons-muted hover:bg-surface hover:text-foreground'
                   }`}
                 >
@@ -251,7 +251,7 @@ export function CandidateDashboard() {
 
         {/* Center column */}
         <main className="min-w-0 space-y-5">
-          <div className="relative overflow-hidden rounded-2xl border border-moons-blue/20 bg-white shadow-sm">
+          <div className="relative dash-card overflow-hidden border-moons-blue/20">
             <div
               className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-moons-blue/10"
               aria-hidden
@@ -266,7 +266,7 @@ export function CandidateDashboard() {
                   <p className="text-sm text-moons-muted">Premium tools to stand out to recruiters</p>
                 </div>
               </div>
-              <span className="inline-flex w-fit rounded-full border border-moons-blue/20 bg-moons-blue/5 px-4 py-2 text-sm font-semibold text-moons-navy">
+              <span className="inline-flex w-fit rounded-full border border-moons-blue/25 bg-moons-blue/10 px-4 py-2 text-sm font-semibold text-heading">
                 Coming soon
               </span>
             </div>
@@ -277,11 +277,11 @@ export function CandidateDashboard() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+          <div className="dash-card p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-script text-xl text-moons-muted">For you</p>
-                <h3 className="text-base font-bold text-moons-navy">Jobs that match your profile</h3>
+                <p className="font-script text-xl text-moons-blue">For you</p>
+                <h3 className="text-base font-bold text-heading">Jobs that match your profile</h3>
               </div>
               <Link href="/jobs" className="text-sm font-semibold text-moons-blue hover:underline">
                 See all
@@ -294,7 +294,7 @@ export function CandidateDashboard() {
                 onClick={() => setActiveTab('profile')}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   activeTab === 'profile'
-                    ? 'bg-white text-moons-navy shadow-sm'
+                    ? 'bg-surface-elevated text-heading shadow-sm ring-1 ring-border'
                     : 'text-moons-muted hover:text-foreground'
                 }`}
               >
@@ -305,7 +305,7 @@ export function CandidateDashboard() {
                 onClick={() => setActiveTab('preferences')}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   activeTab === 'preferences'
-                    ? 'bg-white text-moons-navy shadow-sm'
+                    ? 'bg-surface-elevated text-heading shadow-sm ring-1 ring-border'
                     : 'text-moons-muted hover:text-foreground'
                 }`}
               >
@@ -327,11 +327,11 @@ export function CandidateDashboard() {
 
           {/* Early access */}
           {earlyAccess.length > 0 && (
-            <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+            <div className="dash-card p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-script text-xl text-moons-muted">Trending</p>
-                  <h3 className="text-base font-bold text-moons-navy">
+                  <p className="font-script text-xl text-moons-blue">Trending</p>
+                  <h3 className="text-base font-bold text-heading">
                     {earlyAccess.length} roles getting attention
                   </h3>
                 </div>
@@ -344,13 +344,13 @@ export function CandidateDashboard() {
                   <Link
                     key={job.id}
                     href={`/jobs?job=${job.id}`}
-                    className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:border-moons-blue/30 hover:bg-moons-blue/5"
+                    className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:border-moons-blue/30 hover:bg-moons-blue/10"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-moons-blue/15 to-moons-navy/10 text-xs font-bold text-moons-navy">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-moons-blue/20 to-moons-navy/15 text-xs font-bold text-heading">
                       {String(index + 1).padStart(2, '0')}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-moons-navy">{job.title}</p>
+                      <p className="truncate text-sm font-semibold text-heading">{job.title}</p>
                       <p className="truncate text-xs text-moons-muted">
                         {job.companyName} · {job.location}
                       </p>
@@ -367,9 +367,9 @@ export function CandidateDashboard() {
 
         {/* Right sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-            <p className="font-script text-xl text-moons-muted">Your status</p>
-            <h3 className="mt-0.5 text-sm font-bold text-moons-navy">What are you focusing on?</h3>
+          <div className="dash-card p-5">
+            <p className="font-script text-xl text-moons-blue">Your status</p>
+            <h3 className="mt-0.5 text-sm font-bold text-heading">What are you focusing on?</h3>
             <div className="mt-4 space-y-2">
               {JOURNEY_OPTIONS.map((option) => (
                 <button
@@ -378,8 +378,8 @@ export function CandidateDashboard() {
                   onClick={() => setJourney(option)}
                   className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition ${
                     journey === option
-                      ? 'border-moons-blue bg-moons-blue/5 text-moons-navy'
-                      : 'border-border bg-white text-foreground hover:border-moons-blue/30'
+                      ? 'border-moons-blue bg-moons-blue/15 text-heading'
+                      : 'border-border bg-surface text-foreground hover:border-moons-blue/30'
                   }`}
                 >
                   <span
@@ -393,10 +393,10 @@ export function CandidateDashboard() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-moons-blue/15 bg-gradient-to-br from-moons-blue/10 via-white to-white shadow-sm">
+          <div className="dash-card overflow-hidden border-moons-blue/20 bg-gradient-to-br from-moons-blue/15 via-surface-elevated to-surface-elevated">
             <div className="p-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-moons-blue">Tip</p>
-              <h4 className="mt-1 text-sm font-bold text-moons-navy">Get noticed by recruiters</h4>
+              <h4 className="mt-1 text-sm font-bold text-heading">Get noticed by recruiters</h4>
               <p className="mt-2 text-xs leading-relaxed text-moons-muted">
                 Profiles with skills, resume, and work history receive far more views. Take a few
                 minutes to fill in the gaps.
@@ -410,7 +410,7 @@ export function CandidateDashboard() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+          <div className="dash-card p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">Shortcuts</p>
             <div className="mt-3 space-y-2">
               <Link

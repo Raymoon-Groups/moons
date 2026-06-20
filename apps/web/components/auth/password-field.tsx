@@ -25,7 +25,7 @@ export function PasswordField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-bold text-moons-navy">
+      <label htmlFor={id} className="block text-sm font-bold text-heading">
         {label}
       </label>
       <div className="relative mt-2">

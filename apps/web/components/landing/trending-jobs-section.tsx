@@ -21,7 +21,7 @@ export function TrendingJobsSection() {
     <section className="bg-surface-elevated py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-moons-navy md:text-xl">Trending jobs on Moons</h2>
+          <h2 className="text-lg font-bold text-heading md:text-xl">Trending jobs on Moons</h2>
           <Link href="/jobs" className="text-sm font-semibold text-moons-blue hover:underline">
             View all jobs →
           </Link>
@@ -45,7 +45,7 @@ export function TrendingJobsSection() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-bold text-moons-navy">{job.title}</h3>
+                      <h3 className="text-lg font-bold text-heading">{job.title}</h3>
                       <p className="text-sm text-moons-muted">
                         {job.companyName} · {job.location}
                       </p>

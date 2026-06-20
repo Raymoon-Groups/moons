@@ -203,7 +203,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={handleBellClick}
-        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-white text-moons-navy shadow-sm transition hover:border-moons-blue/30 hover:bg-surface-hover hover:text-moons-blue md:h-10 md:w-10"
+        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface-elevated text-heading shadow-sm transition hover:border-moons-blue/30 hover:bg-surface-hover hover:text-moons-blue md:h-10 md:w-10"
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={open}
       >
@@ -222,7 +222,7 @@ export function NotificationBell() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-surface-elevated bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -231,7 +231,7 @@ export function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-[min(100vw-2rem,22rem)] overflow-hidden rounded-lg border border-border bg-surface-elevated shadow-xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h3 className="text-sm font-bold text-moons-navy">Notifications</h3>
+            <h3 className="text-sm font-bold text-heading">Notifications</h3>
             {unreadCount > 0 && (
               <button
                 type="button"
@@ -259,7 +259,7 @@ export function NotificationBell() {
                   type="button"
                   onClick={() => handleItemClick(item)}
                   className={`flex w-full gap-3 border-b border-border px-4 py-3 text-left transition hover:bg-surface-hover ${
-                    item.readAt ? 'opacity-75' : 'bg-blue-50/80'
+                    item.readAt ? 'opacity-75' : 'bg-moons-blue/10'
                   }`}
                 >
                   <span
@@ -269,7 +269,7 @@ export function NotificationBell() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-start justify-between gap-2">
-                      <span className="text-sm font-semibold text-moons-navy">{item.title}</span>
+                      <span className="text-sm font-semibold text-heading">{item.title}</span>
                       <span className="shrink-0 text-[10px] text-moons-muted">
                         {formatNotificationTime(item.createdAt)}
                       </span>

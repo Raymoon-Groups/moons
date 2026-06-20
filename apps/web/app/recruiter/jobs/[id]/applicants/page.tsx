@@ -72,7 +72,7 @@ function ApplicantCard({
       : null;
 
   return (
-    <article className="rounded-xl border border-border bg-white p-5 shadow-sm">
+    <article className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 gap-4">
           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-border bg-surface ring-2 ring-moons-blue/10">
@@ -103,7 +103,7 @@ function ApplicantCard({
               </span>
             </div>
 
-            <p className="mt-2 text-lg font-bold text-moons-navy">{name}</p>
+            <p className="mt-2 text-lg font-bold text-heading">{name}</p>
             {profile?.headline && (
               <p className="mt-1 text-sm text-foreground">{profile.headline}</p>
             )}
@@ -152,7 +152,7 @@ function ApplicantCard({
 
             {app.coverNote && (
               <p className="mt-3 rounded-lg border border-border bg-surface/40 px-3 py-2 text-sm text-foreground">
-                <span className="font-semibold text-moons-navy">Cover note:</span> {app.coverNote}
+                <span className="font-semibold text-heading">Cover note:</span> {app.coverNote}
               </p>
             )}
           </div>
@@ -170,7 +170,7 @@ function ApplicantCard({
               href={resumeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+              className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
             >
               <span className="truncate">{resumeFileName}</span>
             </a>
@@ -184,7 +184,7 @@ function ApplicantCard({
               value={app.status}
               disabled={updatingId === app.id}
               onChange={(e) => onStatusChange(app.id, e.target.value as ApplicationStatus)}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-moons-navy outline-none transition focus:border-moons-blue focus:ring-1 focus:ring-moons-blue/30 disabled:opacity-60"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-heading outline-none transition focus:border-moons-blue focus:ring-1 focus:ring-moons-blue/30 disabled:opacity-60"
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
@@ -264,14 +264,14 @@ export default function JobApplicantsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-[#f0f3f8] text-sm text-moons-muted">
+      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
         Loading applicants…
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="dash-page">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <Link
           href={`/recruiter/jobs/${jobId}`}
@@ -282,11 +282,11 @@ export default function JobApplicantsPage() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] lg:items-start">
           <div className="min-w-0 space-y-5">
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
                 Applicants
               </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-moons-navy md:text-3xl">
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-heading md:text-3xl">
                 {job?.title ?? 'Job applicants'}
               </h1>
               <p className="mt-2 text-sm text-moons-muted">
@@ -307,14 +307,14 @@ export default function JobApplicantsPage() {
             )}
 
             {!loading && applicants.length === 0 && (
-              <div className="rounded-xl border border-dashed border-moons-blue/40 bg-white p-10 text-center shadow-sm">
-                <p className="text-base font-semibold text-moons-navy">No applicants yet</p>
+              <div className="rounded-xl border border-dashed border-moons-blue/40 bg-surface-elevated p-10 text-center shadow-sm">
+                <p className="text-base font-semibold text-heading">No applicants yet</p>
                 <p className="mt-2 text-sm text-moons-muted">
                   When candidates apply to this job, they will appear here for review.
                 </p>
                 <Link
                   href={`/jobs?job=${jobId}`}
-                  className="mt-5 inline-flex rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="mt-5 inline-flex rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   Preview public listing
                 </Link>
@@ -336,12 +336,12 @@ export default function JobApplicantsPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Pipeline</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Pipeline</h3>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Total applicants</dt>
-                  <dd className="font-semibold text-moons-navy">{stats.total}</dd>
+                  <dd className="font-semibold text-heading">{stats.total}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">New</dt>
@@ -362,32 +362,32 @@ export default function JobApplicantsPage() {
               </dl>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Quick links</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Quick links</h3>
               <div className="mt-4 flex flex-col gap-2">
                 <Link
                   href={`/recruiter/jobs/${jobId}`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   View job
                 </Link>
                 <Link
                   href={`/recruiter/jobs/${jobId}/edit`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   Edit job
                 </Link>
                 <Link
                   href="/recruiter/jobs"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-moons-navy"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
                 >
                   All posted jobs
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Review tips</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Review tips</h3>
               <ul className="mt-4 space-y-3 text-sm text-moons-muted">
                 <li>Mark applications as Viewed once you have opened a candidate profile.</li>
                 <li>Use Shortlisted for candidates you want to move forward with.</li>

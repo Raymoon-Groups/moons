@@ -39,7 +39,7 @@ function EntryCard({
   return (
     <div className="rounded-lg border border-border bg-surface/50 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-semibold text-moons-navy">{title}</span>
+        <span className="text-sm font-semibold text-heading">{title}</span>
         <button
           type="button"
           onClick={onRemove}

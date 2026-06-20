@@ -253,7 +253,7 @@ export function HeroJobSearchForm({
         className={
           isLanding
             ? 'relative flex flex-col items-stretch overflow-visible rounded-3xl border border-border bg-surface-elevated p-3 shadow-[0_8px_32px_rgba(26,39,68,0.08)] sm:flex-row sm:items-center sm:rounded-full sm:p-2'
-            : 'relative mx-auto mt-8 flex max-w-4xl flex-col gap-2 overflow-visible rounded-2xl border border-white/20 bg-white p-2 shadow-xl sm:flex-row sm:items-center'
+            : 'relative mx-auto mt-8 flex max-w-4xl flex-col gap-2 overflow-visible rounded-2xl border border-white/20 bg-surface-elevated p-2 shadow-xl sm:flex-row sm:items-center'
         }
       >
         <div
@@ -290,7 +290,7 @@ export function HeroJobSearchForm({
           )}
 
           {showDropdown && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-border bg-white text-left shadow-xl sm:left-4 sm:right-4 lg:left-8 lg:right-8">
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-border bg-surface-elevated text-left shadow-xl sm:left-4 sm:right-4 lg:left-8 lg:right-8">
               <div className="border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-moons-muted">
                 {loadingSuggestions ? 'Searching…' : 'Suggestions'}
               </div>
@@ -307,7 +307,7 @@ export function HeroJobSearchForm({
                           {item.type === 'job' ? 'Job' : item.type === 'company' ? 'Company' : 'Search'}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-moons-navy">
+                          <span className="block truncate text-sm font-semibold text-heading">
                             {item.label}
                           </span>
                           {item.meta && (

@@ -24,10 +24,7 @@ export function LocationSuggestionsDropdown({
   const showScroll = !loading && suggestions.length > MAX_VISIBLE;
 
   return (
-    <div
-      className={`overflow-hidden rounded-lg border border-[#e8e8e8] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.12)] ${className}`}
-      role="listbox"
-    >
+    <div className={`picker-menu ${className}`} role="listbox">
       <ul
         className={`py-1 ${showScroll ? 'suggestions-scroll overflow-y-scroll' : ''}`}
         style={showScroll ? { maxHeight: LIST_MAX_HEIGHT } : undefined}
@@ -48,12 +45,12 @@ export function LocationSuggestionsDropdown({
                   type="button"
                   role="option"
                   onClick={() => onSelect(item)}
-                  className="w-full px-4 py-2.5 text-left text-[15px] leading-snug text-[#1a1a1a] transition hover:bg-[#f5f5f5]"
+                  className="picker-item w-full py-2.5"
                 >
                   {parts.match ? (
                     <>
                       {parts.before}
-                      <span className="font-semibold">{parts.match}</span>
+                      <span className="font-semibold text-heading">{parts.match}</span>
                       {parts.after}
                     </>
                   ) : (

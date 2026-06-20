@@ -2,7 +2,9 @@
   "name": "moons",
   "private": true,
   "scripts": {
-    "dev": "node scripts/free-port.mjs 3000 3001 && turbo dev",
+    "dev": "node scripts/free-port.mjs 3000 3001 8081 && turbo dev --filter=@moons/api --filter=@moons/web",
+    "mobile": "node scripts/free-port.mjs 8081 && pnpm --filter @moons/mobile dev",
+    "mobile:web": "node scripts/free-port.mjs 8081 && pnpm --filter @moons/mobile web",
     "build": "turbo build",
     "lint": "turbo lint",
     "db:up": "docker compose up -d",

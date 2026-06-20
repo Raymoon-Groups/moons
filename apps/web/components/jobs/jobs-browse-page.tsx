@@ -75,7 +75,7 @@ function FilterSelect({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
-        className="w-full appearance-none rounded-lg border border-border bg-white py-2 pl-3 pr-8 text-xs font-medium text-foreground outline-none focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/15"
+        className="w-full appearance-none rounded-lg border border-border bg-surface-elevated py-2 pl-3 pr-8 text-xs font-medium text-foreground outline-none focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/15"
       >
         <option value="">{label}</option>
         {options.map((opt) => (
@@ -107,7 +107,7 @@ function JobListCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full rounded-xl border bg-white p-4 text-left transition ${
+      className={`w-full rounded-xl border bg-surface-elevated p-4 text-left transition ${
         selected
           ? 'border-moons-blue shadow-md ring-1 ring-moons-blue/20'
           : 'border-border shadow-sm hover:border-moons-blue/40 hover:shadow'
@@ -124,7 +124,7 @@ function JobListCard({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-bold text-moons-navy">{job.title}</p>
+          <p className="truncate font-bold text-heading">{job.title}</p>
           <p className="mt-0.5 text-sm text-moons-muted">{job.companyName}</p>
           {job.postedByCompanyName &&
             job.postedByCompanyName.trim().toLowerCase() !==
@@ -161,25 +161,25 @@ function OtherJobsCarousel({ jobs }: { jobs: JobListing[] }) {
   return (
     <div className="relative mt-8">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-moons-navy">Other jobs you may like</h3>
+        <h3 className="text-sm font-bold text-heading">Other jobs you may like</h3>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => scroll('left')}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white shadow-sm transition hover:bg-surface"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-elevated shadow-sm transition hover:bg-surface"
             aria-label="Scroll left"
           >
-            <svg className="h-4 w-4 text-moons-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-4 w-4 text-heading" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <button
             type="button"
             onClick={() => scroll('right')}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white shadow-sm transition hover:bg-surface"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-elevated shadow-sm transition hover:bg-surface"
             aria-label="Scroll right"
           >
-            <svg className="h-4 w-4 text-moons-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-4 w-4 text-heading" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -201,7 +201,7 @@ function OtherJobsCarousel({ jobs }: { jobs: JobListing[] }) {
             <Link
               key={job.id}
               href={`/jobs?job=${job.id}`}
-              className="w-[260px] shrink-0 rounded-xl border border-border bg-white p-4 shadow-sm transition hover:border-moons-blue/40 hover:shadow-md"
+              className="w-[260px] shrink-0 rounded-xl border border-border bg-surface-elevated p-4 shadow-sm transition hover:border-moons-blue/40 hover:shadow-md"
             >
               <div className="flex items-start gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface text-sm font-bold text-moons-muted">
@@ -212,7 +212,7 @@ function OtherJobsCarousel({ jobs }: { jobs: JobListing[] }) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-moons-navy">{job.title}</p>
+                  <p className="truncate text-sm font-bold text-heading">{job.title}</p>
                   <p className="mt-0.5 truncate text-xs text-moons-muted">{job.companyName}</p>
                 </div>
               </div>
@@ -380,7 +380,7 @@ export function JobsBrowsePage() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="dash-page">
       {/* Search hero */}
       <section className="relative overflow-x-clip overflow-y-visible bg-gradient-to-br from-[#1a2744] via-[#243b6b] to-[#1a3a6e] px-4 pb-16 pt-10 md:pb-20 md:pt-12">
         <div
@@ -410,7 +410,7 @@ export function JobsBrowsePage() {
       </section>
 
       {/* Filters */}
-      <div className="border-b border-border bg-white px-4 py-3">
+      <div className="border-b border-border bg-surface-elevated px-4 py-3">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2">
           <FilterSelect
             label="Experience Level"
@@ -448,7 +448,7 @@ export function JobsBrowsePage() {
       {/* Split pane */}
       <div className="mx-auto max-w-7xl px-4 py-4">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-moons-navy">
+          <p className="text-sm font-semibold text-heading">
             Recommended jobs
             {data && (
               <span className="ml-1 font-normal text-moons-muted">
@@ -460,7 +460,7 @@ export function JobsBrowsePage() {
         </div>
 
         {loading && (
-          <p className="rounded-xl border border-border bg-white p-8 text-center text-sm text-moons-muted">
+          <p className="rounded-xl border border-border bg-surface-elevated p-8 text-center text-sm text-moons-muted">
             Loading jobs…
           </p>
         )}
@@ -470,9 +470,9 @@ export function JobsBrowsePage() {
         )}
 
         {!loading && !error && filteredJobs.length === 0 && (
-          <div className="rounded-xl border border-border bg-white p-8 md:p-10">
+          <div className="rounded-xl border border-border bg-surface-elevated p-8 md:p-10">
             <div className="text-center">
-              <p className="text-base font-semibold text-moons-navy">
+              <p className="text-base font-semibold text-heading">
                 {q || location || experience || filterCompany || filterJobType || filterSalary || filterIndustry
                   ? 'No matching jobs in this list.'
                   : 'No jobs found. Try a different search or clear filters.'}
@@ -495,7 +495,7 @@ export function JobsBrowsePage() {
           <div className="grid h-[calc(100vh-22rem)] min-h-[520px] gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
             {/* Job list */}
             <div
-              className={`flex flex-col overflow-hidden rounded-xl border border-border bg-[#f0f3f8] ${
+              className={`flex flex-col overflow-hidden rounded-xl border border-border bg-surface ${
                 mobileShowDetail ? 'hidden lg:flex' : 'flex'
               }`}
             >
@@ -511,7 +511,7 @@ export function JobsBrowsePage() {
               </div>
 
               {data && data.totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-border bg-white px-3 py-2">
+                <div className="flex items-center justify-between border-t border-border bg-surface-elevated px-3 py-2">
                   {page > 1 ? (
                     <button
                       type="button"
@@ -543,7 +543,7 @@ export function JobsBrowsePage() {
 
             {/* Job detail */}
             <div
-              className={`min-h-0 overflow-hidden rounded-xl border border-border bg-white shadow-sm ${
+              className={`min-h-0 overflow-hidden rounded-xl border border-border bg-surface-elevated shadow-sm ${
                 mobileShowDetail ? 'block h-full' : 'hidden h-full lg:block'
               }`}
             >

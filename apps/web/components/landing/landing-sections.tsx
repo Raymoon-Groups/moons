@@ -16,7 +16,7 @@ export function StatsBar() {
   return (
     <section className="border-y border-border bg-surface px-4 py-16 md:py-20">
       <div className="mx-auto max-w-6xl text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-moons-navy md:text-4xl">
+        <h2 className="text-3xl font-bold tracking-tight text-heading md:text-4xl">
           Trusted by jobseekers nationwide
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-base text-moons-muted md:text-lg">
@@ -32,7 +32,7 @@ export function StatsBar() {
                 </p>
                 <span className="mt-2 h-1 w-full min-w-[3.5rem] rounded-full bg-moons-blue/40 md:min-w-[4.5rem]" />
               </div>
-              <p className="mt-5 text-sm font-bold text-moons-navy md:text-base">
+              <p className="mt-5 text-sm font-bold text-heading md:text-base">
                 {stat.label}
               </p>
               <p className="mt-1 text-xs text-moons-muted md:text-sm">{stat.sublabel}</p>
@@ -48,7 +48,7 @@ export function BrowseCategories() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-12">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-moons-navy md:text-xl">
+        <h2 className="text-lg font-bold text-heading md:text-xl">
           Browse jobs by category
         </h2>
         <Link href="/jobs" className="text-sm font-semibold text-moons-blue hover:underline">
@@ -73,7 +73,7 @@ export function BrowseCategories() {
               />
             </div>
             <div className="p-3">
-              <p className="text-sm font-bold text-moons-navy group-hover:text-moons-blue">
+              <p className="text-sm font-bold text-heading group-hover:text-moons-blue">
                 {cat.name}
               </p>
               <p className="text-xs text-moons-muted">{cat.count} jobs</p>
@@ -90,7 +90,7 @@ export function TrendingJobs() {
     <section className="bg-surface-elevated py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-moons-navy md:text-xl">
+          <h2 className="text-lg font-bold text-heading md:text-xl">
             Trending jobs on Moons
           </h2>
           <Link href="/jobs" className="text-sm font-semibold text-moons-blue hover:underline">
@@ -110,7 +110,7 @@ export function TrendingJobs() {
 export function TopCompanies() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-12">
-      <h2 className="text-center text-lg font-bold text-moons-navy md:text-xl">
+      <h2 className="text-center text-lg font-bold text-heading md:text-xl">
         Top companies hiring now
       </h2>
       <p className="mt-1 text-center text-sm text-moons-muted">
@@ -122,7 +122,7 @@ export function TopCompanies() {
           <Link
             key={co.name}
             href={`/jobs?q=${encodeURIComponent(co.name)}`}
-            className="group relative aspect-[3/4] overflow-hidden rounded-lg ring-1 ring-slate-200 transition hover:ring-moons-blue hover:shadow-lg"
+            className="group relative aspect-[3/4] overflow-hidden rounded-lg ring-1 ring-border transition hover:ring-moons-blue hover:shadow-lg"
           >
             <Image
               src={co.image}
@@ -150,7 +150,7 @@ export function JobsByCity() {
   return (
     <section className="bg-surface-elevated py-12">
       <div className="mx-auto max-w-7xl px-4">
-        <h2 className="text-lg font-bold text-moons-navy md:text-xl">
+        <h2 className="text-lg font-bold text-heading md:text-xl">
           Jobs by city
         </h2>
         <p className="mt-1 text-sm text-moons-muted">
@@ -171,7 +171,7 @@ export function PopularSearchTags() {
   return (
     <section className="border-t border-border bg-surface py-8">
       <div className="mx-auto max-w-7xl px-4">
-        <h2 className="text-sm font-bold text-moons-navy">Popular searches</h2>
+        <h2 className="text-sm font-bold text-heading">Popular searches</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {popularSearches.map((term) => (
             <Link
@@ -191,7 +191,7 @@ export function PopularSearchTags() {
 export function EmployerBanner() {
   return (
     <section className="mx-auto max-w-7xl px-4 pb-12">
-      <div className="overflow-hidden rounded-xl border border-moons-blue/20 bg-gradient-to-r from-[#e8f0fa] via-[#dbeafe] to-[#c7d8f0] shadow-[0_8px_32px_rgba(74,127,212,0.12)]">
+      <div className="promo-banner">
         <div className="grid md:grid-cols-5">
           <div className="relative min-h-[180px] md:col-span-2">
             <Image
@@ -207,7 +207,7 @@ export function EmployerBanner() {
             <p className="text-xs font-bold uppercase tracking-wider text-moons-blue">
               For employers
             </p>
-            <h2 className="mt-2 text-xl font-bold text-moons-navy md:text-2xl">
+            <h2 className="mt-2 text-xl font-bold text-heading md:text-2xl">
               Hire talent on Moons — post jobs for free
             </h2>
             <p className="mt-2 text-sm text-moons-muted">
@@ -222,7 +222,7 @@ export function EmployerBanner() {
               </Link>
               <Link
                 href="/login?role=recruiter"
-                className="rounded border border-moons-blue/40 bg-surface-elevated/80 px-6 py-2.5 text-sm font-semibold text-moons-navy hover:bg-surface-elevated"
+                className="rounded border border-moons-blue/40 bg-surface-elevated/80 px-6 py-2.5 text-sm font-semibold text-heading hover:bg-surface-elevated"
               >
                 Employer login
               </Link>

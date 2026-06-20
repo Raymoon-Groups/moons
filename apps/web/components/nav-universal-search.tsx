@@ -152,7 +152,7 @@ export function NavUniversalSearch({
     <div ref={rootRef} className={`relative w-full ${className}`}>
       <form onSubmit={handleSubmit}>
         <div
-          className={`flex w-full items-center rounded-full border border-[#dfe1e5] bg-[#f0f3f8] transition focus-within:border-moons-blue/40 focus-within:ring-2 focus-within:ring-moons-blue/10 ${
+          className={`flex w-full items-center rounded-full border border-border bg-surface transition focus-within:border-moons-blue/50 focus-within:ring-2 focus-within:ring-moons-blue/20 ${
             stretched ? 'px-4 py-2.5' : 'px-3 py-1.5'
           }`}
         >
@@ -176,7 +176,7 @@ export function NavUniversalSearch({
         <div
           id="nav-search-suggestions"
           role="listbox"
-          className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl border border-border bg-white shadow-xl"
+          className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl border border-border bg-surface-elevated shadow-xl"
         >
           <div className="border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-moons-muted">
             {loading ? 'Searching…' : sectionTitle}
@@ -193,14 +193,14 @@ export function NavUniversalSearch({
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => selectSuggestion(item)}
                     className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition ${
-                      index === activeIndex ? 'bg-blue-50' : 'hover:bg-surface'
+                      index === activeIndex ? 'bg-surface-hover' : 'hover:bg-surface'
                     }`}
                   >
                     <span className="mt-0.5 shrink-0 rounded-md bg-surface px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-moons-muted">
                       {suggestionTypeLabel(item.type)}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-moons-navy">
+                      <span className="block truncate text-sm font-semibold text-heading">
                         {item.label}
                       </span>
                       {item.meta && (

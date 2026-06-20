@@ -126,7 +126,7 @@ export function SiteFooter() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-[15px] font-medium text-moons-navy transition hover:text-moons-blue"
+                      className="text-[15px] font-medium text-heading transition hover:text-moons-blue"
                     >
                       {link.label}
                     </Link>
@@ -142,7 +142,7 @@ export function SiteFooter() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-[15px] font-medium text-moons-navy transition hover:text-moons-blue"
+                      className="text-[15px] font-medium text-heading transition hover:text-moons-blue"
                     >
                       {link.label}
                     </Link>
@@ -159,7 +159,7 @@ export function SiteFooter() {
 
             <div className="w-full max-w-md lg:text-right">
               <p className="text-sm text-moons-muted">Jobs move fast.</p>
-              <p className="text-lg font-bold text-moons-navy">Stay ahead with Moons.</p>
+              <p className="text-lg font-bold text-heading">Stay ahead with Moons.</p>
 
               <form onSubmit={handleSubscribe} className="relative mt-4">
                 <input
@@ -168,7 +168,7 @@ export function SiteFooter() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter email address"
                   required
-                  className="w-full rounded-full border border-border bg-surface-elevated py-3.5 pl-5 pr-32 text-sm text-moons-navy outline-none ring-moons-blue/30 placeholder:text-moons-muted focus:ring-2"
+                  className="w-full rounded-full border border-border bg-surface-elevated py-3.5 pl-5 pr-32 text-sm text-heading outline-none ring-moons-blue/30 placeholder:text-moons-muted focus:ring-2"
                 />
                 <button
                   type="submit"

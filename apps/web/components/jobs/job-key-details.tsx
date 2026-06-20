@@ -64,7 +64,7 @@ export function JobKeyDetailsList({
             <span className="mt-0.5 shrink-0 text-moons-muted">{iconForLabel(item.label)}</span>
           )}
           <span>
-            <span className="font-medium text-moons-navy">{item.label}:</span> {item.value}
+            <span className="font-medium text-heading">{item.label}:</span> {item.value}
           </span>
         </div>
       ))}

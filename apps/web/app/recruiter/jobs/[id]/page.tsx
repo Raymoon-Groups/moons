@@ -39,7 +39,7 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border bg-surface/40 px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-moons-muted">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-moons-navy">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-heading">{value}</p>
     </div>
   );
 }
@@ -71,7 +71,7 @@ export default function RecruiterJobDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-[#f0f3f8] text-sm text-moons-muted">
+      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
         Loading job…
       </div>
     );
@@ -79,8 +79,8 @@ export default function RecruiterJobDetailPage() {
 
   if (error || !job) {
     return (
-      <div className="min-h-[50vh] bg-[#f0f3f8] px-4 py-10">
-        <div className="mx-auto max-w-lg rounded-xl border border-border bg-white p-8 text-center shadow-sm">
+      <div className="min-h-[50vh] bg-background px-4 py-10">
+        <div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-elevated p-8 text-center shadow-sm">
           <p className="text-sm text-red-600">{error || 'Job not found'}</p>
           <Link
             href="/recruiter/jobs"
@@ -99,7 +99,7 @@ export default function RecruiterJobDetailPage() {
     !postedByOther && job.companyLogoUrl ? resolveAssetUrl(job.companyLogoUrl) : null;
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="dash-page">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <Link
           href="/recruiter/jobs"
@@ -112,7 +112,7 @@ export default function RecruiterJobDetailPage() {
           {/* Main column */}
           <div className="min-w-0 space-y-5">
             {/* Header card */}
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
                   {logoSrc ? (
@@ -130,7 +130,7 @@ export default function RecruiterJobDetailPage() {
                     <JobTags job={job} size="sm" />
                   </div>
 
-                  <h1 className="mt-3 text-2xl font-bold tracking-tight text-moons-navy md:text-3xl">
+                  <h1 className="mt-3 text-2xl font-bold tracking-tight text-heading md:text-3xl">
                     {job.title}
                   </h1>
 
@@ -151,16 +151,16 @@ export default function RecruiterJobDetailPage() {
             </section>
 
             {/* Description */}
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
-              <h2 className="text-base font-bold text-moons-navy">Job description</h2>
+            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
+              <h2 className="text-base font-bold text-heading">Job description</h2>
               <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                 {job.description}
               </p>
             </section>
 
             {/* Details grid */}
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
-              <h2 className="text-base font-bold text-moons-navy">Job details</h2>
+            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
+              <h2 className="text-base font-bold text-heading">Job details</h2>
               <div className="mt-4">
                 <JobKeyDetailsGrid job={job} />
                 {job.companySize && (
@@ -177,8 +177,8 @@ export default function RecruiterJobDetailPage() {
 
           {/* Sidebar */}
           <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Manage this job</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Manage this job</h3>
               <div className="mt-4 flex flex-col gap-2">
                 <Link
                   href={`/recruiter/jobs/${job.id}/applicants`}
@@ -188,43 +188,43 @@ export default function RecruiterJobDetailPage() {
                 </Link>
                 <Link
                   href={`/recruiter/jobs/${job.id}/edit`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   Edit job
                 </Link>
                 <Link
                   href={`/jobs?job=${job.id}`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-moons-navy"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
                 >
                   Preview public listing
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">At a glance</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">At a glance</h3>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Status</dt>
-                  <dd className="font-semibold text-moons-navy">{job.status}</dd>
+                  <dd className="font-semibold text-heading">{job.status}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Hiring for</dt>
-                  <dd className="text-right font-semibold text-moons-navy">{job.companyName}</dd>
+                  <dd className="text-right font-semibold text-heading">{job.companyName}</dd>
                 </div>
                 {job.postedByCompanyName &&
                   job.postedByCompanyName.trim().toLowerCase() !==
                     job.companyName.trim().toLowerCase() && (
                     <div className="flex justify-between gap-3">
                       <dt className="text-moons-muted">Posted by</dt>
-                      <dd className="text-right font-semibold text-moons-navy">
+                      <dd className="text-right font-semibold text-heading">
                         {job.postedByCompanyName}
                       </dd>
                     </div>
                   )}
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Posted</dt>
-                  <dd className="font-semibold text-moons-navy">
+                  <dd className="font-semibold text-heading">
                     {new Date(job.createdAt).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',

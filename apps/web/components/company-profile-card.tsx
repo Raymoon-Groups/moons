@@ -47,8 +47,8 @@ export function CompanyProfileCard({
     !!poster && poster.toLowerCase() !== hiringCompany.toLowerCase();
 
   return (
-    <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
-      <h2 className="text-base font-bold text-moons-navy">
+    <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
+      <h2 className="text-base font-bold text-heading">
         {postedByOther ? 'About the employer' : 'About the company'}
       </h2>
       {postedByOther && (

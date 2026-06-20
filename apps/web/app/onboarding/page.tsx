@@ -114,7 +114,7 @@ export default function OnboardingPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface px-4 py-10">
       <div className="w-full max-w-lg rounded-2xl border border-border bg-surface-elevated p-8 shadow-sm">
-        <h1 className="text-2xl font-bold text-moons-navy">Complete your profile</h1>
+        <h1 className="text-2xl font-bold text-heading">Complete your profile</h1>
         <p className="mt-2 text-sm text-foreground">
           {isRecruiter
             ? 'Tell us about your company to get started as an employer.'
@@ -129,7 +129,7 @@ export default function OnboardingPage() {
               <Field label="Company Website"  id="companyWebsite" value={companyWebsite} onChange={setCompanyWebsite} required placeholder="https://example.com" />
               <Field label="Company Size"     id="companySize"   value={companySize}    onChange={setCompanySize}    required placeholder="e.g. 11-50 employees" />
               <div>
-                <label htmlFor="industry" className="block text-sm font-bold text-moons-navy">Industry (optional)</label>
+                <label htmlFor="industry" className="block text-sm font-bold text-heading">Industry (optional)</label>
                 <select
                   id="industry" value={industry} onChange={e => setIndustry(e.target.value)}
                   className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm text-foreground outline-none focus:border-moons-blue focus:ring-1 focus:ring-moons-blue"
@@ -144,7 +144,7 @@ export default function OnboardingPage() {
             <>
               {/* ── Upload zone ── */}
               <div>
-                <label className="block text-sm font-bold text-moons-navy">
+                <label className="block text-sm font-bold text-heading">
                   Resume <span className="font-normal text-moons-muted">(PDF or Word · max 5 MB)</span>
                 </label>
 
@@ -165,13 +165,13 @@ export default function OnboardingPage() {
                   ) : resume ? (
                     <>
                       <ResumeIcon />
-                      <p className="max-w-xs truncate text-sm font-medium text-moons-navy">{resume.name}</p>
+                      <p className="max-w-xs truncate text-sm font-medium text-heading">{resume.name}</p>
                       <p className="text-xs text-moons-muted">Click to replace</p>
                     </>
                   ) : (
                     <>
                       <UploadIcon />
-                      <p className="text-sm font-medium text-moons-navy">Drop your resume here or click to browse</p>
+                      <p className="text-sm font-medium text-heading">Drop your resume here or click to browse</p>
                       <p className="text-xs text-moons-muted">We will auto-fill your details from it</p>
                     </>
                   )}
@@ -241,7 +241,7 @@ function Field({ label, id, value, onChange, required, placeholder }: {
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-bold text-moons-navy">{label}</label>
+      <label htmlFor={id} className="block text-sm font-bold text-heading">{label}</label>
       <input
         id={id} type="text" required={required} value={value} placeholder={placeholder}
         onChange={e => onChange(e.target.value)}

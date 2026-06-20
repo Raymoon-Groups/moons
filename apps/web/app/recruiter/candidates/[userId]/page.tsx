@@ -38,7 +38,7 @@ export default function RecruiterCandidateProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-[#f0f3f8] text-sm text-moons-muted">
+      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
         Loading candidate…
       </div>
     );
@@ -46,8 +46,8 @@ export default function RecruiterCandidateProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-[50vh] bg-[#f0f3f8] px-4 py-10">
-        <div className="mx-auto max-w-lg rounded-xl border border-border bg-white p-8 text-center shadow-sm">
+      <div className="min-h-[50vh] bg-background px-4 py-10">
+        <div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-elevated p-8 text-center shadow-sm">
           <p className="text-sm text-red-600">{error || 'Profile not found'}</p>
           <Link
             href="/recruiter/jobs"
@@ -65,7 +65,7 @@ export default function RecruiterCandidateProfilePage() {
   const resumeFileName = getResumeDisplayName(profile);
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="dash-page">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <button
           type="button"
@@ -81,17 +81,17 @@ export default function RecruiterCandidateProfilePage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">At a glance</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">At a glance</h3>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Profile completion</dt>
-                  <dd className="font-semibold text-moons-navy">{profile.completionPercent}%</dd>
+                  <dd className="font-semibold text-heading">{profile.completionPercent}%</dd>
                 </div>
                 {profile.experienceYears != null && (
                   <div className="flex justify-between gap-3">
                     <dt className="text-moons-muted">Experience</dt>
-                    <dd className="text-right font-semibold text-moons-navy">
+                    <dd className="text-right font-semibold text-heading">
                       {formatExperience(profile.experienceYears)}
                     </dd>
                   </div>
@@ -99,13 +99,13 @@ export default function RecruiterCandidateProfilePage() {
                 {profile.location && (
                   <div className="flex justify-between gap-3">
                     <dt className="text-moons-muted">Location</dt>
-                    <dd className="text-right font-semibold text-moons-navy">{profile.location}</dd>
+                    <dd className="text-right font-semibold text-heading">{profile.location}</dd>
                   </div>
                 )}
                 {profile.noticePeriod && (
                   <div className="flex justify-between gap-3">
                     <dt className="text-moons-muted">Notice period</dt>
-                    <dd className="text-right font-semibold text-moons-navy">
+                    <dd className="text-right font-semibold text-heading">
                       {profile.noticePeriod}
                     </dd>
                   </div>
@@ -113,32 +113,32 @@ export default function RecruiterCandidateProfilePage() {
                 {profile.skills.length > 0 && (
                   <div className="flex justify-between gap-3">
                     <dt className="text-moons-muted">Skills listed</dt>
-                    <dd className="font-semibold text-moons-navy">{profile.skills.length}</dd>
+                    <dd className="font-semibold text-heading">{profile.skills.length}</dd>
                   </div>
                 )}
               </dl>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Compensation</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Compensation</h3>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Current CTC</dt>
-                  <dd className="text-right font-semibold text-moons-navy">
+                  <dd className="text-right font-semibold text-heading">
                     {profile.currentCtc || '—'}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-moons-muted">Expected CTC</dt>
-                  <dd className="text-right font-semibold text-moons-navy">
+                  <dd className="text-right font-semibold text-heading">
                     {profile.expectedCtc || '—'}
                   </dd>
                 </div>
               </dl>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Actions</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Actions</h3>
               <div className="mt-4 flex flex-col gap-2">
                 {resumeUrl && resumeFileName && (
                   <a
@@ -153,21 +153,21 @@ export default function RecruiterCandidateProfilePage() {
                 <button
                   type="button"
                   onClick={() => router.back()}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   Back to applicants
                 </button>
                 <Link
                   href="/recruiter/jobs"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-moons-navy"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
                 >
                   All posted jobs
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Review tips</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Review tips</h3>
               <ul className="mt-4 space-y-3 text-sm text-moons-muted">
                 <li>
                   Compare {displayName}&apos;s experience and skills against your job requirements.

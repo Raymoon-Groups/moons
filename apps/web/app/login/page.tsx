@@ -57,7 +57,7 @@ function LoginForm() {
       footer={
         <>
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="font-bold text-moons-navy hover:underline">
+          <Link href="/register" className="font-bold text-heading hover:underline">
             Sign up here
           </Link>
         </>
@@ -71,7 +71,7 @@ function LoginForm() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label htmlFor="email" className="block text-sm font-bold text-moons-navy">
+          <label htmlFor="email" className="block text-sm font-bold text-heading">
             Email
           </label>
           <input
@@ -130,7 +130,7 @@ function LoginForm() {
       <AuthDivider />
 
       <div>
-        <span className="block text-sm font-bold text-moons-navy">New user? I am a</span>
+        <span className="block text-sm font-bold text-heading">New user? I am a</span>
         <p className="mt-1 text-xs text-moons-muted">
           Choose your role before Google sign-in. Existing accounts keep their current role.
         </p>
@@ -162,9 +162,6 @@ function LoginForm() {
         <GoogleSignInButton role={googleRole} variant="auth" />
       </div>
 
-      <p className="mt-6 rounded-xl bg-blue-50 px-4 py-3 text-xs leading-relaxed text-foreground">
-        Demo: candidate@moons.com or recruiter@moons.com · password123
-      </p>
     </AuthSplitLayout>
   );
 }

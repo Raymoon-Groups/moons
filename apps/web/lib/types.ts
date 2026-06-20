@@ -88,6 +88,8 @@ export interface ApplicantRow {
       preferredRoles: string[];
       preferredLocations: string[];
       preferredIndustries: string[];
+      designation?: string | null;
+      updatedAt?: string;
     } | null;
   };
 }

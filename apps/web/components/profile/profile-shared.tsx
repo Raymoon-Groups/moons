@@ -6,10 +6,10 @@ import { resolveAssetUrl } from '@/lib/assets';
 import type { Profile } from '@/lib/types';
 
 export const inputClass =
-  'w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/20';
+  'w-full rounded-xl border border-border bg-surface-elevated px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/20';
 
 export const cardClass =
-  'overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_4px_24px_rgba(26,39,68,0.06)] transition hover:shadow-[0_8px_32px_rgba(26,39,68,0.08)]';
+  'overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_4px_24px_rgba(26,39,68,0.06)] transition hover:shadow-[0_8px_32px_rgba(26,39,68,0.08)]';
 
 export function getResumeDisplayName(
   profile: Pick<Profile, 'resumeUrl' | 'resumeFileName'>,
@@ -188,9 +188,9 @@ function XIcon() {
 
 export function ReadOnlyValue({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-gradient-to-br from-surface/80 to-white px-4 py-3.5">
+    <div className="rounded-xl border border-border/60 bg-gradient-to-br from-surface/80 to-surface-elevated px-4 py-3.5">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-moons-muted">{label}</p>
-      <p className="mt-1.5 text-sm font-semibold text-moons-navy">{value || '—'}</p>
+      <p className="mt-1.5 text-sm font-semibold text-heading">{value || '—'}</p>
     </div>
   );
 }
@@ -203,7 +203,7 @@ export function CompletionDonut({ percent }: { percent: number }) {
   return (
     <div className="relative mx-auto flex h-40 w-40 items-center justify-center">
       <svg viewBox="0 0 160 160" className="h-full w-full -rotate-90">
-        <circle cx="80" cy="80" r={r} fill="none" stroke="#e8ecf2" strokeWidth="12" />
+        <circle cx="80" cy="80" r={r} fill="none" strokeWidth="12" className="profile-donut-track" />
         <circle
           cx="80"
           cy="80"
@@ -224,7 +224,7 @@ export function CompletionDonut({ percent }: { percent: number }) {
         </defs>
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-3xl font-bold text-moons-navy">{percent}%</span>
+        <span className="text-3xl font-bold text-heading">{percent}%</span>
         <span className="text-[10px] font-medium uppercase tracking-wide text-moons-muted">complete</span>
       </div>
     </div>
@@ -246,9 +246,9 @@ export function ProfileCompletionSidebar({
 
   return (
     <div className={`${cardClass} overflow-hidden`}>
-      <div className="bg-gradient-to-br from-moons-blue/10 via-white to-moons-navy/5 px-6 pb-6 pt-5">
+      <div className="bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-6 pb-6 pt-5">
         <p className="font-script text-xl text-moons-blue">Profile strength</p>
-        <h3 className="mt-0.5 text-base font-bold text-moons-navy">Complete your profile</h3>
+        <h3 className="mt-0.5 text-base font-bold text-heading">Complete your profile</h3>
         <div className="mt-5">
           <CompletionDonut percent={completion} />
         </div>
@@ -271,7 +271,7 @@ export function ProfileCompletionSidebar({
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${
                     item.done
                       ? 'bg-gradient-to-br from-moons-blue to-moons-navy text-white shadow-sm'
-                      : 'border border-border bg-white text-moons-muted'
+                      : 'border border-border bg-surface-elevated text-moons-muted'
                   }`}
                 >
                   {item.done ? <CheckIcon /> : <XIcon />}
@@ -316,8 +316,8 @@ export function EditableCard({
 
   return (
     <section id={id} className={cardClass}>
-      <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-moons-blue/[0.06] via-white to-white px-6 py-4">
-        <h3 className="flex items-center gap-2.5 text-base font-bold text-moons-navy">
+      <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-moons-blue/[0.06] via-surface-elevated to-surface-elevated px-6 py-4">
+        <h3 className="flex items-center gap-2.5 text-base font-bold text-heading">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-moons-blue/15 to-moons-navy/10 text-moons-blue">
             <SectionDotIcon />
           </span>
@@ -327,7 +327,7 @@ export function EditableCard({
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="rounded-full border border-border bg-white px-3.5 py-1.5 text-sm font-medium text-moons-muted transition hover:border-moons-blue/30 hover:text-foreground"
+            className="rounded-full border border-border bg-surface-elevated px-3.5 py-1.5 text-sm font-medium text-moons-muted transition hover:border-moons-blue/30 hover:text-foreground"
           >
             Cancel
           </button>
@@ -487,7 +487,7 @@ export function ProfilePhotoSection({
               type="button"
               onClick={() => canView && setShowLightbox(true)}
               disabled={!canView}
-              className={`relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-surface shadow-lg ring-2 ring-moons-blue/20 ${
+              className={`relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border-4 border-surface-elevated bg-surface shadow-lg ring-2 ring-moons-blue/20 ${
                 canView ? 'cursor-zoom-in hover:ring-moons-blue/40' : 'cursor-default'
               }`}
             >
@@ -501,7 +501,7 @@ export function ProfilePhotoSection({
             </button>
 
             <div className="flex-1 pb-1 sm:pb-2">
-              <p className="text-lg font-bold text-moons-navy">{displayName}</p>
+              <p className="text-lg font-bold text-heading">{displayName}</p>
               <p className="mt-0.5 text-sm text-moons-muted">Profile photo</p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button
@@ -651,7 +651,7 @@ export function CompanyLogoSection({
         onClose={() => setShowLightbox(false)}
       />
       <section id="branding" className={`${cardClass} p-6`}>
-        <h3 className="mb-4 text-base font-bold text-moons-navy">Company logo</h3>
+        <h3 className="mb-4 text-base font-bold text-heading">Company logo</h3>
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
           <button
             type="button"
@@ -674,7 +674,7 @@ export function CompanyLogoSection({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={saving}
-              className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:border-moons-blue/40 hover:bg-surface disabled:opacity-60"
+              className="rounded-lg border border-border bg-surface-elevated px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:border-moons-blue/40 hover:bg-surface disabled:opacity-60"
             >
               {savedLogoUrl || pendingLogo ? 'Upload new logo' : 'Upload logo'}
             </button>
@@ -750,22 +750,22 @@ export function ProfilePageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#eef2f9] via-[#f4f6fb] to-[#eef2f9]">
+    <div className="dash-page">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <a
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-moons-blue shadow-sm backdrop-blur-sm transition hover:border-moons-blue/30 hover:bg-white"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface-elevated/80 px-3.5 py-1.5 text-xs font-semibold text-moons-blue shadow-sm backdrop-blur-sm transition hover:border-moons-blue/30 hover:bg-surface-elevated"
         >
           ← Back to dashboard
         </a>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="font-script text-2xl text-moons-blue md:text-3xl">Your profile</p>
-            <h1 className="text-2xl font-bold text-moons-navy md:text-3xl">{title}</h1>
+            <h1 className="text-2xl font-bold text-heading md:text-3xl">{title}</h1>
           </div>
-          <div className="hidden items-center gap-2 rounded-full border border-moons-blue/20 bg-white px-4 py-2 shadow-sm sm:flex">
+          <div className="hidden items-center gap-2 rounded-full border border-moons-blue/20 bg-surface-elevated px-4 py-2 shadow-sm sm:flex">
             <span className="h-2 w-2 rounded-full bg-moons-blue" />
-            <span className="text-sm font-semibold text-moons-navy">{completion}% complete</span>
+            <span className="text-sm font-semibold text-heading">{completion}% complete</span>
           </div>
         </div>
 

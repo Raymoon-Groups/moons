@@ -106,6 +106,8 @@ export interface LoginRequest {
 export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
+  /** Returned for mobile clients; web uses httpOnly cookie instead */
+  refreshToken?: string;
 }
 
 export interface EducationEntry {

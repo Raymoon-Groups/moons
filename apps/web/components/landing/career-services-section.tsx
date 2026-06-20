@@ -27,6 +27,7 @@ function WaveBottom() {
       aria-hidden
     >
       <path
+        className="career-wave-bottom"
         fill="#f4f6f9"
         d="M0,28 C360,0 720,65 1080,32 C1260,18 1360,42 1440,55 L1440,80 L0,80 Z"
       />

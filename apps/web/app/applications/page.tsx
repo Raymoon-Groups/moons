@@ -63,13 +63,13 @@ function ApplicationCard({
           : 'from-amber-400 to-amber-500';
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_4px_24px_rgba(26,39,68,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(26,39,68,0.1)]">
+    <article className="group overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_4px_24px_rgba(26,39,68,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(26,39,68,0.1)]">
       <div className={`h-1 bg-gradient-to-r ${accentColor}`} />
       <div className="p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-gradient-to-br from-moons-blue/10 to-moons-navy/5 shadow-sm">
-              <span className="text-lg font-bold text-moons-navy">
+              <span className="text-lg font-bold text-heading">
                 {app.job.companyName.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -81,7 +81,7 @@ function ApplicationCard({
 
               <Link
                 href={`/jobs?job=${app.job.id}`}
-                className="mt-3 block text-lg font-bold tracking-tight text-moons-navy transition group-hover:text-moons-blue"
+                className="mt-3 block text-lg font-bold tracking-tight text-heading transition group-hover:text-moons-blue"
               >
                 {app.job.title}
               </Link>
@@ -104,8 +104,8 @@ function ApplicationCard({
               </p>
 
               {app.coverNote && (
-                <p className="mt-3 line-clamp-2 rounded-xl border border-border/60 bg-gradient-to-br from-surface/80 to-white px-3.5 py-2.5 text-sm text-foreground">
-                  <span className="font-semibold text-moons-navy">Cover note:</span> {app.coverNote}
+                <p className="mt-3 line-clamp-2 rounded-xl border border-border/60 bg-gradient-to-br from-surface/80 to-surface-elevated px-3.5 py-2.5 text-sm text-foreground">
+                  <span className="font-semibold text-heading">Cover note:</span> {app.coverNote}
                 </p>
               )}
             </div>
@@ -123,7 +123,7 @@ function ApplicationCard({
                 type="button"
                 onClick={() => onWithdraw(app)}
                 disabled={withdrawingId === app.id}
-                className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                className="rounded-xl border border-red-200 bg-surface-elevated px-4 py-2.5 text-center text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
               >
                 {withdrawingId === app.id ? 'Withdrawing…' : 'Withdraw'}
               </button>
@@ -210,18 +210,18 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#eef2f9] via-[#f4f6fb] to-[#eef2f9]">
+    <div className="dash-page">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-moons-blue shadow-sm backdrop-blur-sm transition hover:border-moons-blue/30 hover:bg-white"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface-elevated/80 px-3.5 py-1.5 text-xs font-semibold text-moons-blue shadow-sm backdrop-blur-sm transition hover:border-moons-blue/30 hover:bg-surface-elevated"
         >
           ← Back to dashboard
         </Link>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
           <div className="min-w-0 space-y-5">
-            <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-white p-6 shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
+            <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated p-6 shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
               <div
                 className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-moons-blue/10"
                 aria-hidden
@@ -230,7 +230,7 @@ export default function ApplicationsPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
                 Jobseeker
               </p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-moons-navy md:text-3xl">
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-heading md:text-3xl">
                 My applications
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-moons-muted">
@@ -239,7 +239,7 @@ export default function ApplicationsPage() {
               {!loading && applications.length > 0 && (
                 <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-moons-blue/20 bg-moons-blue/5 px-4 py-2">
                   <span className="h-2 w-2 rounded-full bg-moons-blue" />
-                  <span className="text-sm font-semibold text-moons-navy">
+                  <span className="text-sm font-semibold text-heading">
                     {stats.total} application{stats.total === 1 ? '' : 's'} tracked
                   </span>
                 </div>
@@ -253,18 +253,18 @@ export default function ApplicationsPage() {
             )}
 
             {loading && (
-              <div className="rounded-2xl border border-border/80 bg-white p-12 text-center shadow-sm">
+              <div className="rounded-2xl border border-border/80 bg-surface-elevated p-12 text-center shadow-sm">
                 <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-moons-blue border-t-transparent" />
                 <p className="mt-4 text-sm text-moons-muted">Loading your applications…</p>
               </div>
             )}
 
             {!loading && applications.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-moons-blue/30 bg-white p-12 text-center shadow-sm">
+              <div className="rounded-2xl border border-dashed border-moons-blue/30 bg-surface-elevated p-12 text-center shadow-sm">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue/15 to-moons-navy/10">
                   <BriefcaseIcon />
                 </div>
-                <p className="mt-5 text-base font-semibold text-moons-navy">No applications yet</p>
+                <p className="mt-5 text-base font-semibold text-heading">No applications yet</p>
                 <p className="mt-2 text-sm text-moons-muted">
                   Browse open roles and apply to jobs that match your profile.
                 </p>
@@ -292,13 +292,13 @@ export default function ApplicationsPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
-              <div className="bg-gradient-to-br from-moons-blue/10 via-white to-moons-navy/5 px-5 py-4">
+            <div className="overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
+              <div className="bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-5 py-4">
                 <p className="font-script text-lg text-moons-blue">Overview</p>
-                <h3 className="text-sm font-bold text-moons-navy">Application status</h3>
+                <h3 className="text-sm font-bold text-heading">Application status</h3>
               </div>
               <dl className="space-y-2 p-4">
-                <StatRow label="Total applied" value={stats.total} colorClass="text-moons-navy" />
+                <StatRow label="Total applied" value={stats.total} colorClass="text-heading" />
                 <StatRow label="Submitted" value={stats.submitted} colorClass="text-amber-700" />
                 <StatRow label="Viewed" value={stats.viewed} colorClass="text-sky-700" />
                 <StatRow label="Shortlisted" value={stats.shortlisted} colorClass="text-emerald-700" />
@@ -306,7 +306,7 @@ export default function ApplicationsPage() {
               </dl>
             </div>
 
-            <div className="rounded-2xl border border-border/80 bg-white p-5 shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
+            <div className="rounded-2xl border border-border/80 bg-surface-elevated p-5 shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
               <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">Shortcuts</p>
               <div className="mt-4 flex flex-col gap-2">
                 <Link
@@ -317,20 +317,20 @@ export default function ApplicationsPage() {
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="rounded-xl border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue/30 hover:bg-surface"
+                  className="rounded-xl border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/30 hover:bg-surface"
                 >
                   Back to dashboard
                 </Link>
                 <Link
                   href="/profile"
-                  className="rounded-xl border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue/30 hover:text-moons-navy"
+                  className="rounded-xl border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue/30 hover:text-heading"
                 >
                   Edit profile
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-moons-blue/15 bg-gradient-to-br from-moons-blue/10 via-white to-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-moons-blue/15 bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-surface-elevated p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-moons-blue">Tips</p>
               <ul className="mt-4 space-y-3 text-sm leading-relaxed text-moons-muted">
                 <li className="flex gap-2">

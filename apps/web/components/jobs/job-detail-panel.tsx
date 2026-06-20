@@ -159,7 +159,7 @@ export function JobDetailPanel({
       <div className="border-b border-border px-6 py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-moons-navy md:text-2xl">{job.title}</h1>
+            <h1 className="text-xl font-bold text-heading md:text-2xl">{job.title}</h1>
             <p className="mt-1 text-sm text-moons-muted">
               {job.companyName}
               {job.location ? ` · ${job.location}` : ''}
@@ -259,7 +259,7 @@ export function JobDetailPanel({
         <CompanyProfileCard job={job} recruiterId={job.recruiterId} />
 
         <section className="mt-6">
-          <h2 className="text-base font-bold text-moons-navy">About the job</h2>
+          <h2 className="text-base font-bold text-heading">About the job</h2>
           <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
             {job.description}
           </p>

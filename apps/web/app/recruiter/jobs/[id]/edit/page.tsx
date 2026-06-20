@@ -90,7 +90,7 @@ export default function EditJobPage() {
 
   if (initialLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-[#f0f3f8] text-sm text-moons-muted">
+      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
         Loading job…
       </div>
     );
@@ -98,8 +98,8 @@ export default function EditJobPage() {
 
   if (!values && error) {
     return (
-      <div className="min-h-[50vh] bg-[#f0f3f8] px-4 py-10">
-        <div className="mx-auto max-w-lg rounded-xl border border-border bg-white p-8 text-center shadow-sm">
+      <div className="min-h-[50vh] bg-background px-4 py-10">
+        <div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-elevated p-8 text-center shadow-sm">
           <p className="text-sm text-red-600">{error}</p>
           <Link
             href="/recruiter/jobs"
@@ -113,7 +113,7 @@ export default function EditJobPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f3f8]">
+    <div className="dash-page">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <Link
           href={`/recruiter/jobs/${jobId}`}
@@ -124,11 +124,11 @@ export default function EditJobPage() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] lg:items-start">
           <div className="min-w-0 space-y-5">
-            <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
                 Edit listing
               </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-moons-navy md:text-3xl">
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-heading md:text-3xl">
                 {jobTitle || 'Edit job'}
               </h1>
               <p className="mt-2 text-sm text-moons-muted">
@@ -139,7 +139,7 @@ export default function EditJobPage() {
             {values && (
               <form
                 onSubmit={handleSubmit}
-                className="rounded-xl border border-border bg-white p-6 shadow-sm"
+                className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm"
               >
                 <JobFormFields values={values} onChange={onChange} layout="sections" />
 
@@ -150,7 +150,7 @@ export default function EditJobPage() {
                 <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
                   <Link
                     href={`/recruiter/jobs/${jobId}`}
-                    className="text-center text-sm font-semibold text-moons-muted transition hover:text-moons-navy"
+                    className="text-center text-sm font-semibold text-moons-muted transition hover:text-heading"
                   >
                     Cancel
                   </Link>
@@ -167,32 +167,32 @@ export default function EditJobPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Quick links</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Quick links</h3>
               <div className="mt-4 flex flex-col gap-2">
                 <Link
                   href={`/recruiter/jobs/${jobId}`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   View job
                 </Link>
                 <Link
                   href={`/recruiter/jobs/${jobId}/applicants`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-navy transition hover:border-moons-blue hover:bg-surface"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
                 >
                   View applicants
                 </Link>
                 <Link
                   href={`/jobs?job=${jobId}`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-moons-navy"
+                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
                 >
                   Preview public listing
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-moons-navy">Editing tips</h3>
+            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Editing tips</h3>
               <ul className="mt-4 space-y-3 text-sm text-moons-muted">
                 <li>Use a clear job title that matches what candidates search for.</li>
                 <li>

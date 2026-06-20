@@ -19,7 +19,7 @@ export function TopCompaniesSection() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-12">
-      <h2 className="text-center text-lg font-bold text-moons-navy md:text-xl">
+      <h2 className="text-center text-lg font-bold text-heading md:text-xl">
         Top companies hiring now
       </h2>
       <p className="mt-1 text-center text-sm text-moons-muted">
@@ -42,7 +42,7 @@ export function TopCompaniesSection() {
                   co.companyName.charAt(0)
                 )}
               </div>
-              <p className="mt-3 font-semibold text-moons-navy group-hover:text-moons-blue">
+              <p className="mt-3 font-semibold text-heading group-hover:text-moons-blue">
                 {co.companyName}
               </p>
               <p className="mt-1 text-xs text-moons-muted">

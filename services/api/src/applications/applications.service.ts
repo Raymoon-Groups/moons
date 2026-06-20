@@ -14,6 +14,7 @@ const applicantProfileSelect = {
   fullName: true,
   avatarUrl: true,
   headline: true,
+  designation: true,
   location: true,
   phone: true,
   currentCompany: true,
@@ -31,7 +32,18 @@ const applicantProfileSelect = {
   preferredRoles: true,
   preferredLocations: true,
   preferredIndustries: true,
+  updatedAt: true,
 } as const;
+
+export type RecruiterCandidatesQuery = {
+  q?: string;
+  jobId?: string;
+  status?: ApplicationStatus;
+  location?: string;
+  experienceMin?: number;
+  experienceMax?: number;
+  noticePeriod?: string;
+};
 
 @Injectable()
 export class ApplicationsService {
@@ -123,6 +135,96 @@ export class ApplicationsService {
       where: { candidateId },
     });
     return { applicationsCount };
+  }
+
+  async findCandidatesForRecruiter(
+    recruiterId: string,
+    filters: RecruiterCandidatesQuery = {},
+  ) {
+    const applications = await this.prisma.application.findMany({
+      where: {
+        job: { recruiterId },
+        ...(filters.jobId ? { jobId: filters.jobId } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+      },
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            companyName: true,
+            location: true,
+          },
+        },
+        candidate: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: applicantProfileSelect,
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const seen = new Set<string>();
+    const unique = applications.filter((app) => {
+      if (seen.has(app.candidateId)) return false;
+      seen.add(app.candidateId);
+      return true;
+    });
+
+    const q = filters.q?.trim().toLowerCase();
+    const location = filters.location?.trim().toLowerCase();
+
+    return unique.filter((app) => {
+      const profile = app.candidate.profile;
+      if (!profile) return false;
+
+      if (location) {
+        const loc = profile.location?.toLowerCase() ?? '';
+        const pref = profile.preferredLocations.some((l) =>
+          l.toLowerCase().includes(location),
+        );
+        if (!loc.includes(location) && !pref) return false;
+      }
+
+      if (filters.experienceMin != null) {
+        const years = profile.experienceYears ?? 0;
+        if (years < filters.experienceMin) return false;
+      }
+
+      if (filters.experienceMax != null) {
+        const years = profile.experienceYears ?? 0;
+        if (years > filters.experienceMax) return false;
+      }
+
+      if (filters.noticePeriod) {
+        if (profile.noticePeriod !== filters.noticePeriod) return false;
+      }
+
+      if (!q) return true;
+
+      const haystack = [
+        profile.fullName,
+        profile.headline,
+        profile.designation,
+        profile.currentCompany,
+        profile.summary,
+        app.candidate.email,
+        profile.location,
+        ...(profile.skills ?? []),
+        ...(profile.preferredRoles ?? []),
+        ...(profile.preferredIndustries ?? []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
   }
 
   async findByJob(jobId: string, recruiterId: string) {

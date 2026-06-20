@@ -400,7 +400,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
                 ) : (
                   workExperiences.map((exp, i) => (
                     <p key={i}>
-                      <span className="font-semibold text-moons-navy">{exp.designation || 'Role'}</span>
+                      <span className="font-semibold text-heading">{exp.designation || 'Role'}</span>
                       {exp.company ? ` at ${exp.company}` : ''}
                     </p>
                   ))
@@ -421,7 +421,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
                 ) : (
                   educations.map((edu, i) => (
                     <p key={i}>
-                      <span className="font-semibold text-moons-navy">{edu.degree || 'Degree'}</span>
+                      <span className="font-semibold text-heading">{edu.degree || 'Degree'}</span>
                       {edu.institute ? ` — ${edu.institute}` : ''}
                     </p>
                   ))
@@ -615,7 +615,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
                   <p className="text-sm text-moons-muted">No skills added yet.</p>
                 ) : (
                   skills.map((skill) => (
-                    <span key={skill} className="rounded-full border border-moons-blue/20 bg-gradient-to-r from-moons-blue/10 to-moons-navy/5 px-3.5 py-1 text-sm font-medium text-moons-navy">
+                    <span key={skill} className="rounded-full border border-moons-blue/20 bg-gradient-to-r from-moons-blue/10 to-moons-navy/5 px-3.5 py-1 text-sm font-medium text-heading">
                       {skill}
                     </span>
                   ))
@@ -662,7 +662,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
                 ) : (
                   certifications.map((cert, i) => (
                     <p key={i}>
-                      <span className="font-semibold text-moons-navy">{cert.name || 'Certification'}</span>
+                      <span className="font-semibold text-heading">{cert.name || 'Certification'}</span>
                       {cert.issuer ? ` — ${cert.issuer}` : ''}
                     </p>
                   ))

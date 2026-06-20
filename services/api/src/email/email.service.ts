@@ -1,10 +1,26 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter | null = null;
+
+  onModuleInit() {
+    const host = process.env.SMTP_HOST;
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
+
+    if (!host || !user || !pass) {
+      this.logger.warn(
+        'SMTP not configured — OTP codes will only appear in this API console (dev mode)',
+      );
+      return;
+    }
+
+    this.logger.log(`SMTP ready (${host}, from: ${from})`);
+  }
 
   private getTransporter() {
     if (this.transporter) return this.transporter;
@@ -29,7 +45,7 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(email: string, otp: string) {
-    const from = process.env.SMTP_FROM ?? 'Moons Jobs <noreply@moons.com>';
+    const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = 'Reset your Moons password';
     const text = `Your password reset code is ${otp}. It expires in 15 minutes.`;
     const html = `
@@ -45,7 +61,7 @@ export class EmailService {
   }
 
   async sendOtpEmail(email: string, otp: string) {
-    const from = process.env.SMTP_FROM ?? 'Moons Jobs <noreply@moons.com>';
+    const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = 'Your Moons verification code';
     const text = `Your verification code is ${otp}. It expires in 10 minutes.`;
     const html = `
@@ -65,7 +81,7 @@ export class EmailService {
     jobTitle: string,
     candidateName: string,
   ) {
-    const from = process.env.SMTP_FROM ?? 'Moons Jobs <noreply@moons.com>';
+    const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = `New application for ${jobTitle}`;
     const text = `${candidateName} applied to your job posting "${jobTitle}". Log in to Moons to review their profile.`;
     const html = `
@@ -84,7 +100,7 @@ export class EmailService {
     companyName: string,
     status: string,
   ) {
-    const from = process.env.SMTP_FROM ?? 'Moons Jobs <noreply@moons.com>';
+    const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = `Application update: ${jobTitle}`;
     const text = `Your application for ${jobTitle} at ${companyName} is now ${status}.`;
     const html = `
@@ -122,7 +138,11 @@ export class EmailService {
     }
 
     try {
-      await transporter.sendMail({ from, to, subject, text, html });
+      const info = await transporter.sendMail({ from, to, subject, text, html });
+      this.logger.log(`Email sent to ${to} (${label}) — ${info.messageId ?? 'ok'}`);
+      if (process.env.NODE_ENV !== 'production' && (label === 'OTP' || label === 'reset')) {
+        this.logger.warn(`[dev] ${label} code for ${to}: ${devCode}`);
+      }
     } catch (err) {
       const message = this.formatSendError(err);
       this.logger.error(`Failed to send ${label} to ${to}: ${message}`);
@@ -138,18 +158,21 @@ export class EmailService {
           ? err.message
           : 'Failed to send verification email';
 
-    if (raw.includes('only send testing emails to your own email address')) {
-      const match = raw.match(/\(([^)]+)\)/);
-      const allowed = match?.[1] ?? 'your Resend account email';
-      return `Resend test mode: verification emails can only be sent to ${allowed}. Register with that email, or verify a domain at resend.com/domains.`;
-    }
-
     if (raw.includes('domain is not verified') || raw.includes('verify a domain')) {
-      return 'The sender domain is not verified on Resend. Use SMTP_FROM=onboarding@resend.dev for testing, or verify your domain at resend.com/domains.';
+      return 'The sender domain is not verified. Set SMTP_FROM to an address on your verified domain (e.g. noreply@moonsjob.com) in services/api/.env.';
     }
 
-    if (raw.includes('Invalid API key') || raw.includes('authentication failed')) {
-      return 'Invalid Resend API key. Check SMTP_PASS in services/api/.env.';
+    if (
+      raw.includes('Invalid API key') ||
+      raw.includes('authentication failed') ||
+      raw.includes('535') ||
+      raw.includes('Unauthorized')
+    ) {
+      return 'SMTP authentication failed. For Resend, set SMTP_USER=resend and SMTP_PASS to your API key (re_...) in services/api/.env.';
+    }
+
+    if (raw.includes('suspended') || raw.includes('blocked')) {
+      return 'Email sending is blocked. Verify your domain on Resend and check your account status.';
     }
 
     this.logger.error(`Raw email error: ${raw}`);
