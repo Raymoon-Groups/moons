@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApplicationStatus } from '@moons/shared';
 import type { EducationEntry, WorkExperienceEntry } from '@moons/shared';
 import { formatExperience, getResumeDisplayName } from '@/components/profile/profile-shared';
+import { DashPageHero } from '@/components/dash/dash-page-shell';
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 import type { JobListing } from '@/lib/jobs';
@@ -534,34 +535,32 @@ export function RecruiterCandidatesBrowse() {
   return (
     <div className="dash-page">
       <div className="mx-auto max-w-7xl px-4 py-6 md:py-8">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-moons-blue">
-              Talent pipeline
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-heading md:text-4xl">
-              Candidates
-            </h1>
-            <p className="mt-2 text-sm text-moons-muted">
-              {loading ? (
+        <div className="mb-8">
+          <DashPageHero
+            eyebrow="Talent pipeline"
+            title="Candidates"
+            subtitle={
+              loading ? (
                 'Loading your applicant pool…'
               ) : (
                 <>
                   <span className="font-semibold text-heading">{displayed.length}</span>
                   {' '}candidate{displayed.length === 1 ? '' : 's'} ready for review
                 </>
-              )}
-            </p>
-          </div>
-          <Link
-            href="/recruiter/jobs/new"
-            className="inline-flex items-center gap-2 rounded-full bg-moons-blue px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(74,127,212,0.35)] transition hover:bg-moons-blue-dark hover:shadow-[0_6px_20px_rgba(74,127,212,0.45)]"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Post a Job
-          </Link>
+              )
+            }
+            action={
+              <Link
+                href="/recruiter/jobs/new"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-moons-blue/25 transition hover:bg-moons-blue-dark hover:shadow-lg"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Post a Job
+              </Link>
+            }
+          />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">

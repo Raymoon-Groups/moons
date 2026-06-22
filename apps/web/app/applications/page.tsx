@@ -4,6 +4,16 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApplicationStatus, UserRole } from '@moons/shared';
+import {
+  DashBackLink,
+  DashEmptyState,
+  DashErrorBanner,
+  DashPageHero,
+  DashPageLayout,
+  DashQuickLinks,
+  DashSidebarPanel,
+  DashTipsList,
+} from '@/components/dash/dash-page-shell';
 import { authDelete, authFetch } from '@/lib/api-client';
 import { getStoredUser } from '@/lib/auth';
 import { formatEmploymentType } from '@/lib/job-formatters';
@@ -210,147 +220,94 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="dash-page">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface-elevated/80 px-3.5 py-1.5 text-xs font-semibold text-moons-blue shadow-sm backdrop-blur-sm transition hover:border-moons-blue/30 hover:bg-surface-elevated"
-        >
-          ← Back to dashboard
-        </Link>
+    <DashPageLayout
+      wide
+      backLink={<DashBackLink href="/dashboard">← Back to dashboard</DashBackLink>}
+      sidebar={
+        <>
+          <DashSidebarPanel title="Application status">
+            <dl className="space-y-2">
+              <StatRow label="Total applied" value={stats.total} colorClass="text-heading" />
+              <StatRow label="Submitted" value={stats.submitted} colorClass="text-amber-700" />
+              <StatRow label="Viewed" value={stats.viewed} colorClass="text-sky-700" />
+              <StatRow label="Shortlisted" value={stats.shortlisted} colorClass="text-emerald-700" />
+              <StatRow label="Rejected" value={stats.rejected} colorClass="text-red-600" />
+            </dl>
+          </DashSidebarPanel>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-          <div className="min-w-0 space-y-5">
-            <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated p-6 shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
-              <div
-                className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-moons-blue/10"
-                aria-hidden
-              />
-              <p className="font-script text-xl text-moons-blue">Your journey</p>
-              <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
-                Jobseeker
-              </p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-heading md:text-3xl">
-                My applications
-              </h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-moons-muted">
-                Track jobs you have applied to and follow up on your application status.
-              </p>
-              {!loading && applications.length > 0 && (
-                <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-moons-blue/20 bg-moons-blue/5 px-4 py-2">
-                  <span className="h-2 w-2 rounded-full bg-moons-blue" />
-                  <span className="text-sm font-semibold text-heading">
-                    {stats.total} application{stats.total === 1 ? '' : 's'} tracked
-                  </span>
-                </div>
-              )}
-            </section>
+          <DashSidebarPanel title="Shortcuts">
+            <DashQuickLinks
+              links={[
+                { href: '/jobs', label: 'Browse jobs', primary: true },
+                { href: '/dashboard', label: 'Back to dashboard' },
+                { href: '/profile', label: 'Edit profile' },
+              ]}
+            />
+          </DashSidebarPanel>
 
-            {error && (
-              <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {error}
-              </p>
-            )}
-
-            {loading && (
-              <div className="rounded-2xl border border-border/80 bg-surface-elevated p-12 text-center shadow-sm">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-moons-blue border-t-transparent" />
-                <p className="mt-4 text-sm text-moons-muted">Loading your applications…</p>
-              </div>
-            )}
-
-            {!loading && applications.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-moons-blue/30 bg-surface-elevated p-12 text-center shadow-sm">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue/15 to-moons-navy/10">
-                  <BriefcaseIcon />
-                </div>
-                <p className="mt-5 text-base font-semibold text-heading">No applications yet</p>
-                <p className="mt-2 text-sm text-moons-muted">
-                  Browse open roles and apply to jobs that match your profile.
-                </p>
-                <Link
-                  href="/jobs"
-                  className="mt-6 inline-flex rounded-xl bg-moons-navy px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue"
-                >
-                  Browse jobs
-                </Link>
-              </div>
-            )}
-
-            {!loading && applications.length > 0 && (
-              <div className="space-y-4">
-                {applications.map((app) => (
-                  <ApplicationCard
-                    key={app.id}
-                    app={app}
-                    withdrawingId={withdrawingId}
-                    onWithdraw={handleWithdraw}
-                  />
-                ))}
-              </div>
-            )}
+          <DashTipsList
+            items={[
+              'Keep your profile updated so recruiters see your latest experience.',
+              'You can withdraw applications that are still Submitted or Viewed.',
+              'Shortlisted means the employer wants to move forward with you.',
+            ]}
+          />
+        </>
+      }
+    >
+      <DashPageHero
+        eyebrow="Jobseeker"
+        title="My applications"
+        subtitle="Track jobs you have applied to and follow up on your application status."
+      >
+        {!loading && applications.length > 0 ? (
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-moons-blue/20 bg-moons-blue/5 px-4 py-2">
+            <span className="h-2 w-2 rounded-full bg-moons-blue" />
+            <span className="text-sm font-semibold text-heading">
+              {stats.total} application{stats.total === 1 ? '' : 's'} tracked
+            </span>
           </div>
+        ) : null}
+      </DashPageHero>
 
-          <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
-              <div className="bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-5 py-4">
-                <p className="font-script text-lg text-moons-blue">Overview</p>
-                <h3 className="text-sm font-bold text-heading">Application status</h3>
-              </div>
-              <dl className="space-y-2 p-4">
-                <StatRow label="Total applied" value={stats.total} colorClass="text-heading" />
-                <StatRow label="Submitted" value={stats.submitted} colorClass="text-amber-700" />
-                <StatRow label="Viewed" value={stats.viewed} colorClass="text-sky-700" />
-                <StatRow label="Shortlisted" value={stats.shortlisted} colorClass="text-emerald-700" />
-                <StatRow label="Rejected" value={stats.rejected} colorClass="text-red-600" />
-              </dl>
-            </div>
+      {error ? <DashErrorBanner message={error} /> : null}
 
-            <div className="rounded-2xl border border-border/80 bg-surface-elevated p-5 shadow-[0_4px_24px_rgba(26,39,68,0.06)]">
-              <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">Shortcuts</p>
-              <div className="mt-4 flex flex-col gap-2">
-                <Link
-                  href="/jobs"
-                  className="rounded-xl bg-moons-navy px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue"
-                >
-                  Browse jobs
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="rounded-xl border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/30 hover:bg-surface"
-                >
-                  Back to dashboard
-                </Link>
-                <Link
-                  href="/profile"
-                  className="rounded-xl border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue/30 hover:text-heading"
-                >
-                  Edit profile
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-moons-blue/15 bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-surface-elevated p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-moons-blue">Tips</p>
-              <ul className="mt-4 space-y-3 text-sm leading-relaxed text-moons-muted">
-                <li className="flex gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
-                  Keep your profile updated so recruiters see your latest experience.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
-                  You can withdraw applications that are still Submitted or Viewed.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
-                  Shortlisted means the employer wants to move forward with you.
-                </li>
-              </ul>
-            </div>
-          </aside>
+      {loading ? (
+        <div className="dash-content-card p-12 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-moons-blue/20 border-t-moons-blue" />
+          <p className="mt-4 text-sm text-moons-muted">Loading your applications…</p>
         </div>
-      </div>
-    </div>
+      ) : null}
+
+      {!loading && applications.length === 0 ? (
+        <DashEmptyState
+          icon={<BriefcaseIcon />}
+          title="No applications yet"
+          description="Browse open roles and apply to jobs that match your profile."
+          action={
+            <Link
+              href="/jobs"
+              className="inline-flex rounded-xl bg-moons-blue px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark"
+            >
+              Browse jobs
+            </Link>
+          }
+        />
+      ) : null}
+
+      {!loading && applications.length > 0 ? (
+        <div className="space-y-4">
+          {applications.map((app) => (
+            <ApplicationCard
+              key={app.id}
+              app={app}
+              withdrawingId={withdrawingId}
+              onWithdraw={handleWithdraw}
+            />
+          ))}
+        </div>
+      ) : null}
+    </DashPageLayout>
   );
 }
 

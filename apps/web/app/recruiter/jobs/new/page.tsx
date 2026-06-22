@@ -5,6 +5,17 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { EmploymentType, UserRole } from '@moons/shared';
 import {
+  DashBackLink,
+  DashContentCard,
+  DashErrorBanner,
+  DashLoadingPage,
+  DashPageHero,
+  DashPageLayout,
+  DashQuickLinks,
+  DashSidebarPanel,
+  DashTipsList,
+} from '@/components/dash/dash-page-shell';
+import {
   experienceBandToYears,
   JobFormFields,
   type JobFormValues,
@@ -13,6 +24,14 @@ import { authFetch } from '@/lib/api-client';
 import { getStoredUser } from '@/lib/auth';
 import type { JobListing } from '@/lib/jobs';
 import type { Profile } from '@/lib/types';
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
 
 export default function NewJobPage() {
   const router = useRouter();
@@ -82,111 +101,62 @@ export default function NewJobPage() {
     }
   }
 
-  if (profileLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
-        Loading…
-      </div>
-    );
-  }
+  if (profileLoading) return <DashLoadingPage message="Loading…" />;
 
   return (
-    <div className="dash-page">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <Link
-          href="/recruiter/jobs"
-          className="inline-flex items-center gap-1 text-sm font-medium text-moons-blue hover:underline"
-        >
-          ← My posted jobs
-        </Link>
+    <DashPageLayout
+      backLink={<DashBackLink href="/recruiter/jobs">← My posted jobs</DashBackLink>}
+      sidebar={
+        <>
+          <DashSidebarPanel title="Quick links">
+            <DashQuickLinks
+              links={[
+                { href: '/recruiter/jobs', label: 'My posted jobs' },
+                { href: '/dashboard', label: 'Back to dashboard' },
+                { href: '/profile', label: 'Company profile' },
+              ]}
+            />
+          </DashSidebarPanel>
+          <DashTipsList
+            title="Posting tips"
+            items={[
+              'Use a specific job title so candidates can find your role in search.',
+              'Company name is the hiring company on the listing — it can differ from your MoonsJob employer profile.',
+              'Add salary and experience details to attract the right applicants.',
+              'Your listing goes live immediately after you publish.',
+            ]}
+          />
+        </>
+      }
+    >
+      <DashPageHero
+        eyebrow="New listing"
+        eyebrowIcon={<PlusIcon className="h-3.5 w-3.5" />}
+        title="Post a job"
+        subtitle="Create a public listing and start receiving applications from candidates."
+      />
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] lg:items-start">
-          <div className="min-w-0 space-y-5">
-            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
-                New listing
-              </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-heading md:text-3xl">
-                Post a job
-              </h1>
-              <p className="mt-2 text-sm text-moons-muted">
-                Create a public listing and start receiving applications from candidates.
-              </p>
-            </section>
+      <form onSubmit={handleSubmit} className="dash-content-card">
+        <JobFormFields values={values} onChange={onChange} layout="sections" showProfileHint />
 
-            <form
-              onSubmit={handleSubmit}
-              className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm"
-            >
-              <JobFormFields
-                values={values}
-                onChange={onChange}
-                layout="sections"
-                showProfileHint
-              />
+        {error ? <div className="mt-6"><DashErrorBanner message={error} /></div> : null}
 
-              {error && (
-                <p className="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-              )}
-
-              <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-                <Link
-                  href="/recruiter/jobs"
-                  className="text-center text-sm font-semibold text-moons-muted transition hover:text-heading"
-                >
-                  Cancel
-                </Link>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="rounded-lg bg-moons-blue px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
-                >
-                  {loading ? 'Publishing…' : 'Publish job'}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-heading">Quick links</h3>
-              <div className="mt-4 flex flex-col gap-2">
-                <Link
-                  href="/recruiter/jobs"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
-                >
-                  My posted jobs
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
-                >
-                  Back to dashboard
-                </Link>
-                <Link
-                  href="/profile"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
-                >
-                  Company profile
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-heading">Posting tips</h3>
-              <ul className="mt-4 space-y-3 text-sm text-moons-muted">
-                <li>Use a specific job title so candidates can find your role in search.</li>
-                <li>
-                  Company name is the hiring company on the listing — it can differ from your
-                  MoonsJob employer profile.
-                </li>
-                <li>Add salary and experience details to attract the right applicants.</li>
-                <li>Your listing goes live immediately after you publish.</li>
-              </ul>
-            </div>
-          </aside>
+        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <Link
+            href="/recruiter/jobs"
+            className="text-center text-sm font-semibold text-moons-muted transition hover:text-heading"
+          >
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-xl bg-moons-blue px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark hover:shadow-md disabled:opacity-60"
+          >
+            {loading ? 'Publishing…' : 'Publish job'}
+          </button>
         </div>
-      </div>
-    </div>
+      </form>
+    </DashPageLayout>
   );
 }

@@ -40,7 +40,7 @@ export default function CompanyPage() {
   const logoSrc = company.companyLogoUrl ? resolveAssetUrl(company.companyLogoUrl) : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="border-b border-border bg-surface-elevated">
         <div className="mx-auto max-w-4xl px-4 py-6">
           <Link href="/companies" className="text-xs text-moons-blue hover:underline">← Back to companies</Link>

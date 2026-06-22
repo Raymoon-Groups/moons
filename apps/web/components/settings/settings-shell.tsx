@@ -1,23 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { DashBackLink, DashPageHero } from '@/components/dash/dash-page-shell';
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
-}
-
-function ChevronLeftIcon() {
-  return (
-    <svg
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-      aria-hidden
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-  );
 }
 
 function ShieldIcon({ active }: { active?: boolean }) {
@@ -101,21 +89,15 @@ export function SettingsShell({
   return (
     <div className="dash-page">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1 text-sm font-medium text-moons-blue hover:underline"
-        >
-          <ChevronLeftIcon />
-          Back to dashboard
-        </Link>
+        <DashBackLink href="/dashboard">← Back to dashboard</DashBackLink>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
           <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="dash-card p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
+            <div className="dash-sidebar-card">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-moons-blue/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-moons-blue ring-1 ring-moons-blue/20">
                 Settings
               </p>
-              <p className="mt-2 text-sm text-moons-muted">
+              <p className="mt-3 text-sm text-moons-muted">
                 Manage your account preferences, profile, and security.
               </p>
               <nav className="mt-4 space-y-2">
@@ -129,7 +111,7 @@ export function SettingsShell({
                         'group block rounded-xl border px-4 py-3 transition',
                         active
                           ? 'border-moons-blue bg-moons-blue/10 ring-1 ring-moons-blue/20'
-                          : 'border-border bg-surface-elevated hover:border-moons-blue/40 hover:bg-surface',
+                          : 'border-border bg-surface hover:border-moons-blue/40 hover:bg-surface-hover',
                       )}
                     >
                       <div className="flex items-start gap-3">
@@ -161,14 +143,7 @@ export function SettingsShell({
           </aside>
 
           <main className="min-w-0 space-y-5">
-            <section className="dash-card relative overflow-hidden p-6">
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-moons-blue via-sky-400 to-indigo-400" />
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-heading md:text-3xl">
-                {title}
-              </h1>
-              {subtitle ? <p className="mt-2 text-sm text-moons-muted">{subtitle}</p> : null}
-            </section>
-
+            <DashPageHero eyebrow="Account" title={title} subtitle={subtitle} />
             {children}
           </main>
         </div>
@@ -176,4 +151,3 @@ export function SettingsShell({
     </div>
   );
 }
-

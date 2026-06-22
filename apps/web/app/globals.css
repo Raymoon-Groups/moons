@@ -18,6 +18,21 @@
   --moons-orange-dark: #3d6eb5;
   --moons-muted: #6b7a8f;
   --moons-silver: #94a3b8;
+
+  /* Page canvas — white → light grey → light blue */
+  --page-gradient-base: #eef3f9;
+  --page-gradient: linear-gradient(
+    165deg,
+    #ffffff 0%,
+    #f7f9fc 18%,
+    #eef2f7 42%,
+    #e4ecf6 68%,
+    #d8e6f5 100%
+  );
+  --page-gradient-glow:
+    radial-gradient(ellipse 75% 55% at 95% 5%, rgba(186, 214, 248, 0.55), transparent 58%),
+    radial-gradient(ellipse 60% 50% at 5% 95%, rgba(226, 232, 240, 0.65), transparent 55%),
+    radial-gradient(ellipse 85% 45% at 50% -8%, rgba(219, 234, 254, 0.7), transparent 52%);
 }
 
 .dark {
@@ -37,6 +52,19 @@
   --moons-orange-dark: #5b8fd9;
   --moons-muted: #8b9cb3;
   --moons-silver: #6b7d96;
+
+  --page-gradient-base: #0a101c;
+  --page-gradient: linear-gradient(
+    165deg,
+    #0f1628 0%,
+    #0c1220 35%,
+    #0a101c 65%,
+    #080d18 100%
+  );
+  --page-gradient-glow:
+    radial-gradient(ellipse 70% 50% at 90% 0%, rgba(74, 127, 212, 0.14), transparent 58%),
+    radial-gradient(ellipse 55% 45% at 10% 100%, rgba(26, 39, 68, 0.45), transparent 55%),
+    radial-gradient(ellipse 80% 40% at 50% -10%, rgba(107, 154, 232, 0.1), transparent 50%);
 }
 
 @theme inline {
@@ -63,20 +91,16 @@
 }
 
 body {
-  background-color: var(--background);
-  background-image:
-    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(186, 210, 245, 0.55), transparent),
-    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(203, 213, 225, 0.35), transparent),
-    radial-gradient(ellipse 40% 30% at 0% 100%, rgba(186, 210, 245, 0.25), transparent);
+  background-color: var(--page-gradient-base);
+  background-image: var(--page-gradient-glow), var(--page-gradient);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-plus-jakarta), system-ui, sans-serif;
 }
 
 .dark body {
-  background-image:
-    radial-gradient(ellipse 80% 55% at 50% -15%, rgba(74, 127, 212, 0.16), transparent),
-    radial-gradient(ellipse 45% 35% at 100% 0%, rgba(107, 154, 232, 0.07), transparent),
-    radial-gradient(ellipse 40% 30% at 0% 100%, rgba(26, 39, 68, 0.35), transparent);
+  background-color: var(--page-gradient-base);
+  background-image: var(--page-gradient-glow), var(--page-gradient);
 }
 
 @layer base {
@@ -368,7 +392,14 @@ body {
 
 @layer components {
   .dash-page {
-    @apply min-h-screen bg-background;
+    min-height: 100vh;
+    background-color: transparent;
+  }
+
+  .app-canvas {
+    background-color: var(--page-gradient-base);
+    background-image: var(--page-gradient-glow), var(--page-gradient);
+    background-attachment: fixed;
   }
 
   .dash-card {
@@ -437,6 +468,72 @@ body {
 
   .candidate-card-accent {
     @apply h-1 bg-gradient-to-r from-moons-blue via-moons-blue/70 to-transparent;
+  }
+
+  .recruiter-jobs-hero,
+  .dash-hero {
+    @apply relative overflow-hidden rounded-2xl border border-moons-blue/20 bg-gradient-to-br from-moons-blue/[0.08] via-surface-elevated to-moons-navy/[0.04] p-6 shadow-[0_8px_32px_rgba(74,127,212,0.08)] md:p-8;
+  }
+
+  .dark .recruiter-jobs-hero,
+  .dark .dash-hero {
+    @apply border-moons-blue/25 bg-gradient-to-br from-moons-blue/15 via-surface-elevated to-moons-navy/40 shadow-[0_8px_32px_rgba(0,0,0,0.25)];
+  }
+
+  .recruiter-sidebar-card,
+  .dash-sidebar-card {
+    @apply overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated/95 p-5 shadow-[0_4px_24px_rgba(26,39,68,0.06)] backdrop-blur-sm;
+  }
+
+  .dark .recruiter-sidebar-card,
+  .dark .dash-sidebar-card {
+    @apply shadow-[0_4px_24px_rgba(0,0,0,0.28)];
+  }
+
+  .recruiter-tips-card,
+  .dash-tips-card {
+    @apply overflow-hidden rounded-2xl border border-moons-blue/15 bg-gradient-to-b from-moons-blue/[0.06] to-surface-elevated p-5;
+  }
+
+  .dark .recruiter-tips-card,
+  .dark .dash-tips-card {
+    @apply border-moons-blue/20 from-moons-blue/10;
+  }
+
+  .dash-content-card {
+    @apply overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated p-6 shadow-[0_4px_20px_rgba(26,39,68,0.05)];
+  }
+
+  .dark .dash-content-card {
+    @apply shadow-[0_4px_20px_rgba(0,0,0,0.22)];
+  }
+
+  .recruiter-job-card {
+    @apply overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_4px_20px_rgba(26,39,68,0.05)] transition duration-300 hover:-translate-y-0.5 hover:border-moons-blue/25 hover:shadow-[0_12px_40px_rgba(74,127,212,0.12)];
+  }
+
+  .dark .recruiter-job-card {
+    @apply shadow-[0_4px_20px_rgba(0,0,0,0.22)] hover:shadow-[0_12px_40px_rgba(74,127,212,0.15)];
+  }
+
+  .recruiter-stat-tile {
+    @apply rounded-xl border border-border/60 bg-surface p-4 text-center transition hover:border-moons-blue/30 hover:shadow-sm;
+  }
+
+  .recruiter-sidebar-card {
+    @apply overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated/95 p-5 shadow-[0_4px_24px_rgba(26,39,68,0.06)] backdrop-blur-sm;
+  }
+
+  .dark .recruiter-sidebar-card {
+    @apply shadow-[0_4px_24px_rgba(0,0,0,0.28)];
+  }
+
+  .recruiter-tips-card {
+    @apply overflow-hidden rounded-2xl border border-moons-blue/15 bg-gradient-to-b from-moons-blue/[0.06] to-surface-elevated p-5;
+  }
+
+  .dark .recruiter-tips-card {
+    @apply border-moons-blue/20 from-moons-blue/10;
   }
 
   .meta-pill {

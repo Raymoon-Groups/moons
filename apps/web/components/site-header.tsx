@@ -298,6 +298,7 @@ function RecruiterHeader({ pathname, onLogout }: { pathname: string; onLogout: (
           Post a Job
         </Link>
         <ThemeToggle />
+        <NotificationBell />
         <ProfileMenuButton onLogout={onLogout} pathname={pathname} />
       </div>
     </div>

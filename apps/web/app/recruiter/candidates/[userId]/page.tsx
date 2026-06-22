@@ -4,12 +4,34 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { UserRole } from '@moons/shared';
+import {
+  DashBackLink,
+  DashErrorCard,
+  DashLoadingPage,
+  DashPageHero,
+  DashPageLayout,
+  DashQuickLinks,
+  DashSidebarPanel,
+  DashTipsList,
+} from '@/components/dash/dash-page-shell';
 import { CandidateProfileReadonly } from '@/components/profile/candidate-profile-readonly';
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 import { getStoredUser } from '@/lib/auth';
 import { formatExperience, getResumeDisplayName } from '@/components/profile/profile-shared';
 import type { Profile } from '@/lib/types';
+
+function UserIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"
+      />
+    </svg>
+  );
+}
 
 export default function RecruiterCandidateProfilePage() {
   const params = useParams();
@@ -36,27 +58,11 @@ export default function RecruiterCandidateProfilePage() {
       .finally(() => setLoading(false));
   }, [userId, router]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
-        Loading candidate…
-      </div>
-    );
-  }
+  if (loading) return <DashLoadingPage message="Loading candidate…" />;
 
   if (error || !profile) {
     return (
-      <div className="min-h-[50vh] bg-background px-4 py-10">
-        <div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-elevated p-8 text-center shadow-sm">
-          <p className="text-sm text-red-600">{error || 'Profile not found'}</p>
-          <Link
-            href="/recruiter/jobs"
-            className="mt-4 inline-block text-sm font-semibold text-moons-blue hover:underline"
-          >
-            ← Back to my jobs
-          </Link>
-        </div>
-      </div>
+      <DashErrorCard message={error || 'Profile not found'} backHref="/recruiter/jobs" backLabel="← Back to my jobs" />
     );
   }
 
@@ -65,120 +71,109 @@ export default function RecruiterCandidateProfilePage() {
   const resumeFileName = getResumeDisplayName(profile);
 
   return (
-    <div className="dash-page">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <DashPageLayout
+      backLink={
         <button
           type="button"
           onClick={() => router.back()}
-          className="inline-flex items-center gap-1 text-sm font-medium text-moons-blue hover:underline"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface-elevated px-3 py-1.5 text-sm font-medium text-moons-blue shadow-sm transition hover:border-moons-blue/30 hover:bg-surface-hover"
         >
           ← Back
         </button>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] lg:items-start">
-          <div className="min-w-0">
-            <CandidateProfileReadonly profile={profile} />
-          </div>
-
-          <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-heading">At a glance</h3>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-moons-muted">Profile completion</dt>
-                  <dd className="font-semibold text-heading">{profile.completionPercent}%</dd>
-                </div>
-                {profile.experienceYears != null && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-moons-muted">Experience</dt>
-                    <dd className="text-right font-semibold text-heading">
-                      {formatExperience(profile.experienceYears)}
-                    </dd>
-                  </div>
-                )}
-                {profile.location && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-moons-muted">Location</dt>
-                    <dd className="text-right font-semibold text-heading">{profile.location}</dd>
-                  </div>
-                )}
-                {profile.noticePeriod && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-moons-muted">Notice period</dt>
-                    <dd className="text-right font-semibold text-heading">
-                      {profile.noticePeriod}
-                    </dd>
-                  </div>
-                )}
-                {profile.skills.length > 0 && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-moons-muted">Skills listed</dt>
-                    <dd className="font-semibold text-heading">{profile.skills.length}</dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-heading">Compensation</h3>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-moons-muted">Current CTC</dt>
-                  <dd className="text-right font-semibold text-heading">
-                    {profile.currentCtc || '—'}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-moons-muted">Expected CTC</dt>
-                  <dd className="text-right font-semibold text-heading">
-                    {profile.expectedCtc || '—'}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-heading">Actions</h3>
-              <div className="mt-4 flex flex-col gap-2">
-                {resumeUrl && resumeFileName && (
-                  <a
-                    href={resumeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg bg-moons-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+      }
+      sidebar={
+        <>
+          <DashSidebarPanel title="At a glance">
+            <dl className="space-y-2 text-sm">
+              {[
+                { label: 'Profile completion', value: `${profile.completionPercent}%` },
+                profile.experienceYears != null
+                  ? { label: 'Experience', value: formatExperience(profile.experienceYears) }
+                  : null,
+                profile.location ? { label: 'Location', value: profile.location } : null,
+                profile.noticePeriod ? { label: 'Notice period', value: profile.noticePeriod } : null,
+                profile.skills.length > 0
+                  ? { label: 'Skills listed', value: String(profile.skills.length) }
+                  : null,
+              ]
+                .filter(Boolean)
+                .map((row) => (
+                  <div
+                    key={row!.label}
+                    className="flex justify-between gap-3 rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
                   >
-                    <span className="truncate">{resumeFileName}</span>
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
-                >
-                  Back to applicants
-                </button>
-                <Link
-                  href="/recruiter/jobs"
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
-                >
-                  All posted jobs
-                </Link>
-              </div>
-            </div>
+                    <dt className="text-moons-muted">{row!.label}</dt>
+                    <dd className="text-right font-semibold text-heading">{row!.value}</dd>
+                  </div>
+                ))}
+            </dl>
+          </DashSidebarPanel>
 
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-heading">Review tips</h3>
-              <ul className="mt-4 space-y-3 text-sm text-moons-muted">
-                <li>
-                  Compare {displayName}&apos;s experience and skills against your job requirements.
-                </li>
-                <li>Check notice period and expected CTC before scheduling interviews.</li>
-                <li>Update application status from the applicants page after your review.</li>
-              </ul>
+          <DashSidebarPanel title="Compensation">
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between gap-3 rounded-lg border border-border/50 bg-surface/50 px-3 py-2">
+                <dt className="text-moons-muted">Current CTC</dt>
+                <dd className="text-right font-semibold text-heading">{profile.currentCtc || '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-3 rounded-lg border border-border/50 bg-surface/50 px-3 py-2">
+                <dt className="text-moons-muted">Expected CTC</dt>
+                <dd className="text-right font-semibold text-heading">{profile.expectedCtc || '—'}</dd>
+              </div>
+            </dl>
+          </DashSidebarPanel>
+
+          <DashSidebarPanel title="Actions">
+            <div className="flex flex-col gap-2">
+              {resumeUrl && resumeFileName && (
+                <a
+                  href={resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl bg-moons-blue px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark hover:shadow-md"
+                >
+                  <span className="truncate">{resumeFileName}</span>
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="rounded-xl border border-border bg-surface px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/40 hover:bg-surface-hover"
+              >
+                Back to applicants
+              </button>
+              <Link
+                href="/recruiter/jobs"
+                className="rounded-xl border border-border bg-surface px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue/40 hover:text-heading"
+              >
+                All posted jobs
+              </Link>
             </div>
-          </aside>
+          </DashSidebarPanel>
+
+          <DashTipsList
+            title="Review tips"
+            items={[
+              `Compare ${displayName}'s experience and skills against your job requirements.`,
+              'Check notice period and expected CTC before scheduling interviews.',
+              'Update application status from the applicants page after your review.',
+            ]}
+          />
+        </>
+      }
+    >
+      <DashPageHero
+        eyebrow="Candidate profile"
+        eyebrowIcon={<UserIcon className="h-3.5 w-3.5" />}
+        title={displayName}
+        subtitle={profile.headline || profile.email}
+      />
+
+      <div className="recruiter-job-card overflow-hidden p-0">
+        <div className="h-1 bg-gradient-to-r from-moons-blue via-moons-blue/70 to-transparent" />
+        <div className="p-2 md:p-4">
+          <CandidateProfileReadonly profile={profile} />
         </div>
       </div>
-    </div>
+    </DashPageLayout>
   );
 }

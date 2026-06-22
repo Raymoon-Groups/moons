@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, ReactNode, useRef, useState } from 'react';
+import { DashBackLink, DashPageHero } from '@/components/dash/dash-page-shell';
 import { ImageLightbox } from '@/components/image-lightbox';
 import { resolveAssetUrl } from '@/lib/assets';
 import type { Profile } from '@/lib/types';
@@ -414,9 +415,33 @@ interface ProfilePhotoSectionProps {
   onError: (message: string) => void;
 }
 
+function CameraIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function MapPinIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
 export function ProfilePhotoSection({
   profile,
   displayName,
+  subtitle,
+  metaLine,
   saving,
   onPhotoChange,
   onSave,
@@ -480,59 +505,94 @@ export function ProfilePhotoSection({
         onClose={() => setShowLightbox(false)}
       />
       <section id="photo" className={cardClass}>
-        <div className="h-24 bg-gradient-to-r from-moons-navy via-moons-blue to-[#5a8fd4]" aria-hidden />
-        <div className="px-6 pb-6">
-          <div className="-mt-14 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
-            <button
-              type="button"
-              onClick={() => canView && setShowLightbox(true)}
-              disabled={!canView}
-              className={`relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border-4 border-surface-elevated bg-surface shadow-lg ring-2 ring-moons-blue/20 ${
-                canView ? 'cursor-zoom-in hover:ring-moons-blue/40' : 'cursor-default'
-              }`}
-            >
-              {displayUrl ? (
-                <img src={displayUrl} alt={displayName} className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-blue to-moons-navy text-3xl font-bold text-white">
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </button>
+        <div className="relative overflow-hidden border-b border-border/50 bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-6 py-6 sm:px-8">
+          <div
+            className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-moons-blue/15 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-8 left-1/4 h-24 w-24 rounded-full bg-moons-navy/10 blur-2xl"
+            aria-hidden
+          />
 
-            <div className="flex-1 pb-1 sm:pb-2">
-              <p className="text-lg font-bold text-heading">{displayName}</p>
-              <p className="mt-0.5 text-sm text-moons-muted">Profile photo</p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+            <div className="shrink-0 rounded-full bg-gradient-to-br from-moons-blue to-moons-navy p-[3px] shadow-md shadow-moons-blue/20">
+              <button
+                type="button"
+                onClick={() => canView && setShowLightbox(true)}
+                disabled={!canView}
+                className={`relative h-24 w-24 overflow-hidden rounded-full bg-surface ${
+                  canView ? 'cursor-zoom-in transition hover:opacity-95' : 'cursor-default'
+                }`}
+              >
+                {displayUrl ? (
+                  <img src={displayUrl} alt={displayName} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-blue/15 to-moons-navy/10 text-2xl font-bold text-moons-blue">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </button>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="font-script text-lg text-moons-blue">Your profile</p>
+              <h2 className="mt-0.5 text-xl font-bold tracking-tight text-heading sm:text-2xl">
+                {displayName}
+              </h2>
+              {subtitle ? (
+                <span className="mt-2 inline-flex items-center rounded-full border border-moons-blue/20 bg-moons-blue/10 px-3 py-1 text-sm font-medium text-moons-blue">
+                  {subtitle}
+                </span>
+              ) : null}
+              {metaLine ? (
+                <p className="mt-2 flex items-center gap-1.5 text-sm text-moons-muted">
+                  <MapPinIcon className="h-4 w-4 shrink-0 text-moons-blue/70" />
+                  {metaLine}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 sm:p-8">
+          <div className="rounded-xl border border-moons-blue/15 bg-gradient-to-br from-moons-blue/[0.05] via-surface-elevated to-transparent p-4 sm:p-5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-moons-blue/20 to-moons-navy/10 text-moons-blue">
+                <CameraIcon className="h-4 w-4" />
+              </span>
+              <p className="text-sm font-semibold text-heading">Profile photo</p>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={saving}
+                className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark disabled:opacity-60"
+              >
+                Upload new photo
+              </button>
+              {(showSaved || pendingPhoto) && !pendingRemove && (
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={handleRemove}
                   disabled={saving}
-                  className="rounded-xl bg-moons-navy px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue disabled:opacity-60"
+                  className="rounded-lg border border-red-200/80 px-3 py-2 text-sm font-medium text-red-500 transition hover:bg-red-50 disabled:opacity-60 dark:border-red-500/20 dark:hover:bg-red-500/10"
                 >
-                  Upload new photo
+                  Remove photo
                 </button>
-                {(showSaved || pendingPhoto) && !pendingRemove && (
-                  <button
-                    type="button"
-                    onClick={handleRemove}
-                    disabled={saving}
-                    className="text-sm font-medium text-red-500 transition hover:text-red-600 disabled:opacity-60"
-                  >
-                    Remove photo
-                  </button>
-                )}
-              </div>
-              <p className="mt-2 text-xs text-moons-muted">
-                At least 800×800 px recommended. JPG, PNG or WEBP is allowed.
-              </p>
+              )}
+            </div>
+            <p className="mt-2.5 text-xs leading-relaxed text-moons-muted">
+              At least 800×800 px recommended. JPG, PNG or WEBP is allowed.
+            </p>
             {pendingPhoto && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-3">
                 <button
                   type="button"
                   onClick={onSave}
                   disabled={saving}
-                  className="rounded-xl bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                  className="rounded-lg bg-moons-navy px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue disabled:opacity-60"
                 >
                   {saving ? 'Saving…' : 'Save photo'}
                 </button>
@@ -540,13 +600,15 @@ export function ProfilePhotoSection({
             )}
             {pendingRemove && (
               <div className="mt-3 space-y-2">
-                <p className="text-xs text-amber-700">Photo will be removed when you save.</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Photo will be removed when you save.
+                </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={onSave}
                     disabled={saving}
-                    className="rounded-xl bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                    className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
                   >
                     {saving ? 'Saving…' : 'Save changes'}
                   </button>
@@ -554,7 +616,7 @@ export function ProfilePhotoSection({
                     type="button"
                     onClick={handleUndoRemove}
                     disabled={saving}
-                    className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-60"
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-60"
                   >
                     Undo
                   </button>
@@ -568,7 +630,6 @@ export function ProfilePhotoSection({
               className="hidden"
               onChange={handleSelect}
             />
-            </div>
           </div>
         </div>
       </section>
@@ -752,24 +813,22 @@ export function ProfilePageShell({
   return (
     <div className="dash-page">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <a
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface-elevated/80 px-3.5 py-1.5 text-xs font-semibold text-moons-blue shadow-sm backdrop-blur-sm transition hover:border-moons-blue/30 hover:bg-surface-elevated"
-        >
-          ← Back to dashboard
-        </a>
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="font-script text-2xl text-moons-blue md:text-3xl">Your profile</p>
-            <h1 className="text-2xl font-bold text-heading md:text-3xl">{title}</h1>
-          </div>
-          <div className="hidden items-center gap-2 rounded-full border border-moons-blue/20 bg-surface-elevated px-4 py-2 shadow-sm sm:flex">
-            <span className="h-2 w-2 rounded-full bg-moons-blue" />
-            <span className="text-sm font-semibold text-heading">{completion}% complete</span>
-          </div>
+        <DashBackLink href="/dashboard">← Back to dashboard</DashBackLink>
+
+        <div className="mt-6">
+          <DashPageHero
+            eyebrow="Your profile"
+            title={title}
+            action={
+              <div className="inline-flex items-center gap-2 rounded-full border border-moons-blue/20 bg-surface-elevated px-4 py-2 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-moons-blue" />
+                <span className="text-sm font-semibold text-heading">{completion}% complete</span>
+              </div>
+            }
+          />
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
           <div className="space-y-5">{children}</div>
           <aside className="lg:sticky lg:top-24">
             <ProfileCompletionSidebar items={completionItems} completion={completion} />

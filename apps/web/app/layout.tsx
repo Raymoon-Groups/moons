@@ -36,7 +36,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${plusJakarta.variable} ${caveat.variable} h-full font-sans antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-background text-foreground">
+      <body className="app-canvas flex min-h-full flex-col text-foreground">
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

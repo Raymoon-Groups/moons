@@ -4,6 +4,16 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { UserRole } from '@moons/shared';
+import {
+  DashBackLink,
+  DashContentCard,
+  DashErrorCard,
+  DashLoadingPage,
+  DashPageHero,
+  DashPageLayout,
+  DashQuickLinks,
+  DashSidebarPanel,
+} from '@/components/dash/dash-page-shell';
 import { CompanyProfileCard } from '@/components/company-profile-card';
 import { PostedByLine } from '@/components/job-company-header';
 import { JobKeyDetailsGrid } from '@/components/jobs/job-key-details';
@@ -11,33 +21,51 @@ import { JobTags } from '@/components/jobs/job-tags';
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 import { getStoredUser } from '@/lib/auth';
-import {
-  formatPostedAgo,
-} from '@/lib/job-formatters';
+import { formatPostedAgo } from '@/lib/job-formatters';
 import {
   getEmployerCompanyMeta,
   isPostedByOtherCompany,
   type JobListing,
 } from '@/lib/jobs';
 
+function BriefcaseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"
+      />
+    </svg>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
-  const styles =
-    status === 'PUBLISHED'
-      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-      : status === 'CLOSED'
-        ? 'bg-amber-50 text-amber-800 ring-amber-200'
-        : 'bg-surface text-moons-muted ring-border';
+  const isLive = status === 'PUBLISHED';
+  const styles = isLive
+    ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300'
+    : status === 'CLOSED'
+      ? 'bg-amber-500/10 text-amber-800 ring-amber-500/25 dark:text-amber-200'
+      : 'bg-surface text-moons-muted ring-border';
 
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${styles}`}>
-      {status === 'PUBLISHED' ? 'Live' : status.charAt(0) + status.slice(1).toLowerCase()}
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${styles}`}
+    >
+      {isLive ? (
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+      ) : null}
+      {isLive ? 'Live' : status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-surface/40 px-4 py-3">
+    <div className="rounded-xl border border-border/60 bg-surface/60 px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-moons-muted">{label}</p>
       <p className="mt-1 text-sm font-semibold text-heading">{value}</p>
     </div>
@@ -69,27 +97,11 @@ export default function RecruiterJobDetailPage() {
       .finally(() => setLoading(false));
   }, [jobId, router]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-background text-sm text-moons-muted">
-        Loading job…
-      </div>
-    );
-  }
+  if (loading) return <DashLoadingPage message="Loading job…" />;
 
   if (error || !job) {
     return (
-      <div className="min-h-[50vh] bg-background px-4 py-10">
-        <div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-elevated p-8 text-center shadow-sm">
-          <p className="text-sm text-red-600">{error || 'Job not found'}</p>
-          <Link
-            href="/recruiter/jobs"
-            className="mt-4 inline-block text-sm font-semibold text-moons-blue hover:underline"
-          >
-            ← Back to my jobs
-          </Link>
-        </div>
-      </div>
+      <DashErrorCard message={error || 'Job not found'} backHref="/recruiter/jobs" backLabel="← Back to my jobs" />
     );
   }
 
@@ -99,151 +111,114 @@ export default function RecruiterJobDetailPage() {
     !postedByOther && job.companyLogoUrl ? resolveAssetUrl(job.companyLogoUrl) : null;
 
   return (
-    <div className="dash-page">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <Link
-          href="/recruiter/jobs"
-          className="inline-flex items-center gap-1 text-sm font-medium text-moons-blue hover:underline"
-        >
-          ← My posted jobs
-        </Link>
+    <DashPageLayout
+      backLink={
+        <DashBackLink href="/recruiter/jobs">← My posted jobs</DashBackLink>
+      }
+      sidebar={
+        <>
+          <DashSidebarPanel title="Manage this job">
+            <DashQuickLinks
+              links={[
+                {
+                  href: `/recruiter/jobs/${job.id}/applicants`,
+                  label: 'View applicants',
+                  primary: true,
+                },
+                { href: `/recruiter/jobs/${job.id}/edit`, label: 'Edit job' },
+                { href: `/jobs?job=${job.id}`, label: 'Preview public listing' },
+              ]}
+            />
+          </DashSidebarPanel>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_272px] lg:items-start">
-          {/* Main column */}
-          <div className="min-w-0 space-y-5">
-            {/* Header card */}
-            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-                  {logoSrc ? (
-                    <img src={logoSrc} alt="" className="h-full w-full object-contain p-1.5" />
-                  ) : (
-                    <span className="text-xl font-bold text-moons-muted">
-                      {job.companyName.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={job.status} />
-                    <JobTags job={job} size="sm" />
+          <DashSidebarPanel title="At a glance">
+            <dl className="space-y-3 text-sm">
+              <div className="flex justify-between gap-3 rounded-lg border border-border/50 bg-surface/50 px-3 py-2">
+                <dt className="text-moons-muted">Status</dt>
+                <dd className="font-semibold text-heading">{job.status}</dd>
+              </div>
+              <div className="flex justify-between gap-3 rounded-lg border border-border/50 bg-surface/50 px-3 py-2">
+                <dt className="text-moons-muted">Hiring for</dt>
+                <dd className="text-right font-semibold text-heading">{job.companyName}</dd>
+              </div>
+              {job.postedByCompanyName &&
+                job.postedByCompanyName.trim().toLowerCase() !==
+                  job.companyName.trim().toLowerCase() && (
+                  <div className="flex justify-between gap-3 rounded-lg border border-border/50 bg-surface/50 px-3 py-2">
+                    <dt className="text-moons-muted">Posted by</dt>
+                    <dd className="text-right font-semibold text-heading">
+                      {job.postedByCompanyName}
+                    </dd>
                   </div>
-
-                  <h1 className="mt-3 text-2xl font-bold tracking-tight text-heading md:text-3xl">
-                    {job.title}
-                  </h1>
-
-                  <p className="mt-2 text-sm text-moons-muted">
-                    <span className="font-semibold text-foreground">{job.companyName}</span>
-                    {job.location ? ` · ${job.location}` : ''}
-                    {' · '}
-                    Posted {formatPostedAgo(job.createdAt)}
-                  </p>
-
-                  <PostedByLine job={job} className="mt-2" />
-
-                  {companyMeta && (
-                    <p className="mt-2 text-xs text-moons-muted">{companyMeta}</p>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* Description */}
-            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
-              <h2 className="text-base font-bold text-heading">Job description</h2>
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                {job.description}
-              </p>
-            </section>
-
-            {/* Details grid */}
-            <section className="rounded-xl border border-border bg-surface-elevated p-6 shadow-sm">
-              <h2 className="text-base font-bold text-heading">Job details</h2>
-              <div className="mt-4">
-                <JobKeyDetailsGrid job={job} />
-                {job.companySize && (
-                  <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <DetailItem label="Company size" value={job.companySize} />
-                  </dl>
                 )}
+              <div className="flex justify-between gap-3 rounded-lg border border-border/50 bg-surface/50 px-3 py-2">
+                <dt className="text-moons-muted">Posted</dt>
+                <dd className="font-semibold text-heading">
+                  {new Date(job.createdAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </dd>
               </div>
-            </section>
+            </dl>
+          </DashSidebarPanel>
 
-            {/* Employer profile */}
-            <CompanyProfileCard job={job} recruiterId={job.recruiterId} />
+          <Link
+            href="/recruiter/jobs/new"
+            className="block rounded-2xl border border-dashed border-moons-blue/40 bg-moons-blue/[0.04] p-4 text-center text-sm font-semibold text-moons-blue transition hover:border-moons-blue/60 hover:bg-moons-blue/[0.08]"
+          >
+            + Post another job
+          </Link>
+        </>
+      }
+    >
+      <DashPageHero
+        eyebrow="Job listing"
+        eyebrowIcon={<BriefcaseIcon className="h-3.5 w-3.5" />}
+        title={job.title}
+        subtitle={
+          <>
+            <span className="font-semibold text-foreground">{job.companyName}</span>
+            {job.location ? ` · ${job.location}` : ''}
+            {' · '}
+            Posted {formatPostedAgo(job.createdAt)}
+          </>
+        }
+      >
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-gradient-to-br from-surface to-surface-elevated shadow-sm ring-1 ring-border/50">
+            {logoSrc ? (
+              <img src={logoSrc} alt="" className="h-full w-full object-contain p-1.5" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-navy to-moons-blue text-lg font-bold text-white">
+                {job.companyName.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
-
-          {/* Sidebar */}
-          <aside className="space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-heading">Manage this job</h3>
-              <div className="mt-4 flex flex-col gap-2">
-                <Link
-                  href={`/recruiter/jobs/${job.id}/applicants`}
-                  className="rounded-lg bg-moons-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
-                >
-                  View applicants
-                </Link>
-                <Link
-                  href={`/recruiter/jobs/${job.id}/edit`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue hover:bg-surface"
-                >
-                  Edit job
-                </Link>
-                <Link
-                  href={`/jobs?job=${job.id}`}
-                  className="rounded-lg border border-border px-4 py-2.5 text-center text-sm font-semibold text-moons-muted transition hover:border-moons-blue hover:text-heading"
-                >
-                  Preview public listing
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-heading">At a glance</h3>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-moons-muted">Status</dt>
-                  <dd className="font-semibold text-heading">{job.status}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-moons-muted">Hiring for</dt>
-                  <dd className="text-right font-semibold text-heading">{job.companyName}</dd>
-                </div>
-                {job.postedByCompanyName &&
-                  job.postedByCompanyName.trim().toLowerCase() !==
-                    job.companyName.trim().toLowerCase() && (
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-moons-muted">Posted by</dt>
-                      <dd className="text-right font-semibold text-heading">
-                        {job.postedByCompanyName}
-                      </dd>
-                    </div>
-                  )}
-                <div className="flex justify-between gap-3">
-                  <dt className="text-moons-muted">Posted</dt>
-                  <dd className="font-semibold text-heading">
-                    {new Date(job.createdAt).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-
-            <Link
-              href="/recruiter/jobs/new"
-              className="block rounded-xl border border-dashed border-moons-blue/40 bg-blue-50/50 p-4 text-center text-sm font-semibold text-moons-blue transition hover:bg-blue-50"
-            >
-              + Post another job
-            </Link>
-          </aside>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={job.status} />
+            <JobTags job={job} size="sm" />
+          </div>
         </div>
-      </div>
-    </div>
+        <PostedByLine job={job} className="mt-3" />
+        {companyMeta ? <p className="mt-2 text-xs text-moons-muted">{companyMeta}</p> : null}
+      </DashPageHero>
+
+      <DashContentCard title="Job description">
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{job.description}</p>
+      </DashContentCard>
+
+      <DashContentCard title="Job details">
+        <JobKeyDetailsGrid job={job} />
+        {job.companySize ? (
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+            <DetailItem label="Company size" value={job.companySize} />
+          </dl>
+        ) : null}
+      </DashContentCard>
+
+      <CompanyProfileCard job={job} recruiterId={job.recruiterId} />
+    </DashPageLayout>
   );
 }
