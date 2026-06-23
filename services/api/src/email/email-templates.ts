@@ -31,26 +31,17 @@ export function getWebAppUrl(): string {
   return 'https://moonsjob.com';
 }
 
-function logoUrl(): string {
-  return `${getWebAppUrl()}/moonsjob_logo.png`;
-}
-
-function templateImageUrl(): string {
-  return `${getWebAppUrl()}/template2_img.png`;
+function bannerImageUrl(): string {
+  return `${getWebAppUrl()}/email_banner.png`;
 }
 
 function emailHeaderBanner(): string {
   return `
     <tr>
-      <td style="padding:20px 32px 16px;border-bottom:1px solid ${BRAND.border};background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);text-align:center;">
-        <img src="${logoUrl()}" alt="MoonsJob" height="52" style="display:block;height:52px;width:auto;border:0;margin:0 auto;" />
-      </td>
-    </tr>
-    <tr>
       <td style="padding:0;line-height:0;font-size:0;background:${BRAND.surface};">
         <img
-          src="${templateImageUrl()}"
-          alt=""
+          src="${bannerImageUrl()}"
+          alt="MoonsJob — Find the right job. Build your future."
           width="600"
           style="display:block;width:100%;max-width:600px;height:auto;border:0;margin:0;"
         />
