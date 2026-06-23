@@ -12,8 +12,6 @@ const BRAND = {
   danger: '#dc2626',
 } as const;
 
-type IllustrationKind = 'application' | 'shortlisted' | 'rejected' | 'viewed' | 'verify' | 'security';
-
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -38,14 +36,14 @@ function logoUrl(): string {
 }
 
 function templateImageUrl(): string {
-  return `${getWebAppUrl()}/template_img.png`;
+  return `${getWebAppUrl()}/template2_img.png`;
 }
 
 function emailHeaderBanner(): string {
   return `
     <tr>
       <td style="padding:20px 32px 16px;border-bottom:1px solid ${BRAND.border};background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);text-align:center;">
-        <img src="${logoUrl()}" alt="MoonsJob" height="34" style="display:block;height:34px;width:auto;border:0;margin:0 auto;" />
+        <img src="${logoUrl()}" alt="MoonsJob" height="52" style="display:block;height:52px;width:auto;border:0;margin:0 auto;" />
       </td>
     </tr>
     <tr>
@@ -66,30 +64,6 @@ function formatStatusLabel(status: string): string {
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
-}
-
-function illustrationDataUri(kind: IllustrationKind, accent: string): string {
-  const svgByKind: Record<IllustrationKind, string> = {
-    application: `<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88" fill="none"><rect x="18" y="30" width="52" height="36" rx="6" stroke="${accent}" stroke-width="3"/><path d="M30 30V24a14 14 0 0 1 28 0v6" stroke="${accent}" stroke-width="3" stroke-linecap="round"/><path d="M18 42h52" stroke="${BRAND.blue}" stroke-width="2.5" stroke-linecap="round"/></svg>`,
-    shortlisted: `<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88" fill="none"><circle cx="44" cy="44" r="28" stroke="${accent}" stroke-width="3"/><path d="M32 44l8 8 16-18" stroke="${accent}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-    rejected: `<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88" fill="none"><rect x="22" y="18" width="44" height="56" rx="6" stroke="${accent}" stroke-width="3"/><path d="M34 38l20 20M54 38L34 58" stroke="${accent}" stroke-width="3" stroke-linecap="round"/></svg>`,
-    viewed: `<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88" fill="none"><path d="M14 44s12-22 30-22 30 22 30 22-12 22-30 22S14 44 14 44z" stroke="${accent}" stroke-width="3"/><circle cx="44" cy="44" r="9" stroke="${BRAND.blue}" stroke-width="3"/></svg>`,
-    verify: `<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88" fill="none"><rect x="14" y="24" width="60" height="40" rx="6" stroke="${accent}" stroke-width="3"/><path d="M14 28l30 22 30-22" stroke="${BRAND.blue}" stroke-width="3" stroke-linejoin="round"/></svg>`,
-    security: `<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88" fill="none"><rect x="26" y="38" width="36" height="30" rx="5" stroke="${accent}" stroke-width="3"/><path d="M32 38v-8a12 12 0 0 1 24 0v8" stroke="${accent}" stroke-width="3" stroke-linecap="round"/><circle cx="44" cy="52" r="4" fill="${BRAND.blue}"/></svg>`,
-  };
-
-  return `data:image/svg+xml,${encodeURIComponent(svgByKind[kind])}`;
-}
-
-function illustrationBlock(kind: IllustrationKind, accent: string): string {
-  return `
-    <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 20px;">
-      <tr>
-        <td style="width:96px;height:96px;border-radius:20px;background:${BRAND.surface};border:1px solid ${BRAND.border};text-align:center;vertical-align:middle;">
-          <img src="${illustrationDataUri(kind, accent)}" width="56" height="56" alt="" style="display:block;margin:0 auto;border:0;" />
-        </td>
-      </tr>
-    </table>`;
 }
 
 interface LayoutOptions {
@@ -224,7 +198,6 @@ function statusTone(status: string): {
   badge: string;
   headline: string;
   message: string;
-  illustration: IllustrationKind;
 } {
   const normalized = status.toUpperCase();
 
@@ -235,7 +208,6 @@ function statusTone(status: string): {
       headline: 'Great news — you made the shortlist',
       message:
         'The employer liked your profile and moved you forward in their hiring process. Keep an eye on your inbox for interview updates.',
-      illustration: 'shortlisted',
     };
   }
 
@@ -246,7 +218,6 @@ function statusTone(status: string): {
       headline: 'Update on your application',
       message:
         'Thank you for applying. The employer has decided not to move forward with your application at this time. New roles are posted on MoonsJob every day — keep exploring.',
-      illustration: 'rejected',
     };
   }
 
@@ -257,7 +228,6 @@ function statusTone(status: string): {
       headline: 'A recruiter viewed your application',
       message:
         'Your profile and application materials were opened by the hiring team. This is a good sign — stay ready for follow-up.',
-      illustration: 'viewed',
     };
   }
 
@@ -268,7 +238,6 @@ function statusTone(status: string): {
       headline: 'Your application was sent',
       message:
         'Your profile and application have been delivered to the employer. Good luck — we are rooting for you.',
-      illustration: 'application',
     };
   }
 
@@ -277,7 +246,6 @@ function statusTone(status: string): {
     badge: 'Application status updated',
     headline: 'Your application status changed',
     message: `Your application is now ${formatStatusLabel(status)}. Sign in to MoonsJob for the latest updates.`,
-    illustration: 'application',
   };
 }
 
@@ -295,7 +263,6 @@ export function buildApplicationStatusEmail(
   const body = `
     <tr>
       <td style="padding:28px 32px 24px;">
-        ${illustrationBlock(tone.illustration, tone.accent)}
         ${statusBadge(tone.badge, tone.accent)}
         <h1 style="margin:0 0 22px;font-size:26px;line-height:1.25;font-weight:700;color:${BRAND.navy};">${escapeHtml(tone.headline)}</h1>
         ${jobSummaryCard(safeJob, safeCompany, statusLabel, tone.accent)}
@@ -337,7 +304,6 @@ export function buildApplicationReceivedEmail(
   const body = `
     <tr>
       <td style="padding:28px 32px 24px;">
-        ${illustrationBlock('application', BRAND.blue)}
         ${statusBadge('New application received', BRAND.blue)}
         <h1 style="margin:0 0 22px;font-size:26px;line-height:1.25;font-weight:700;color:${BRAND.navy};">Someone applied to your job</h1>
         ${jobSummaryCard(
@@ -377,7 +343,6 @@ export function buildOtpEmail(otp: string): { html: string; text: string } {
   const body = `
     <tr>
       <td style="padding:32px 32px 24px;text-align:center;">
-        ${illustrationBlock('verify', BRAND.blue)}
         ${statusBadge('Verify your email', BRAND.blue)}
         <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;font-weight:700;color:${BRAND.navy};">Confirm your MoonsJob account</h1>
         <p style="margin:0 0 24px;font-size:15px;line-height:1.65;color:${BRAND.muted};">
@@ -408,7 +373,6 @@ export function buildPasswordResetEmail(otp: string): { html: string; text: stri
   const body = `
     <tr>
       <td style="padding:32px 32px 24px;text-align:center;">
-        ${illustrationBlock('security', BRAND.warning)}
         ${statusBadge('Password reset requested', BRAND.warning)}
         <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;font-weight:700;color:${BRAND.navy};">Reset your password</h1>
         <p style="margin:0 0 24px;font-size:15px;line-height:1.65;color:${BRAND.muted};">
