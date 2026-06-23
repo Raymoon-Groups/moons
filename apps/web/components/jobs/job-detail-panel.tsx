@@ -1,5 +1,6 @@
 'use client';
 
+import { RichTextContent } from '@/components/rich-text-content';
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { UserRole } from '@moons/shared';
@@ -260,9 +261,9 @@ export function JobDetailPanel({
 
         <section className="mt-6">
           <h2 className="text-base font-bold text-heading">About the job</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-            {job.description}
-          </p>
+          <div className="mt-3">
+            <RichTextContent content={job.description} />
+          </div>
         </section>
       </div>
     </div>

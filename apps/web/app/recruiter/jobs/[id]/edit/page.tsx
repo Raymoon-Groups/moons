@@ -23,6 +23,7 @@ import {
 } from '@/components/job-form-fields';
 import { authFetch } from '@/lib/api-client';
 import { getStoredUser } from '@/lib/auth';
+import { isDescriptionValid } from '@/lib/rich-text';
 import type { JobListing } from '@/lib/jobs';
 
 function EditIcon({ className }: { className?: string }) {
@@ -87,6 +88,10 @@ export default function EditJobPage() {
     e.preventDefault();
     if (!values) return;
     setError('');
+    if (!isDescriptionValid(values.description, 20)) {
+      setError('Job description must be at least 20 characters.');
+      return;
+    }
     setLoading(true);
     const exp = experienceBandToYears(values.experienceBand);
     try {

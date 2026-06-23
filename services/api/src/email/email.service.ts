@@ -1,5 +1,11 @@
 import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import {
+  buildApplicationReceivedEmail,
+  buildApplicationStatusEmail,
+  buildOtpEmail,
+  buildPasswordResetEmail,
+} from './email-templates';
 
 @Injectable()
 export class EmailService implements OnModuleInit {
@@ -47,15 +53,7 @@ export class EmailService implements OnModuleInit {
   async sendPasswordResetEmail(email: string, otp: string) {
     const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = 'Reset your Moons password';
-    const text = `Your password reset code is ${otp}. It expires in 15 minutes.`;
-    const html = `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2 style="color: #1e293b;">Reset your password</h2>
-        <p style="color: #475569;">Use this code to reset your Moons password:</p>
-        <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1e293b;">${otp}</p>
-        <p style="color: #94a3b8; font-size: 14px;">This code expires in 15 minutes. If you did not request this, you can ignore this email.</p>
-      </div>
-    `;
+    const { text, html } = buildPasswordResetEmail(otp);
 
     await this.deliverEmail(from, email, subject, text, html, otp, 'reset');
   }
@@ -63,15 +61,7 @@ export class EmailService implements OnModuleInit {
   async sendOtpEmail(email: string, otp: string) {
     const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = 'Your Moons verification code';
-    const text = `Your verification code is ${otp}. It expires in 10 minutes.`;
-    const html = `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2 style="color: #1e293b;">Verify your email</h2>
-        <p style="color: #475569;">Use this code to complete your Moons registration:</p>
-        <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1e293b;">${otp}</p>
-        <p style="color: #94a3b8; font-size: 14px;">This code expires in 10 minutes.</p>
-      </div>
-    `;
+    const { text, html } = buildOtpEmail(otp);
 
     await this.deliverEmail(from, email, subject, text, html, otp, 'OTP');
   }
@@ -83,14 +73,7 @@ export class EmailService implements OnModuleInit {
   ) {
     const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = `New application for ${jobTitle}`;
-    const text = `${candidateName} applied to your job posting "${jobTitle}". Log in to Moons to review their profile.`;
-    const html = `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2 style="color: #1e293b;">New job application</h2>
-        <p style="color: #475569;"><strong>${candidateName}</strong> applied to <strong>${jobTitle}</strong>.</p>
-        <p style="color: #94a3b8; font-size: 14px;">Log in to Moons to review their profile and resume.</p>
-      </div>
-    `;
+    const { text, html } = buildApplicationReceivedEmail(jobTitle, candidateName);
     await this.deliverEmail(from, recruiterEmail, subject, text, html, subject, 'application');
   }
 
@@ -102,13 +85,7 @@ export class EmailService implements OnModuleInit {
   ) {
     const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = `Application update: ${jobTitle}`;
-    const text = `Your application for ${jobTitle} at ${companyName} is now ${status}.`;
-    const html = `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2 style="color: #1e293b;">Application status updated</h2>
-        <p style="color: #475569;">Your application for <strong>${jobTitle}</strong> at <strong>${companyName}</strong> is now <strong>${status}</strong>.</p>
-      </div>
-    `;
+    const { text, html } = buildApplicationStatusEmail(jobTitle, companyName, status);
     await this.deliverEmail(
       from,
       candidateEmail,

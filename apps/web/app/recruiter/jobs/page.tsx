@@ -281,7 +281,7 @@ export default function RecruiterJobsPage() {
                   className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-moons-blue/25 transition hover:bg-moons-blue-dark hover:shadow-lg hover:shadow-moons-blue/30"
                 >
                   <PlusIcon className="h-4 w-4" />
-                  + Post a job
+                  Post a job
                 </Link>
               </div>
             </section>

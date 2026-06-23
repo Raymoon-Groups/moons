@@ -15,6 +15,7 @@ import {
   DashSidebarPanel,
 } from '@/components/dash/dash-page-shell';
 import { CompanyProfileCard } from '@/components/company-profile-card';
+import { RichTextContent } from '@/components/rich-text-content';
 import { PostedByLine } from '@/components/job-company-header';
 import { JobKeyDetailsGrid } from '@/components/jobs/job-key-details';
 import { JobTags } from '@/components/jobs/job-tags';
@@ -206,7 +207,7 @@ export default function RecruiterJobDetailPage() {
       </DashPageHero>
 
       <DashContentCard title="Job description">
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{job.description}</p>
+        <RichTextContent content={job.description} />
       </DashContentCard>
 
       <DashContentCard title="Job details">

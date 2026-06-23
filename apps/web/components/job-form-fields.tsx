@@ -1,7 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { EmploymentType } from '@moons/shared';
 import { ExperienceRequiredPicker } from '@/components/jobs/experience-required-picker';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import {
   experienceValueToJobYears,
   jobYearsToExperienceValue,
@@ -129,15 +132,14 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
       <label className="block text-sm font-medium text-moons-silver">
         Description * (min 20 chars)
       </label>
-      <textarea
-        required
-        minLength={20}
-        rows={8}
-        value={values.description}
-        onChange={(e) => onChange('description', e.target.value)}
-        className={inputClass}
-        placeholder="Describe the role, responsibilities, and requirements…"
-      />
+      <div className="mt-1">
+        <RichTextEditor
+          value={values.description}
+          onChange={(html) => onChange('description', html)}
+          placeholder="Describe the role, responsibilities, and requirements…"
+          minLength={20}
+        />
+      </div>
     </div>
   );
 

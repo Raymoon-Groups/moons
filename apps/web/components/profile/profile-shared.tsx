@@ -516,24 +516,26 @@ export function ProfilePhotoSection({
           />
 
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-            <div className="shrink-0 rounded-full bg-gradient-to-br from-moons-blue to-moons-navy p-[3px] shadow-md shadow-moons-blue/20">
-              <button
-                type="button"
-                onClick={() => canView && setShowLightbox(true)}
-                disabled={!canView}
-                className={`relative h-24 w-24 overflow-hidden rounded-full bg-surface ${
-                  canView ? 'cursor-zoom-in transition hover:opacity-95' : 'cursor-default'
-                }`}
-              >
-                {displayUrl ? (
-                  <img src={displayUrl} alt={displayName} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-blue/15 to-moons-navy/10 text-2xl font-bold text-moons-blue">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => canView && setShowLightbox(true)}
+              disabled={!canView}
+              className={`relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-moons-blue/25 ${
+                canView ? 'cursor-zoom-in transition hover:border-moons-blue/40' : 'cursor-default'
+              }`}
+            >
+              {displayUrl ? (
+                <img
+                  src={displayUrl}
+                  alt={displayName}
+                  className="block h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-blue/15 to-moons-navy/10 text-2xl font-bold text-moons-blue">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </button>
 
             <div className="min-w-0 flex-1">
               <p className="font-script text-lg text-moons-blue">Your profile</p>
