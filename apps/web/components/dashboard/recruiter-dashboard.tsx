@@ -31,7 +31,7 @@ const HIRING_JOURNEY = [
 ] as const;
 
 const NAV_ITEMS = [
-  { label: 'My home', href: '/dashboard', icon: HomeIcon },
+  { label: 'Overview', href: '/dashboard', icon: HomeIcon },
   { label: 'My jobs', href: '/recruiter/jobs', icon: BriefcaseIcon },
   { label: 'Post a job', href: '/recruiter/jobs/new', icon: PlusIcon },
   { label: 'Company profile', href: '/profile', icon: BuildingIcon },
@@ -56,31 +56,34 @@ function ProfileRing({
   return (
     <div className="relative mx-auto h-[88px] w-[88px]">
       <svg viewBox="0 0 88 88" className="absolute inset-0 h-full w-full -rotate-90">
-        <circle cx="44" cy="44" r={r} fill="none" stroke="var(--border)" strokeWidth="5" />
+        <circle cx="44" cy="44" r={r} fill="none" stroke="var(--border)" strokeWidth="4" />
         <circle
           cx="44"
           cy="44"
           r={r}
           fill="none"
-          stroke="#22c55e"
-          strokeWidth="5"
+          stroke="url(#moons-ring-recruiter)"
+          strokeWidth="4"
           strokeDasharray={c}
           strokeDashoffset={offset}
           strokeLinecap="round"
         />
+        <defs>
+          <linearGradient id="moons-ring-recruiter" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4a7fd4" />
+            <stop offset="100%" stopColor="#1a2744" />
+          </linearGradient>
+        </defs>
       </svg>
-      <div className="absolute inset-[6px] overflow-hidden rounded-full border-2 border-surface-elevated bg-surface shadow-sm">
+      <div className="absolute inset-[7px] overflow-hidden rounded-full border-2 border-surface-elevated bg-surface shadow-md ring-1 ring-moons-blue/15">
         {image ? (
           <img src={image} alt="" className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-navy to-moons-blue text-xl font-bold text-white">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-blue to-moons-navy text-xl font-bold text-white">
             {name.charAt(0).toUpperCase()}
           </div>
         )}
       </div>
-      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
-        {percent}%
-      </span>
     </div>
   );
 }
@@ -99,7 +102,7 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
       <button
         type="button"
         onClick={() => scroll('right')}
-        className="absolute -right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface-elevated shadow-md hover:bg-surface"
+        className="absolute -right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface-elevated shadow-md hover:bg-surface-hover"
         aria-label="Scroll jobs"
       >
         <svg className="h-4 w-4 text-heading" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -108,7 +111,7 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
       </button>
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-1"
+        className="flex gap-4 overflow-x-auto pb-1 scrollbar-thin"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {jobs.map((job) => {
@@ -118,27 +121,37 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
             <Link
               key={job.id}
               href={`/recruiter/jobs/${job.id}`}
-              className="w-[220px] shrink-0 rounded-xl border border-border bg-surface-elevated p-4 shadow-sm transition hover:border-moons-blue/40 hover:shadow-md"
+              className="group w-[240px] shrink-0 overflow-hidden rounded-2xl border border-border bg-surface-elevated shadow-sm transition hover:-translate-y-0.5 hover:border-moons-blue/30 hover:shadow-lg"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface text-sm font-bold text-moons-muted">
-                  {logo ? (
-                    <img src={logo} alt="" className="h-full w-full object-contain p-0.5" />
-                  ) : (
-                    job.companyName.charAt(0)
-                  )}
+              <div className="h-1 bg-gradient-to-r from-moons-blue to-moons-navy" />
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-surface text-sm font-bold text-moons-muted">
+                    {logo ? (
+                      <img src={logo} alt="" className="h-full w-full object-contain p-0.5" />
+                    ) : (
+                      job.companyName.charAt(0)
+                    )}
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      isActive
+                        ? 'bg-moons-blue/10 text-moons-blue'
+                        : 'bg-surface text-moons-muted'
+                    }`}
+                  >
+                    {isActive ? 'Active' : job.status}
+                  </span>
                 </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-surface text-moons-muted'
-                  }`}
-                >
-                  {isActive ? 'Active' : job.status}
-                </span>
+                <p className="mt-3 truncate text-sm font-bold text-heading group-hover:text-moons-blue">
+                  {job.title}
+                </p>
+                <p className="mt-0.5 truncate text-xs text-moons-muted">{job.companyName}</p>
+                <p className="mt-2 flex items-center gap-1 text-xs text-moons-muted">
+                  <PinIcon />
+                  <span className="truncate">{job.location}</span>
+                </p>
               </div>
-              <p className="mt-3 truncate text-sm font-bold text-heading">{job.title}</p>
-              <p className="mt-0.5 truncate text-xs text-moons-muted">{job.location}</p>
-              <p className="mt-2 text-[10px] text-moons-muted">Posted {formatPostedAgo(job.createdAt)}</p>
             </Link>
           );
         })}
@@ -165,7 +178,7 @@ async function loadRecentApplicants(jobs: JobListing[]): Promise<RecentApplicant
   return batches
     .flat()
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+    .slice(0, 3);
 }
 
 export function RecruiterDashboard() {
@@ -212,46 +225,47 @@ export function RecruiterDashboard() {
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[248px_minmax(0,1fr)_272px] lg:items-start">
         {/* Left sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-            <ProfileRing
-              percent={completion}
-              logoUrl={logoSrc}
-              avatarUrl={avatarSrc}
-              name={companyName}
-            />
-            <h2 className="mt-4 text-center text-sm font-bold text-heading">{companyName}</h2>
-            <p className="mt-1 text-center text-xs text-foreground/70">{industryLine}</p>
-            <p className="mt-0.5 text-center text-xs text-foreground/70">{locationLine}</p>
-            <p className="mt-2 text-center text-[10px] text-foreground/55">Last updated {lastUpdated}</p>
-            {completion < 100 && (
-              <Link
-                href="/profile"
-                className="mt-4 block w-full rounded-lg bg-moons-blue py-2.5 text-center text-sm font-semibold text-white hover:bg-moons-blue-dark"
-              >
-                Complete company profile
-              </Link>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-moons-blue/25 bg-surface p-4 shadow-sm">
-            <p className="text-xs font-semibold text-heading">Hiring performance</p>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xl font-bold text-heading">{stats?.activeJobsCount ?? 0}</p>
-                <p className="text-[10px] text-foreground/70">Active jobs</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-heading">{stats?.applicantsCount ?? 0}</p>
-                <p className="text-[10px] text-foreground/70">Total applicants</p>
-              </div>
+          <div className="dash-card overflow-hidden">
+            <div className="bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-5 pb-5 pt-6">
+              <ProfileRing
+                percent={completion}
+                logoUrl={logoSrc}
+                avatarUrl={avatarSrc}
+                name={companyName}
+              />
+              <h2 className="mt-4 text-center text-base font-bold text-heading">{companyName}</h2>
+              <p className="mt-1 text-center text-xs text-moons-muted">{industryLine}</p>
+              <p className="mt-0.5 text-center text-xs text-moons-muted">{locationLine}</p>
             </div>
-            <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-moons-blue">
-              <BoltIcon />
-              {stats?.jobsCount ?? 0} jobs posted · {completion}% profile complete
-            </p>
+            <div className="border-t border-border px-5 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-moons-muted">
+                    Profile complete
+                  </p>
+                  <p className="text-lg font-bold text-heading">{completion}%</p>
+                </div>
+                <div className="h-10 w-px bg-border" />
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-moons-muted">
+                    Applicants
+                  </p>
+                  <p className="text-lg font-bold text-heading">{stats?.applicantsCount ?? 0}</p>
+                </div>
+              </div>
+              {completion < 100 && (
+                <Link
+                  href="/profile"
+                  className="mt-4 block w-full rounded-xl bg-moons-navy py-2.5 text-center text-sm font-semibold text-white transition hover:bg-moons-blue"
+                >
+                  Finish company profile
+                </Link>
+              )}
+              <p className="mt-3 text-center text-[10px] text-moons-muted">Updated {lastUpdated}</p>
+            </div>
           </div>
 
-          <nav className="rounded-xl border border-border bg-surface-elevated p-2 shadow-sm">
+          <nav className="dash-card p-2">
             {NAV_ITEMS.map((item) => {
               const active =
                 pathname === item.href ||
@@ -261,13 +275,19 @@ export function RecruiterDashboard() {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                     active
-                      ? 'bg-moons-blue/10 text-moons-blue ring-1 ring-moons-blue/20'
-                      : 'text-foreground/70 hover:bg-surface hover:text-foreground'
+                      ? 'bg-gradient-to-r from-moons-blue/15 to-transparent text-heading'
+                      : 'text-moons-muted hover:bg-surface hover:text-foreground'
                   }`}
                 >
-                  <Icon active={active} />
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                      active ? 'bg-moons-blue text-white' : 'bg-surface text-moons-muted'
+                    }`}
+                  >
+                    <Icon active={active} />
+                  </span>
                   {item.label}
                 </Link>
               );
@@ -277,52 +297,51 @@ export function RecruiterDashboard() {
 
         {/* Center column */}
         <main className="min-w-0 space-y-5">
-          <div className="overflow-hidden rounded-xl border border-border bg-gradient-to-r from-moons-navy via-[#243b6b] to-[#1a3a6e] shadow-sm">
-            <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative dash-card overflow-hidden border-moons-blue/20">
+            <div
+              className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-moons-blue/10"
+              aria-hidden
+            />
+            <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 text-2xl font-black text-amber-300">
-                  PRO
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue to-moons-navy text-lg font-black text-white shadow-lg shadow-moons-blue/25">
+                  ☽
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-white">MoonsJob PRO for Employers</p>
-                  <p className="text-sm text-white/70">Hire faster with premium recruiting tools</p>
+                  <p className="font-script text-2xl text-moons-blue">Moons Plus</p>
+                  <p className="text-sm text-moons-muted">Premium tools to hire faster and smarter</p>
                 </div>
               </div>
-              <span className="shrink-0 rounded-full border border-white/25 bg-white/10 px-5 py-2 text-sm font-semibold text-white backdrop-blur-sm">
-                Coming Soon
+              <span className="inline-flex w-fit rounded-full border border-moons-blue/25 bg-moons-blue/10 px-4 py-2 text-sm font-semibold text-heading">
+                Coming soon
               </span>
             </div>
-            <div className="border-t border-white/10 bg-black/10 px-6 py-4">
-              <div className="grid gap-3 text-sm text-white/80 sm:grid-cols-3">
-                <p className="flex items-center gap-2">
-                  <span className="text-white/40">○</span> Featured job listings
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="text-white/40">○</span> AI candidate screening
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="text-white/40">○</span> Priority support
-                </p>
-              </div>
+            <div className="border-t border-border bg-surface/50 px-6 py-3">
+              <p className="text-xs text-moons-muted">
+                Featured listings · AI screening · Priority support
+              </p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+          <div className="dash-card p-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-heading">Your posted jobs</h3>
+              <div>
+                <p className="font-script text-xl text-moons-blue">For you</p>
+                <h3 className="text-base font-bold text-heading">Your posted jobs</h3>
+              </div>
               <Link href="/recruiter/jobs" className="text-sm font-semibold text-moons-blue hover:underline">
-                View all
+                See all
               </Link>
             </div>
 
-            <div className="mt-4 flex gap-6 border-b border-border">
+            <div className="mt-4 inline-flex rounded-xl bg-surface p-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('active')}
-                className={`border-b-2 pb-2 text-sm font-semibold transition ${
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   activeTab === 'active'
-                    ? 'border-moons-blue text-moons-blue'
-                    : 'border-transparent text-moons-muted hover:text-foreground'
+                    ? 'bg-surface-elevated text-heading shadow-sm ring-1 ring-border'
+                    : 'text-moons-muted hover:text-foreground'
                 }`}
               >
                 Active ({activeJobs.length})
@@ -330,13 +349,13 @@ export function RecruiterDashboard() {
               <button
                 type="button"
                 onClick={() => setActiveTab('all')}
-                className={`border-b-2 pb-2 text-sm font-semibold transition ${
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   activeTab === 'all'
-                    ? 'border-moons-blue text-moons-blue'
-                    : 'border-transparent text-moons-muted hover:text-foreground'
+                    ? 'bg-surface-elevated text-heading shadow-sm ring-1 ring-border'
+                    : 'text-moons-muted hover:text-foreground'
                 }`}
               >
-                All ({jobs.length})
+                All jobs ({jobs.length})
               </button>
             </div>
 
@@ -355,18 +374,20 @@ export function RecruiterDashboard() {
           </div>
 
           {recentApplicants.length > 0 && (
-            <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
+            <div className="dash-card p-5">
               <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-base font-bold text-heading">
-                  <UsersIcon />
-                  Recent applicants
-                </h3>
+                <div>
+                  <p className="font-script text-xl text-moons-blue">Recent</p>
+                  <h3 className="text-base font-bold text-heading">
+                    {recentApplicants.length} new applicant{recentApplicants.length !== 1 ? 's' : ''}
+                  </h3>
+                </div>
                 <Link href="/recruiter/jobs" className="text-sm font-semibold text-moons-blue hover:underline">
-                  View all
+                  See all
                 </Link>
               </div>
-              <div className="mt-4 space-y-3">
-                {recentApplicants.map((app) => {
+              <div className="mt-4 space-y-2">
+                {recentApplicants.map((app, index) => {
                   const p = app.candidate.profile;
                   const name = p?.fullName?.trim() || app.candidate.email.split('@')[0];
                   const avatar = resolveAssetUrl(p?.avatarUrl);
@@ -374,25 +395,23 @@ export function RecruiterDashboard() {
                     <Link
                       key={app.id}
                       href={`/recruiter/jobs/${app.jobId}/applicants`}
-                      className="flex items-center gap-3 rounded-lg border border-border p-3 transition hover:border-moons-blue/30 hover:bg-surface"
+                      className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:border-moons-blue/30 hover:bg-moons-blue/10"
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-sm font-bold text-moons-muted">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-moons-blue/20 to-moons-navy/15 text-xs font-bold text-heading">
                         {avatar ? (
                           <img src={avatar} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          name.charAt(0).toUpperCase()
+                          String(index + 1).padStart(2, '0')
                         )}
-                      </div>
+                      </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-heading">{name}</p>
-                        <p className="truncate text-xs text-foreground/70">
-                          Applied for {app.jobTitle}
+                        <p className="truncate text-xs text-moons-muted">
+                          {app.jobTitle}
                           {p?.location ? ` · ${p.location}` : ''}
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-[10px] font-medium text-moons-muted">
-                        {app.status}
-                      </span>
+                      <span className="shrink-0 text-[10px] text-moons-muted">{app.status}</span>
                     </Link>
                   );
                 })}
@@ -403,53 +422,77 @@ export function RecruiterDashboard() {
 
         {/* Right sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-sm">
-            <p className="text-xs font-semibold text-violet-600 dark:text-violet-300">Needs attention</p>
-            <h3 className="mt-1 text-sm font-bold text-heading">Where are you in your hiring journey?</h3>
-            <div className="mt-4 flex flex-wrap gap-2">
+          <div className="dash-card p-5">
+            <p className="font-script text-xl text-moons-blue">Your status</p>
+            <h3 className="mt-0.5 text-sm font-bold text-heading">Where are you in hiring?</h3>
+            <div className="mt-4 space-y-2">
               {HIRING_JOURNEY.map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setJourney(option)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                  className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition ${
                     journey === option
-                      ? 'border-moons-blue bg-moons-blue/10 text-moons-blue ring-1 ring-moons-blue/20'
-                      : 'border-border bg-surface-elevated text-foreground/80 hover:border-moons-blue/40 hover:text-foreground'
+                      ? 'border-moons-blue bg-moons-blue/15 text-heading'
+                      : 'border-border bg-surface text-foreground hover:border-moons-blue/30'
                   }`}
                 >
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      journey === option ? 'bg-moons-blue' : 'bg-border'
+                    }`}
+                  />
                   {option}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-elevated shadow-sm">
-            <div className="h-32 bg-gradient-to-br from-moons-navy/20 via-surface to-moons-blue/10" />
-            <div className="p-4">
-              <h4 className="text-sm font-bold text-heading">Attract more quality candidates</h4>
-              <p className="mt-1 text-xs leading-relaxed text-moons-muted">
-                Complete your company profile with logo, industry, and summary to build trust with job seekers.
+          <div className="dash-card overflow-hidden border-moons-blue/20 bg-gradient-to-br from-moons-blue/15 via-surface-elevated to-surface-elevated">
+            <div className="p-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-moons-blue">Tip</p>
+              <h4 className="mt-1 text-sm font-bold text-heading">Attract more quality candidates</h4>
+              <p className="mt-2 text-xs leading-relaxed text-moons-muted">
+                Complete your company profile with logo, industry, and summary to build trust with
+                job seekers.
               </p>
-              <Link href="/profile" className="mt-3 inline-block text-sm font-semibold text-moons-blue hover:underline">
-                Know more →
+              <Link
+                href="/profile"
+                className="mt-4 inline-flex rounded-xl bg-moons-navy px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue"
+              >
+                Improve profile
               </Link>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-surface-elevated p-4 shadow-sm">
-            <p className="text-sm text-moons-muted">Quick links</p>
+          <div className="dash-card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">Shortcuts</p>
             <div className="mt-3 space-y-2">
-              <Link href="/recruiter/jobs/new" className="block text-sm font-medium text-moons-blue hover:underline">
+              <Link
+                href="/recruiter/jobs"
+                className="flex items-center justify-between rounded-lg px-2 py-2 text-sm font-medium text-foreground transition hover:bg-surface"
+              >
+                Manage jobs
+                <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-moons-muted">
+                  {stats?.jobsCount ?? 0}
+                </span>
+              </Link>
+              <Link
+                href="/recruiter/jobs/new"
+                className="block rounded-lg px-2 py-2 text-sm font-medium text-foreground transition hover:bg-surface"
+              >
                 Post a new job
               </Link>
-              <Link href="/recruiter/jobs" className="block text-sm font-medium text-moons-blue hover:underline">
-                Manage jobs ({stats?.jobsCount ?? 0})
-              </Link>
-              <Link href="/profile" className="block text-sm font-medium text-moons-blue hover:underline">
+              <Link
+                href="/profile"
+                className="block rounded-lg px-2 py-2 text-sm font-medium text-foreground transition hover:bg-surface"
+              >
                 Company profile
               </Link>
-              <Link href="/settings" className="block text-sm font-medium text-moons-blue hover:underline">
+              <Link
+                href="/settings"
+                className="block rounded-lg px-2 py-2 text-sm font-medium text-foreground transition hover:bg-surface"
+              >
                 Settings
               </Link>
             </div>
@@ -462,7 +505,7 @@ export function RecruiterDashboard() {
 
 function HomeIcon({ active }: { active?: boolean }) {
   return (
-    <svg className={`h-4 w-4 ${active ? 'text-moons-blue' : 'text-moons-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className={`h-4 w-4 ${active ? 'text-white' : 'text-current'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
     </svg>
   );
@@ -470,7 +513,7 @@ function HomeIcon({ active }: { active?: boolean }) {
 
 function BriefcaseIcon({ active }: { active?: boolean }) {
   return (
-    <svg className={`h-4 w-4 ${active ? 'text-moons-blue' : 'text-moons-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className={`h-4 w-4 ${active ? 'text-white' : 'text-current'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
     </svg>
   );
@@ -478,7 +521,7 @@ function BriefcaseIcon({ active }: { active?: boolean }) {
 
 function PlusIcon({ active }: { active?: boolean }) {
   return (
-    <svg className={`h-4 w-4 ${active ? 'text-moons-blue' : 'text-moons-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className={`h-4 w-4 ${active ? 'text-white' : 'text-current'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
     </svg>
   );
@@ -486,24 +529,16 @@ function PlusIcon({ active }: { active?: boolean }) {
 
 function BuildingIcon({ active }: { active?: boolean }) {
   return (
-    <svg className={`h-4 w-4 ${active ? 'text-moons-blue' : 'text-moons-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className={`h-4 w-4 ${active ? 'text-white' : 'text-current'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
     </svg>
   );
 }
 
-function BoltIcon() {
+function PinIcon() {
   return (
-    <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M11.3 1.046a1 1 0 011.414 0l1.242 1.242a1 1 0 010 1.414l-2.829 2.829 1.414 1.414 2.829-2.829a3 3 0 000-4.242l-1.242-1.242a3 3 0 00-4.242 0L5.757 6.343a3 3 0 000 4.242l2.829 2.829 1.414-1.414-2.829-2.829a1 1 0 010-1.414l4.129-4.13z" />
-    </svg>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <svg className="h-5 w-5 text-moons-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
     </svg>
   );
 }

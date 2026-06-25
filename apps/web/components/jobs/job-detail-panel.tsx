@@ -17,13 +17,9 @@ import { notifyNotificationsRefresh } from '@/lib/notifications';
 export function JobDetailPanel({
   jobId,
   initialJob,
-  onClose,
-  showClose = false,
 }: {
   jobId: string | null;
   initialJob?: JobListing | null;
-  onClose?: () => void;
-  showClose?: boolean;
 }) {
   const [job, setJob] = useState<JobListing | null>(
     initialJob && initialJob.id === jobId ? initialJob : null,
@@ -158,26 +154,15 @@ export function JobDetailPanel({
   return (
     <div className="h-full overflow-y-auto">
       <div className="border-b border-border px-6 py-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-heading md:text-2xl">{job.title}</h1>
-            <p className="mt-1 text-sm text-moons-muted">
-              {job.companyName}
-              {job.location ? ` · ${job.location}` : ''}
-              {' · '}
-              {formatPostedAgo(job.createdAt)}
-            </p>
-            <PostedByLine job={job} className="mt-1.5" />
-          </div>
-          {showClose && onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm text-moons-muted hover:bg-surface"
-            >
-              ← Back
-            </button>
-          )}
+        <div>
+          <h1 className="text-xl font-bold text-heading md:text-2xl">{job.title}</h1>
+          <p className="mt-1 text-sm text-moons-muted">
+            {job.companyName}
+            {job.location ? ` · ${job.location}` : ''}
+            {' · '}
+            {formatPostedAgo(job.createdAt)}
+          </p>
+          <PostedByLine job={job} className="mt-1.5" />
         </div>
 
         <div className="mt-4">

@@ -35,22 +35,32 @@ export function MoonsLogo({
   const { src, width, height } = LOGO_DIMENSIONS[variant];
 
   const image = (
-    <Image
-      src={src}
-      alt="MoonsJob"
-      width={width}
-      height={height}
-      priority={priority}
-      className={`w-auto object-contain ${SIZE_CLASS[size]} ${className}`}
-    />
+    <span className="relative inline-flex shrink-0 items-center overflow-hidden rounded-xl leading-none">
+      {variant === 'default' && (
+        <span
+          className="absolute inset-0 hidden bg-white dark:block"
+          aria-hidden
+        />
+      )}
+      <Image
+        src={src}
+        alt="MoonsJob"
+        width={width}
+        height={height}
+        priority={priority}
+        className={`relative w-auto object-contain ${SIZE_CLASS[size]} ${className}`}
+      />
+    </span>
   );
 
+  const wrapperClassName = 'inline-flex shrink-0 items-center';
+
   if (!href || href === '') {
-    return <span className="inline-flex shrink-0 items-center">{image}</span>;
+    return <span className={wrapperClassName}>{image}</span>;
   }
 
   return (
-    <Link href={href} className="inline-flex shrink-0 items-center">
+    <Link href={href} className={wrapperClassName}>
       {image}
     </Link>
   );

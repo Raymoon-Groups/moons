@@ -550,8 +550,6 @@ export function JobsBrowsePage() {
               <JobDetailPanel
                 jobId={selectedJobId || null}
                 initialJob={selectedJob}
-                showClose={mobileShowDetail}
-                onClose={() => setMobileShowDetail(false)}
               />
             </div>
           </div>
