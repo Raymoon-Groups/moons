@@ -21,12 +21,14 @@ const publicNavLinks = [
 
 const jobseekerNavLinks = [
   { label: 'Jobs', href: '/jobs' },
+  { label: 'Network', href: '/network' },
   { label: 'Services', href: '/' },
   { label: 'Companies', href: '/companies' },
 ] as const;
 
 const recruiterNavLinks = [
   { label: 'Jobs', href: '/recruiter/jobs' },
+  { label: 'Network', href: '/network' },
   { label: 'Candidates', href: '/recruiter/candidates' },
 ] as const;
 
@@ -36,6 +38,8 @@ function isNavActive(pathname: string, label: string) {
       return pathname === '/';
     case 'Jobs':
       return pathname === '/jobs' || pathname.startsWith('/jobs/');
+    case 'Network':
+      return pathname.startsWith('/network');
     case 'Candidates':
       return pathname.startsWith('/recruiter/candidates');
     case 'Companies':
@@ -206,6 +210,19 @@ function ProfileMenuButton({
             <UserIcon />
             View profile
           </Link>
+          {user?.id && (
+            <Link
+              href={`/network/${user.id}`}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium transition hover:bg-surface ${
+                pathname === `/network/${user.id}` ? 'text-moons-blue' : 'text-foreground'
+              }`}
+            >
+              <UserIcon />
+              Public profile
+            </Link>
+          )}
           <Link
             href="/settings/security"
             role="menuitem"

@@ -2,6 +2,7 @@
 
 import { ChangeEvent, ReactNode, useRef, useState } from 'react';
 import { DashBackLink, DashPageHero } from '@/components/dash/dash-page-shell';
+import { ProfileNetworkSection } from '@/components/profile/profile-network-section';
 import { ImageLightbox } from '@/components/image-lightbox';
 import { resolveAssetUrl } from '@/lib/assets';
 import type { Profile } from '@/lib/types';
@@ -831,7 +832,10 @@ export function ProfilePageShell({
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
-          <div className="space-y-5">{children}</div>
+          <div className="space-y-5">
+            {children}
+            <ProfileNetworkSection />
+          </div>
           <aside className="lg:sticky lg:top-24">
             <ProfileCompletionSidebar items={completionItems} completion={completion} />
           </aside>

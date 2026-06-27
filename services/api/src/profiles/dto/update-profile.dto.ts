@@ -1,7 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ProfileVisibility, WorkMode } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -161,4 +164,89 @@ export class UpdateProfileDto {
   @ValidateNested({ each: true })
   @Type(() => CertificationEntryDto)
   certifications?: CertificationEntryDto[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  githubUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  linkedinUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  personalWebsiteUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  portfolioUrl?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  careerGoals?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  professionalInterests?: string[];
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  atsScore?: number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  openToWork?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isHiring?: boolean;
+
+  @ApiPropertyOptional({ enum: WorkMode })
+  @IsOptional()
+  @IsEnum(WorkMode)
+  workMode?: WorkMode;
+
+  @ApiPropertyOptional({ enum: ProfileVisibility })
+  @IsOptional()
+  @IsEnum(ProfileVisibility)
+  profileVisibility?: ProfileVisibility;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  hideEmail?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  hidePhone?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  hideResume?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  allowProfileVisitors?: boolean;
 }

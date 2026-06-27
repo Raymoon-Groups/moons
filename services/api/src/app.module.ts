@@ -5,6 +5,7 @@ import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health.controller';
 import { JobsModule } from './jobs/jobs.module';
+import { NetworkModule } from './network/network.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfilesModule } from './profiles/profiles.module';
@@ -25,6 +26,7 @@ import { UsersModule } from './users/users.module';
     JobsModule,
     ApplicationsModule,
     NotificationsModule,
+    NetworkModule,
   ],
   controllers: [HealthController],
 })

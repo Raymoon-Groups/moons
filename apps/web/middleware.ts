@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   '/recruiter',
   '/onboarding',
   '/settings',
+  '/network',
 ];
 
 const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
@@ -51,6 +52,7 @@ export const config = {
     '/recruiter/:path*',
     '/onboarding/:path*',
     '/settings/:path*',
+    '/network/:path*',
     '/login',
     '/register',
     '/forgot-password',

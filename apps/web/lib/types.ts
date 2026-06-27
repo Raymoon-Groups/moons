@@ -38,6 +38,7 @@ export interface Profile {
   preferredLocations: string[];
   preferredIndustries: string[];
   skills: string[];
+  bannerUrl?: string | null;
   completionPercent: number;
   createdAt: string;
   updatedAt: string;

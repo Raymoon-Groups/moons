@@ -16,9 +16,11 @@ import {
 } from './profile-entry.utils';
 
 const AVATAR_DIR = join(process.cwd(), 'uploads', 'avatars');
+const BANNER_DIR = join(process.cwd(), 'uploads', 'banners');
 const RESUME_DIR = join(process.cwd(), 'uploads', 'resumes');
 const COMPANY_LOGO_DIR = join(process.cwd(), 'uploads', 'company-logos');
 const ALLOWED_AVATAR_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_BANNER_BYTES = 5 * 1024 * 1024;
 const ALLOWED_RESUME_MIME = new Set([
   'application/pdf',
   'application/msword',
@@ -62,6 +64,24 @@ type ProfileRecord = {
   preferredLocations: string[];
   preferredIndustries: string[];
   skills: string[];
+  bannerUrl: string | null;
+  githubUrl: string | null;
+  linkedinUrl: string | null;
+  personalWebsiteUrl: string | null;
+  portfolioUrl: string | null;
+  projects: Prisma.JsonValue;
+  achievements: Prisma.JsonValue;
+  careerGoals: string[];
+  professionalInterests: string[];
+  atsScore: number | null;
+  openToWork: boolean;
+  isHiring: boolean;
+  workMode: string | null;
+  profileVisibility: string;
+  hideEmail: boolean;
+  hidePhone: boolean;
+  hideResume: boolean;
+  allowProfileVisitors: boolean;
   createdAt: Date;
   updatedAt: Date;
   user: { email: string; role: UserRole };
@@ -236,6 +256,32 @@ export class ProfilesService {
       }
     }
 
+    if (dto.githubUrl !== undefined) data.githubUrl = dto.githubUrl.trim() || null;
+    if (dto.linkedinUrl !== undefined) data.linkedinUrl = dto.linkedinUrl.trim() || null;
+    if (dto.personalWebsiteUrl !== undefined) {
+      data.personalWebsiteUrl = dto.personalWebsiteUrl.trim() || null;
+    }
+    if (dto.portfolioUrl !== undefined) data.portfolioUrl = dto.portfolioUrl.trim() || null;
+    if (dto.careerGoals !== undefined) {
+      this.assertMaxArray(dto.careerGoals, 10, 'Career goals');
+      data.careerGoals = dto.careerGoals;
+    }
+    if (dto.professionalInterests !== undefined) {
+      this.assertMaxArray(dto.professionalInterests, 15, 'Professional interests');
+      data.professionalInterests = dto.professionalInterests;
+    }
+    if (dto.atsScore !== undefined) data.atsScore = dto.atsScore;
+    if (dto.openToWork !== undefined) data.openToWork = dto.openToWork;
+    if (dto.isHiring !== undefined) data.isHiring = dto.isHiring;
+    if (dto.workMode !== undefined) data.workMode = dto.workMode;
+    if (dto.profileVisibility !== undefined) data.profileVisibility = dto.profileVisibility;
+    if (dto.hideEmail !== undefined) data.hideEmail = dto.hideEmail;
+    if (dto.hidePhone !== undefined) data.hidePhone = dto.hidePhone;
+    if (dto.hideResume !== undefined) data.hideResume = dto.hideResume;
+    if (dto.allowProfileVisitors !== undefined) {
+      data.allowProfileVisitors = dto.allowProfileVisitors;
+    }
+
     const updated = await this.prisma.profile.update({
       where: { userId },
       data,
@@ -282,6 +328,50 @@ export class ProfilesService {
     const updated = await this.prisma.profile.update({
       where: { userId },
       data: { avatarUrl },
+      include: { user: { select: { email: true, role: true } } },
+    });
+
+    return this.toProfileResponse(updated);
+  }
+
+  async removeBanner(userId: string) {
+    this.deleteFilesInDir(BANNER_DIR, userId);
+    const updated = await this.prisma.profile.update({
+      where: { userId },
+      data: { bannerUrl: null },
+      include: { user: { select: { email: true, role: true } } },
+    });
+    return this.toProfileResponse(updated);
+  }
+
+  async uploadBanner(
+    userId: string,
+    file: { buffer: Buffer; mimetype: string; originalname: string },
+  ) {
+    if (!ALLOWED_AVATAR_MIME.has(file.mimetype)) {
+      throw new BadRequestException('Only JPG, PNG, or WEBP images are allowed');
+    }
+    if (file.buffer.length > MAX_BANNER_BYTES) {
+      throw new BadRequestException('Cover photo must be 5 MB or smaller');
+    }
+
+    if (!existsSync(BANNER_DIR)) {
+      mkdirSync(BANNER_DIR, { recursive: true });
+    }
+
+    const ext =
+      this.extFromMime(file.mimetype) ??
+      (extname(file.originalname).toLowerCase() || '.jpg');
+    const filename = `${userId}${ext}`;
+    const filepath = join(BANNER_DIR, filename);
+
+    this.deleteFilesInDir(BANNER_DIR, userId);
+    writeFileSync(filepath, file.buffer);
+
+    const bannerUrl = `/uploads/banners/${filename}`;
+    const updated = await this.prisma.profile.update({
+      where: { userId },
+      data: { bannerUrl },
       include: { user: { select: { email: true, role: true } } },
     });
 
@@ -454,6 +544,24 @@ export class ProfilesService {
       preferredLocations: profile.preferredLocations ?? [],
       preferredIndustries: profile.preferredIndustries ?? [],
       skills: profile.skills,
+      bannerUrl: profile.bannerUrl,
+      githubUrl: profile.githubUrl,
+      linkedinUrl: profile.linkedinUrl,
+      personalWebsiteUrl: profile.personalWebsiteUrl,
+      portfolioUrl: profile.portfolioUrl,
+      projects: this.asArray(profile.projects),
+      achievements: this.asArray(profile.achievements),
+      careerGoals: profile.careerGoals ?? [],
+      professionalInterests: profile.professionalInterests ?? [],
+      atsScore: profile.atsScore,
+      openToWork: profile.openToWork,
+      isHiring: profile.isHiring,
+      workMode: profile.workMode,
+      profileVisibility: profile.profileVisibility,
+      hideEmail: profile.hideEmail,
+      hidePhone: profile.hidePhone,
+      hideResume: profile.hideResume,
+      allowProfileVisitors: profile.allowProfileVisitors,
       completionPercent: this.calcCompletion(profile, profile.user.role),
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,

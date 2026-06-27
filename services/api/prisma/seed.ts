@@ -172,6 +172,127 @@ async function main() {
     },
   });
 
+  const recruiter2 = await prisma.user.upsert({
+    where: { email: 'employer@moons.com' },
+    update: {
+      emailVerified: true,
+      onboardingCompleted: true,
+    },
+    create: {
+      email: 'employer@moons.com',
+      passwordHash,
+      role: 'RECRUITER',
+      emailVerified: true,
+      onboardingCompleted: true,
+      profile: {
+        create: {
+          fullName: 'Arjun Mehta',
+          designation: 'HR Manager',
+          currentCompany: 'Raymoon Services',
+          companyWebsite: 'https://raymoon.example.com',
+          companySize: '11-50 employees',
+          industry: 'IT Services & Consulting',
+          companyType: 'Private',
+          location: 'Gurugram',
+          officeAddress: 'Cyber City, Gurugram',
+          summary: 'Hiring Python developers and product designers for our growing team.',
+          skills: ['Hiring', 'Talent Acquisition'],
+          isHiring: true,
+          openToWork: false,
+        },
+      },
+    },
+  });
+
+  await prisma.profile.upsert({
+    where: { userId: recruiter2.id },
+    update: {
+      fullName: 'Arjun Mehta',
+      designation: 'HR Manager',
+      currentCompany: 'Raymoon Services',
+      location: 'Gurugram',
+      isHiring: true,
+    },
+    create: {
+      userId: recruiter2.id,
+      fullName: 'Arjun Mehta',
+      designation: 'HR Manager',
+      currentCompany: 'Raymoon Services',
+      skills: [],
+      isHiring: true,
+    },
+  });
+
+  const candidate2 = await prisma.user.upsert({
+    where: { email: 'jobseeker@moons.com' },
+    update: {
+      emailVerified: true,
+      onboardingCompleted: true,
+    },
+    create: {
+      email: 'jobseeker@moons.com',
+      passwordHash,
+      role: 'CANDIDATE',
+      emailVerified: true,
+      onboardingCompleted: true,
+      profile: {
+        create: {
+          fullName: 'Sneha Kapoor',
+          headline: 'Python Developer',
+          currentCompany: 'Freelance',
+          location: 'Gurugram',
+          phone: '+91 9123456789',
+          experienceYears: 2,
+          noticePeriod: 'Immediate',
+          summary:
+            'Backend developer specializing in Python, FastAPI, Docker, and PostgreSQL. Open to full-time roles.',
+          skills: ['Python', 'FastAPI', 'Docker', 'PostgreSQL', 'AWS'],
+          preferredRoles: ['Python Developer', 'Backend Developer'],
+          preferredLocations: ['Gurugram', 'Remote'],
+          preferredIndustries: ['IT Services & Consulting', 'Startup'],
+          openToWork: true,
+          educations: [
+            {
+              degree: 'B.Tech',
+              institute: 'DTU Delhi',
+              fieldOfStudy: 'Information Technology',
+              year: '2022',
+            },
+          ],
+          workExperiences: [
+            {
+              company: 'Freelance',
+              designation: 'Python Developer',
+              startDate: '2023-01',
+              endDate: null,
+              isCurrent: true,
+              description: 'Built APIs with FastAPI and deployed on AWS.',
+            },
+          ],
+        },
+      },
+    },
+  });
+
+  await prisma.profile.upsert({
+    where: { userId: candidate2.id },
+    update: {
+      fullName: 'Sneha Kapoor',
+      headline: 'Python Developer',
+      location: 'Gurugram',
+      experienceYears: 2,
+      skills: ['Python', 'FastAPI', 'Docker', 'PostgreSQL', 'AWS'],
+      openToWork: true,
+    },
+    create: {
+      userId: candidate2.id,
+      fullName: 'Sneha Kapoor',
+      headline: 'Python Developer',
+      skills: ['Python', 'FastAPI'],
+      openToWork: true,
+    },
+  });
+
   const jobs = [
     {
       title: 'Senior Software Engineer',
@@ -222,10 +343,59 @@ async function main() {
     }
   }
 
+  const raymoonJobs = [
+    {
+      title: 'Python Developer',
+      companyName: 'Raymoon Services',
+      description:
+        'Build backend APIs with Python and FastAPI. Experience with Docker, PostgreSQL, and AWS preferred.',
+      location: 'Gurugram',
+      employmentType: 'FULL_TIME' as const,
+      salaryRange: '0 - 3 LPA',
+      minExperienceYears: 0,
+      maxExperienceYears: 3,
+    },
+    {
+      title: 'UI/UX Designer',
+      companyName: 'Raymoon Services',
+      description:
+        'Design product interfaces and user flows. Figma and design systems experience required.',
+      location: 'Gurugram',
+      employmentType: 'FULL_TIME' as const,
+    },
+  ];
+
+  for (const job of raymoonJobs) {
+    const existing = await prisma.job.findFirst({
+      where: { title: job.title, recruiterId: recruiter2.id },
+    });
+    if (!existing) {
+      await prisma.job.create({
+        data: {
+          ...job,
+          recruiterId: recruiter2.id,
+          status: 'PUBLISHED',
+        },
+      });
+    }
+  }
+
+  const accounts = [
+    { user: recruiter, label: 'Employer 1' },
+    { user: recruiter2, label: 'Employer 2' },
+    { user: candidate, label: 'Jobseeker 1' },
+    { user: candidate2, label: 'Jobseeker 2' },
+  ];
+
   console.log('Seed complete.');
-  console.log('Demo accounts (password: password123):');
-  console.log('  recruiter@moons.com');
-  console.log('  candidate@moons.com');
+  console.log('Demo accounts (password: password123):\n');
+  for (const { user, label } of accounts) {
+    const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
+    console.log(`${label}: ${profile?.fullName ?? user.email}`);
+    console.log(`  Email: ${user.email}`);
+    console.log(`  User ID: ${user.id}`);
+    console.log(`  Profile: http://localhost:3000/network/${user.id}\n`);
+  }
 }
 
 main()

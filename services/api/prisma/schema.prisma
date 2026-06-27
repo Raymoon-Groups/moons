@@ -39,6 +39,29 @@ enum NotificationType {
   APPLICATION_VIEWED
   APPLICATION_SHORTLISTED
   APPLICATION_REJECTED
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  PROFILE_VIEW
+  NETWORK_SUGGESTION
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  CONNECTIONS_ONLY
+  PRIVATE
+}
+
+enum WorkMode {
+  REMOTE
+  HYBRID
+  ONSITE
 }
 
 model User {
@@ -56,6 +79,12 @@ model User {
   jobs          Job[]          @relation("RecruiterJobs")
   applications  Application[]
   notifications Notification[]
+  connectionsSent     Connection[] @relation("ConnectionsSent")
+  connectionsReceived Connection[] @relation("ConnectionsReceived")
+  blocksMade          UserBlock[]  @relation("BlocksMade")
+  blocksReceived      UserBlock[]  @relation("BlocksReceived")
+  profileViewsMade    ProfileView[] @relation("ProfileViewsMade")
+  profileViewsReceived ProfileView[] @relation("ProfileViewsReceived")
 
   @@map("users")
 }
@@ -90,6 +119,24 @@ model Profile {
   preferredLocations  String[] @default([]) @map("preferred_locations")
   preferredIndustries String[] @default([]) @map("preferred_industries")
   skills          String[]
+  bannerUrl       String?  @map("banner_url")
+  githubUrl       String?  @map("github_url")
+  linkedinUrl     String?  @map("linkedin_url")
+  personalWebsiteUrl String? @map("personal_website_url")
+  portfolioUrl    String?  @map("portfolio_url")
+  projects        Json     @default("[]")
+  achievements    Json     @default("[]")
+  careerGoals     String[] @default([]) @map("career_goals")
+  professionalInterests String[] @default([]) @map("professional_interests")
+  atsScore        Int?     @map("ats_score")
+  openToWork      Boolean  @default(false) @map("open_to_work")
+  isHiring        Boolean  @default(false) @map("is_hiring")
+  workMode        WorkMode? @map("work_mode")
+  profileVisibility ProfileVisibility @default(PUBLIC) @map("profile_visibility")
+  hideEmail       Boolean  @default(false) @map("hide_email")
+  hidePhone       Boolean  @default(true) @map("hide_phone")
+  hideResume      Boolean  @default(true) @map("hide_resume")
+  allowProfileVisitors Boolean @default(true) @map("allow_profile_visitors")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -150,4 +197,54 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@map("notifications")
+}
+
+model Connection {
+  id          String           @id @default(uuid())
+  fromUserId  String           @map("from_user_id")
+  toUserId    String           @map("to_user_id")
+  status      ConnectionStatus @default(PENDING)
+  message     String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  respondedAt DateTime?        @map("responded_at")
+
+  fromUser User @relation("ConnectionsSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("ConnectionsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@index([fromUserId, status])
+  @@index([toUserId, status])
+  @@index([status, updatedAt])
+  @@map("connections")
+}
+
+model UserBlock {
+  id        String   @id @default(uuid())
+  blockerId String   @map("blocker_id")
+  blockedId String   @map("blocked_id")
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  blocker User @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+model ProfileView {
+  id        String   @id @default(uuid())
+  viewerId  String   @map("viewer_id")
+  viewedId  String   @map("viewed_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  viewer User @relation("ProfileViewsMade", fields: [viewerId], references: [id], onDelete: Cascade)
+  viewed User @relation("ProfileViewsReceived", fields: [viewedId], references: [id], onDelete: Cascade)
+
+  @@index([viewedId, createdAt])
+  @@index([viewerId, viewedId])
+  @@map("profile_views")
 }

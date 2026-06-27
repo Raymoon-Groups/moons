@@ -30,6 +30,29 @@ export enum NotificationType {
   APPLICATION_VIEWED = 'APPLICATION_VIEWED',
   APPLICATION_SHORTLISTED = 'APPLICATION_SHORTLISTED',
   APPLICATION_REJECTED = 'APPLICATION_REJECTED',
+  CONNECTION_REQUEST = 'CONNECTION_REQUEST',
+  CONNECTION_ACCEPTED = 'CONNECTION_ACCEPTED',
+  PROFILE_VIEW = 'PROFILE_VIEW',
+  NETWORK_SUGGESTION = 'NETWORK_SUGGESTION',
+}
+
+export enum ConnectionStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum ProfileVisibility {
+  PUBLIC = 'PUBLIC',
+  CONNECTIONS_ONLY = 'CONNECTIONS_ONLY',
+  PRIVATE = 'PRIVATE',
+}
+
+export enum WorkMode {
+  REMOTE = 'REMOTE',
+  HYBRID = 'HYBRID',
+  ONSITE = 'ONSITE',
 }
 
 export interface NotificationItem {
@@ -130,4 +153,42 @@ export interface CertificationEntry {
   name: string;
   issuer?: string;
   year?: string;
+}
+
+export interface ProjectEntry {
+  title: string;
+  description?: string;
+  url?: string;
+  technologies?: string[];
+  year?: string;
+}
+
+export interface AchievementEntry {
+  title: string;
+  description?: string;
+  year?: string;
+}
+
+export interface NetworkUserCard {
+  userId: string;
+  fullName: string | null;
+  headline: string | null;
+  avatarUrl: string | null;
+  role: UserRole | string | null;
+  currentCompany?: string | null;
+  location?: string | null;
+  openToWork?: boolean;
+  isHiring?: boolean;
+  sharedSkills?: string[];
+  mutualConnections?: number;
+  recommendationReason?: string;
+  connectionStatus?: ConnectionStatus | 'NONE' | string;
+  connectionId?: string | null;
+  connectionDirection?: 'sent' | 'received' | null;
+}
+
+export interface NetworkStats {
+  connections: number;
+  pendingReceived: number;
+  pendingSent: number;
 }

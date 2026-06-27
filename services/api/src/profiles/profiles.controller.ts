@@ -97,6 +97,39 @@ export class ProfilesController {
     return this.profilesService.removeAvatar(user.sub);
   }
 
+  @Post('me/banner')
+  @UseGuards(JwtAuthGuard, OnboardingGuard)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { banner: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('banner', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  uploadBanner(
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No image uploaded');
+    }
+    return this.profilesService.uploadBanner(user.sub, file);
+  }
+
+  @Delete('me/banner')
+  @UseGuards(JwtAuthGuard, OnboardingGuard)
+  @ApiBearerAuth()
+  removeBanner(@CurrentUser() user: JwtPayload) {
+    return this.profilesService.removeBanner(user.sub);
+  }
+
   @Post('me/resume')
   @UseGuards(JwtAuthGuard, OnboardingGuard)
   @ApiBearerAuth()
