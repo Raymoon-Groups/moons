@@ -28,6 +28,7 @@ import {
   ProfilePhotoSection,
   ReadOnlyValue,
 } from './profile-shared';
+import { OpenOnMoonsToggle } from './open-on-moons-toggle';
 
 const NOTICE_OPTIONS = [
   'Immediately',
@@ -297,6 +298,8 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             onSave={saveAvatarOnly}
             onError={setError}
           />
+
+          <OpenOnMoonsToggle profile={profile} onUpdated={(saved) => { setProfile(saved); onSaved(saved); }} />
 
           <EditableCard
             id="personal"

@@ -1,6 +1,26 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ApplicationStatus, NotificationType, Prisma } from '@prisma/client';
+import {
+  ApplicationStatus,
+  ConnectionStatus,
+  NotificationType,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+
+export const NETWORK_NOTIFICATION_TYPES: NotificationType[] = [
+  NotificationType.CONNECTION_REQUEST,
+  NotificationType.CONNECTION_ACCEPTED,
+  NotificationType.PROFILE_VIEW,
+  NotificationType.NETWORK_SUGGESTION,
+];
+
+export const BELL_NOTIFICATION_TYPES: NotificationType[] = [
+  NotificationType.APPLICATION_RECEIVED,
+  NotificationType.APPLICATION_SUBMITTED,
+  NotificationType.APPLICATION_VIEWED,
+  NotificationType.APPLICATION_SHORTLISTED,
+  NotificationType.APPLICATION_REJECTED,
+];
 
 export interface CreateNotificationInput {
   userId: string;
@@ -41,6 +61,68 @@ export class NotificationsService {
       where: { userId, readAt: null },
     });
     return { count };
+  }
+
+  async navIndicators(userId: string) {
+    const [
+      networkNotificationCount,
+      pendingInviteCount,
+      unreadMessageCount,
+      bellCount,
+    ] = await Promise.all([
+      this.prisma.notification.count({
+        where: {
+          userId,
+          readAt: null,
+          type: { in: NETWORK_NOTIFICATION_TYPES },
+        },
+      }),
+      this.prisma.connection.count({
+        where: { toUserId: userId, status: ConnectionStatus.PENDING },
+      }),
+      this.prisma.message.count({
+        where: {
+          senderId: { not: userId },
+          readAt: null,
+          conversation: {
+            OR: [{ participantAId: userId }, { participantBId: userId }],
+          },
+        },
+      }),
+      this.prisma.notification.count({
+        where: {
+          userId,
+          readAt: null,
+          type: { in: BELL_NOTIFICATION_TYPES },
+        },
+      }),
+    ]);
+
+    return {
+      network: networkNotificationCount > 0 || pendingInviteCount > 0,
+      messages: unreadMessageCount > 0,
+      bell: bellCount > 0,
+    };
+  }
+
+  async listBellNotifications(userId: string, limit = 30) {
+    return this.prisma.notification.findMany({
+      where: { userId, type: { in: BELL_NOTIFICATION_TYPES } },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  async markBellNotificationsRead(userId: string) {
+    await this.prisma.notification.updateMany({
+      where: {
+        userId,
+        readAt: null,
+        type: { in: BELL_NOTIFICATION_TYPES },
+      },
+      data: { readAt: new Date() },
+    });
+    return { success: true };
   }
 
   async markRead(userId: string, notificationId: string) {

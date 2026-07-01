@@ -107,6 +107,16 @@ export class ApplicationsService {
         job.id,
       )
       .catch(() => undefined);
+    if (candidate?.email) {
+      void this.emailService
+        .sendApplicationStatusEmail(
+          candidate.email,
+          job.title,
+          job.companyName,
+          ApplicationStatus.SUBMITTED,
+        )
+        .catch(() => undefined);
+    }
 
     return application;
   }

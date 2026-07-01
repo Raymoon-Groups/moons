@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { MoonsLogo } from '@/components/moons-logo';
+import { apiFetch } from '@/lib/api-client';
 
 const navigationLinks = [
   { label: 'Browse jobs', href: '/jobs' },
@@ -62,12 +63,27 @@ const socialLinks = [
 export function SiteFooter() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  function handleSubscribe(e: FormEvent) {
+  async function handleSubscribe(e: FormEvent) {
     e.preventDefault();
-    if (email.trim()) {
+    const trimmed = email.trim();
+    if (!trimmed) return;
+
+    setSubmitting(true);
+    setError('');
+    try {
+      await apiFetch<{ success: boolean; message: string }>('/newsletter/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ email: trimmed }),
+      });
       setSubscribed(true);
       setEmail('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not subscribe. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -172,13 +188,18 @@ export function SiteFooter() {
                 />
                 <button
                   type="submit"
-                  className="absolute right-1.5 top-1.5 rounded-full bg-moons-navy px-5 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+                  disabled={submitting}
+                  className="absolute right-1.5 top-1.5 rounded-full bg-moons-navy px-5 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
                 >
-                  Subscribe
+                  {submitting ? '…' : 'Subscribe'}
                 </button>
               </form>
 
-              {subscribed && (
+              {error && (
+                <p className="mt-2 text-xs font-medium text-red-600">{error}</p>
+              )}
+
+              {subscribed && !error && (
                 <p className="mt-2 text-xs font-medium text-moons-blue">
                   Thanks — you&apos;re on the list!
                 </p>

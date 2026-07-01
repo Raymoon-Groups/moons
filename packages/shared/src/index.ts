@@ -34,6 +34,7 @@ export enum NotificationType {
   CONNECTION_ACCEPTED = 'CONNECTION_ACCEPTED',
   PROFILE_VIEW = 'PROFILE_VIEW',
   NETWORK_SUGGESTION = 'NETWORK_SUGGESTION',
+  MESSAGE_RECEIVED = 'MESSAGE_RECEIVED',
 }
 
 export enum ConnectionStatus {
@@ -63,6 +64,7 @@ export interface NotificationItem {
   linkUrl: string | null;
   readAt: string | null;
   createdAt: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AuthUser {

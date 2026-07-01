@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConnectionStatus, NotificationType } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MessagesService } from '../messages/messages.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { SendConnectionDto } from './dto/send-connection.dto';
@@ -30,6 +31,7 @@ export class ConnectionsService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private messages: MessagesService,
     private redis: RedisService,
   ) {}
 
@@ -117,12 +119,6 @@ export class ConnectionsService {
       if (existing.status === ConnectionStatus.PENDING) {
         throw new BadRequestException('A connection request already exists');
       }
-      if (
-        existing.status === ConnectionStatus.REJECTED &&
-        existing.fromUserId === fromUserId
-      ) {
-        throw new BadRequestException('Your previous request was declined');
-      }
     }
 
     const sender = await this.prisma.profile.findUnique({
@@ -154,12 +150,19 @@ export class ConnectionsService {
           });
 
     const senderName = sender ? publicDisplayName(sender) : 'Someone';
+    const note = dto.message?.trim();
+    if (note) {
+      await this.messages.seedInvitationMessage(fromUserId, dto.toUserId, note);
+    }
+
     await this.notifications.create({
       userId: dto.toUserId,
       type: NotificationType.CONNECTION_REQUEST,
       title: 'New connection request',
-      body: `${senderName} wants to connect with you.`,
-      linkUrl: '/profile',
+      body: note
+        ? `${senderName}: ${note.length > 100 ? `${note.slice(0, 100)}…` : note}`
+        : `${senderName} wants to connect with you.`,
+      linkUrl: note ? `/messages?with=${fromUserId}` : '/profile?networkTab=pending',
       metadata: { connectionId: connection.id, fromUserId },
     });
 
@@ -199,6 +202,14 @@ export class ConnectionsService {
       linkUrl: `/network/${userId}`,
       metadata: { connectionId, userId },
     });
+
+    if (connection.message?.trim()) {
+      await this.messages.seedInvitationMessage(
+        connection.fromUserId,
+        connection.toUserId,
+        connection.message,
+      );
+    }
 
     return updated;
   }
@@ -252,6 +263,14 @@ export class ConnectionsService {
   async getStatus(userId: string, otherUserId: string) {
     const connection = await this.findExistingConnection(userId, otherUserId);
     if (!connection) {
+      return { status: 'NONE' as const, connectionId: null, direction: null };
+    }
+
+    if (connection.status === ConnectionStatus.REJECTED) {
+      return { status: 'NONE' as const, connectionId: null, direction: null };
+    }
+
+    if (connection.status === ConnectionStatus.CANCELLED) {
       return { status: 'NONE' as const, connectionId: null, direction: null };
     }
 

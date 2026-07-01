@@ -93,8 +93,16 @@ export function fetchNetworkProfile(userId: string) {
   return authFetch<NetworkProfileResponse>(`/network/profiles/${userId}`);
 }
 
+export function fetchConnectionStatus(userId: string) {
+  return authFetch<{
+    status: string;
+    connectionId: string | null;
+    direction: 'sent' | 'received' | null;
+  }>(`/network/connections/status/${userId}`);
+}
+
 export function sendConnectionRequest(toUserId: string, message?: string) {
-  return authFetch('/network/connections/request', {
+  return authFetch<{ id: string }>('/network/connections/request', {
     method: 'POST',
     body: JSON.stringify({ toUserId, message }),
   });

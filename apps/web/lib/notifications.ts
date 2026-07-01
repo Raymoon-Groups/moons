@@ -7,6 +7,10 @@ export function fetchNotifications(limit = 30) {
   return authFetch<NotificationItem[]>(`/notifications?limit=${limit}`);
 }
 
+export function fetchBellNotifications(limit = 30) {
+  return authFetch<NotificationItem[]>(`/notifications/bell?limit=${limit}`);
+}
+
 export function fetchUnreadCount() {
   return authFetch<{ count: number }>('/notifications/unread-count');
 }
@@ -17,6 +21,10 @@ export function markNotificationRead(id: string) {
 
 export function markAllNotificationsRead() {
   return authFetch<{ success: boolean }>('/notifications/read-all', { method: 'POST' });
+}
+
+export function markBellNotificationsRead() {
+  return authFetch<{ success: boolean }>('/notifications/read-bell', { method: 'POST' });
 }
 
 /** Tell open notification UIs to refresh immediately (e.g. after apply). */

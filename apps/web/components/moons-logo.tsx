@@ -2,11 +2,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export const MOONS_LOGO_SRC = '/moonsjob_logo.png';
-export const MOONS_LOGO_WHITE_SRC = '/white_bg.png';
+/** Logo artwork on a white plate — used in dark header for contrast */
+export const MOONS_LOGO_ON_WHITE_SRC = '/white_bg.png';
 
 const LOGO_DIMENSIONS = {
   default: { src: MOONS_LOGO_SRC, width: 560, height: 238 },
-  white: { src: MOONS_LOGO_WHITE_SRC, width: 560, height: 297 },
+  onWhite: { src: MOONS_LOGO_ON_WHITE_SRC, width: 560, height: 297 },
 } as const;
 
 /** Logo is wide; sizes set height — width follows via w-auto. */
@@ -20,7 +21,8 @@ const SIZE_CLASS = {
 interface MoonsLogoProps {
   href?: string;
   size?: keyof typeof SIZE_CLASS;
-  variant?: keyof typeof LOGO_DIMENSIONS;
+  /** @deprecated Use `onWhite` — kept as alias for footer branding */
+  variant?: 'default' | 'white' | 'onWhite';
   className?: string;
   priority?: boolean;
 }
@@ -32,25 +34,43 @@ export function MoonsLogo({
   className = '',
   priority = false,
 }: MoonsLogoProps) {
-  const { src, width, height } = LOGO_DIMENSIONS[variant];
+  const sizeClass = `${SIZE_CLASS[size]} ${className}`;
+  const onWhiteVariant = variant === 'white' || variant === 'onWhite';
+  const onWhite = LOGO_DIMENSIONS.onWhite;
 
-  const image = (
-    <span className="relative inline-flex shrink-0 items-center overflow-hidden rounded-xl leading-none">
-      {variant === 'default' && (
-        <span
-          className="absolute inset-0 hidden bg-white dark:block"
-          aria-hidden
-        />
-      )}
+  const onWhiteLogo = (
+    <span className="inline-flex shrink-0 items-center rounded-xl bg-[#ffffff] px-2.5 py-1 shadow-sm ring-1 ring-black/5">
       <Image
-        src={src}
+        src={onWhite.src}
         alt="MoonsJob"
-        width={width}
-        height={height}
+        width={onWhite.width}
+        height={onWhite.height}
         priority={priority}
-        className={`relative w-auto object-contain ${SIZE_CLASS[size]} ${className}`}
+        className={`w-auto object-contain ${sizeClass}`}
       />
     </span>
+  );
+
+  const defaultLogo = (
+    <span className="inline-flex shrink-0 items-center overflow-hidden rounded-xl leading-none">
+      <Image
+        src={LOGO_DIMENSIONS.default.src}
+        alt="MoonsJob"
+        width={LOGO_DIMENSIONS.default.width}
+        height={LOGO_DIMENSIONS.default.height}
+        priority={priority}
+        className={`w-auto object-contain ${sizeClass}`}
+      />
+    </span>
+  );
+
+  const image = onWhiteVariant ? (
+    onWhiteLogo
+  ) : (
+    <>
+      <span className="dark:hidden">{defaultLogo}</span>
+      <span className="hidden dark:inline-flex">{onWhiteLogo}</span>
+    </>
   );
 
   const wrapperClassName = 'inline-flex shrink-0 items-center';

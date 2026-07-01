@@ -240,6 +240,42 @@ function statusTone(status: string): {
   };
 }
 
+export function buildNewsletterWelcomeEmail(email: string): { html: string; text: string } {
+  const jobsUrl = `${getWebAppUrl()}/jobs`;
+
+  const body = `
+    <tr>
+      <td style="padding:28px 32px 24px;">
+        ${statusBadge('You are subscribed', BRAND.blue)}
+        <h1 style="margin:0 0 22px;font-size:26px;line-height:1.25;font-weight:700;color:${BRAND.navy};">Stay ahead with Moons</h1>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:${BRAND.muted};">
+          Thanks for subscribing with <strong style="color:${BRAND.text};">${escapeHtml(email)}</strong>.
+          You will hear from us when new roles, hiring trends, and career tips are worth your time.
+        </p>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.65;color:${BRAND.muted};">
+          Jobs move fast — browse openings on MoonsJob anytime while you wait for our next update.
+        </p>
+        ${nextStepsSection([
+          'Browse fresh job listings matched to your interests.',
+          'Create a free profile to apply in one click.',
+          'Turn on notifications to never miss an opportunity.',
+        ])}
+      </td>
+    </tr>`;
+
+  const text = `Thanks for subscribing to MoonsJob updates!\n\nWe will send career tips and job news to ${email}.\n\nBrowse jobs: ${jobsUrl}`;
+
+  return {
+    html: buildEmailLayout({
+      preheader: 'You are subscribed to MoonsJob updates',
+      body,
+      ctaLabel: 'Browse jobs',
+      ctaUrl: jobsUrl,
+    }),
+    text,
+  };
+}
+
 export function buildApplicationStatusEmail(
   jobTitle: string,
   companyName: string,

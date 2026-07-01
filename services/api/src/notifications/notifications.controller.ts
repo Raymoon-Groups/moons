@@ -44,6 +44,16 @@ export class NotificationsController {
     return this.notificationsService.unreadCount(user.sub);
   }
 
+  @Get('nav-indicators')
+  navIndicators(@CurrentUser() user: JwtPayload) {
+    return this.notificationsService.navIndicators(user.sub);
+  }
+
+  @Get('bell')
+  listBell(@CurrentUser() user: JwtPayload, @Query() query: ListNotificationsDto) {
+    return this.notificationsService.listBellNotifications(user.sub, query.limit ?? 30);
+  }
+
   @Patch(':id/read')
   markRead(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.notificationsService.markRead(user.sub, id);
@@ -52,5 +62,10 @@ export class NotificationsController {
   @Post('read-all')
   markAllRead(@CurrentUser() user: JwtPayload) {
     return this.notificationsService.markAllRead(user.sub);
+  }
+
+  @Post('read-bell')
+  markBellRead(@CurrentUser() user: JwtPayload) {
+    return this.notificationsService.markBellNotificationsRead(user.sub);
   }
 }

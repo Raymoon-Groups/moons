@@ -5,7 +5,9 @@ import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health.controller';
 import { JobsModule } from './jobs/jobs.module';
+import { MessagesModule } from './messages/messages.module';
 import { NetworkModule } from './network/network.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfilesModule } from './profiles/profiles.module';
@@ -27,6 +29,8 @@ import { UsersModule } from './users/users.module';
     ApplicationsModule,
     NotificationsModule,
     NetworkModule,
+    MessagesModule,
+    NewsletterModule,
   ],
   controllers: [HealthController],
 })

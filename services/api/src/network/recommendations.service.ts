@@ -5,6 +5,8 @@ import { ConnectionsService } from './connections.service';
 import {
   educationInstitutes,
   intersect,
+  maskOpenToWorkForViewer,
+  normalizeToken,
   profileKeywords,
   publicDisplayName,
   publicHeadline,
@@ -35,21 +37,23 @@ export class RecommendationsService {
     mutualCount: number,
     hiringMatch: boolean,
     alumniMatch: string | null,
+    sameIndustry: boolean,
   ): string {
-    if (hiringMatch && candidate.user.role === UserRole.RECRUITER) {
-      return `Recommended because this recruiter is actively hiring for roles matching your skills${
-        sharedSkills.length ? `: ${sharedSkills.slice(0, 5).join(', ')}` : ''
-      }.`;
+    if (mutualCount > 0) {
+      return `You have ${mutualCount} mutual connection${mutualCount === 1 ? '' : 's'}.`;
     }
 
-    if (alumniMatch) {
-      return `Recommended because you both graduated from ${alumniMatch}.`;
+    if (sharedSkills.length >= 2) {
+      return `You both work with ${sharedSkills.slice(0, 4).join(', ')}.`;
     }
 
-    if (sharedSkills.length >= 3) {
-      return `Recommended because you both specialize in similar areas and share ${sharedSkills
-        .slice(0, 6)
-        .join(', ')}.`;
+    if (sharedSkills.length === 1) {
+      return `You both list ${sharedSkills[0]} as a skill.`;
+    }
+
+    if (sameIndustry) {
+      const industry = candidate.industry || viewer.industry;
+      return `You both work in ${industry}.`;
     }
 
     const sharedIndustries = intersect(
@@ -61,25 +65,27 @@ export class RecommendationsService {
           : [],
     );
     if (sharedIndustries.length > 0) {
-      return `Recommended because you both work in ${sharedIndustries[0]}.`;
+      return `You both work in ${sharedIndustries[0]}.`;
+    }
+
+    if (alumniMatch) {
+      return `You both studied at ${alumniMatch}.`;
     }
 
     const sharedCompanies = intersect(workCompanies(viewer), workCompanies(candidate));
     if (sharedCompanies.length > 0) {
-      return `Recommended because you both have experience at ${sharedCompanies[0]}.`;
+      return `You both have experience at ${sharedCompanies[0]}.`;
     }
 
-    if (mutualCount > 0) {
-      return `Recommended because you have ${mutualCount} mutual connection${
-        mutualCount === 1 ? '' : 's'
-      }.`;
+    if (hiringMatch && candidate.user.role === UserRole.RECRUITER) {
+      return `This recruiter is hiring for roles that match your skills.`;
     }
 
     if (viewer.location && candidate.location && viewer.location === candidate.location) {
-      return `Recommended because you are both based in ${viewer.location}.`;
+      return `You're both based in ${viewer.location}.`;
     }
 
-    return 'Recommended based on your profile, skills, and career goals.';
+    return 'Suggested based on your profile, skills, and network.';
   }
 
   private scoreCandidate(
@@ -114,7 +120,21 @@ export class RecommendationsService {
       viewer.professionalInterests ?? [],
       candidate.professionalInterests ?? [],
     ).length * 5;
-    score += mutualCount * 15;
+    score += mutualCount * 25;
+
+    const viewerIndustry = viewer.industry ? normalizeToken(viewer.industry) : '';
+    const candidateIndustry = candidate.industry ? normalizeToken(candidate.industry) : '';
+    const sameIndustry =
+      !!viewerIndustry && !!candidateIndustry && viewerIndustry === candidateIndustry;
+    if (sameIndustry) score += 20;
+
+    if (
+      viewer.designation &&
+      candidate.designation &&
+      normalizeToken(viewer.designation) === normalizeToken(candidate.designation)
+    ) {
+      score += 14;
+    }
 
     if (viewer.location && candidate.location && viewer.location === candidate.location) {
       score += 8;
@@ -163,6 +183,7 @@ export class RecommendationsService {
         mutualCount,
         hiringMatch,
         alumni,
+        sameIndustry,
       ),
     };
   }
@@ -249,24 +270,44 @@ export class RecommendationsService {
       myConnections.map((c) => (c.fromUserId === userId ? c.toUserId : c.fromUserId)),
     );
 
+    const eligibleCandidates = candidates.filter((c) => !excluded.has(c.userId));
+    const candidateIds = eligibleCandidates.map((c) => c.userId);
+
+    const theirConnectionRows = candidateIds.length
+      ? await this.prisma.connection.findMany({
+          where: {
+            status: ConnectionStatus.ACCEPTED,
+            OR: [
+              { fromUserId: { in: candidateIds } },
+              { toUserId: { in: candidateIds } },
+            ],
+          },
+          select: { fromUserId: true, toUserId: true },
+        })
+      : [];
+
+    const connectionsByCandidate = new Map<string, Set<string>>();
+    for (const row of theirConnectionRows) {
+      if (candidateIds.includes(row.fromUserId)) {
+        const set = connectionsByCandidate.get(row.fromUserId) ?? new Set<string>();
+        set.add(row.toUserId);
+        connectionsByCandidate.set(row.fromUserId, set);
+      }
+      if (candidateIds.includes(row.toUserId)) {
+        const set = connectionsByCandidate.get(row.toUserId) ?? new Set<string>();
+        set.add(row.fromUserId);
+        connectionsByCandidate.set(row.toUserId, set);
+      }
+    }
+
     const scored: ScoredCandidate[] = [];
 
-    for (const candidate of candidates) {
-      if (excluded.has(candidate.userId)) continue;
-
-      const theirConnections = await this.prisma.connection.findMany({
-        where: {
-          status: ConnectionStatus.ACCEPTED,
-          OR: [{ fromUserId: candidate.userId }, { toUserId: candidate.userId }],
-        },
-        select: { fromUserId: true, toUserId: true },
-        take: 100,
-      });
-
-      const mutualCount = theirConnections.filter((c) => {
-        const other = c.fromUserId === candidate.userId ? c.toUserId : c.fromUserId;
-        return myConnectionSet.has(other);
-      }).length;
+    for (const candidate of eligibleCandidates) {
+      const theirSet = connectionsByCandidate.get(candidate.userId) ?? new Set<string>();
+      let mutualCount = 0;
+      for (const id of theirSet) {
+        if (myConnectionSet.has(id)) mutualCount++;
+      }
 
       const result = this.scoreCandidate(
         viewer,
@@ -296,7 +337,11 @@ export class RecommendationsService {
           role: item.profile.user.role,
           currentCompany: item.profile.currentCompany,
           location: item.profile.location,
-          openToWork: item.profile.openToWork,
+          openToWork: maskOpenToWorkForViewer(
+            item.profile.openToWork,
+            viewer.user.role,
+            false,
+          ),
           isHiring: item.profile.isHiring,
           sharedSkills: item.sharedSkills.slice(0, 8),
           mutualConnections: item.mutualCount,

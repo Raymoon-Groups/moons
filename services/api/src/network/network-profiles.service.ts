@@ -8,6 +8,7 @@ import {
   NotificationType,
   Prisma,
   ProfileVisibility,
+  UserRole,
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,6 +18,7 @@ import { UpdateNetworkPrivacyDto } from './dto/update-network-privacy.dto';
 import {
   canViewProfile,
   intersect,
+  maskOpenToWorkForViewer,
   publicDisplayName,
   publicHeadline,
   ProfileWithUser,
@@ -51,9 +53,11 @@ export class NetworkProfilesService {
     profile: ProfileWithUser,
     viewerId: string | null,
     connected: boolean,
+    viewerRole?: UserRole | null,
   ) {
     const canView = canViewProfile(profile, viewerId, connected);
     const isOwner = viewerId === profile.userId;
+    const openToWork = maskOpenToWorkForViewer(profile.openToWork, viewerRole, isOwner);
 
     if (!canView && !isOwner) {
       return {
@@ -64,7 +68,7 @@ export class NetworkProfilesService {
         avatarUrl: profile.avatarUrl,
         bannerUrl: profile.bannerUrl,
         location: profile.location,
-        openToWork: profile.openToWork,
+        openToWork,
         isHiring: profile.isHiring,
         profileVisibility: profile.profileVisibility,
         limited: true,
@@ -109,7 +113,7 @@ export class NetworkProfilesService {
           : null,
       phone: isOwner || !profile.hidePhone ? profile.phone : null,
       atsScore: profile.atsScore,
-      openToWork: profile.openToWork,
+      openToWork,
       isHiring: profile.isHiring,
       workMode: profile.workMode,
       industry: profile.industry,
@@ -212,11 +216,19 @@ export class NetworkProfilesService {
         : { items: [] as string[] },
     ]);
 
+    const viewerUser = viewerId
+      ? await this.prisma.user.findUnique({
+          where: { id: viewerId },
+          select: { role: true },
+        })
+      : null;
+
     return {
       profile: this.sanitizeProfile(
         profile,
         viewerId,
         connectionState.connected,
+        viewerUser?.role ?? null,
       ),
       connectionCount,
       connectionStatus: connectionState.connectionStatus,
@@ -257,6 +269,12 @@ export class NetworkProfilesService {
     const limit = dto.limit ?? 20;
     const skip = (page - 1) * limit;
 
+    const viewerUser = await this.prisma.user.findUnique({
+      where: { id: viewerId },
+      select: { role: true },
+    });
+    const viewerRole = viewerUser?.role ?? null;
+
     const blocks = await this.prisma.userBlock.findMany({
       where: { OR: [{ blockerId: viewerId }, { blockedId: viewerId }] },
       select: { blockerId: true, blockedId: true },
@@ -279,7 +297,9 @@ export class NetworkProfilesService {
         { currentCompany: { contains: dto.company, mode: 'insensitive' } },
       ];
     }
-    if (dto.openToWork !== undefined) where.openToWork = dto.openToWork;
+    if (dto.openToWork !== undefined && viewerRole === UserRole.RECRUITER) {
+      where.openToWork = dto.openToWork;
+    }
     if (dto.isHiring !== undefined) where.isHiring = dto.isHiring;
     if (dto.workMode) where.workMode = dto.workMode;
     if (dto.experienceMin !== undefined || dto.experienceMax !== undefined) {
@@ -336,11 +356,12 @@ export class NetworkProfilesService {
           role: profile.user.role,
           currentCompany: profile.currentCompany,
           location: profile.location,
-          openToWork: profile.openToWork,
+          openToWork: maskOpenToWorkForViewer(profile.openToWork, viewerRole, false),
           isHiring: profile.isHiring,
           skills: profile.skills.slice(0, 6),
           connectionStatus: status.status,
           connectionId: status.connectionId,
+          connectionDirection: status.direction,
           mutualConnections: mutual.count,
         };
       }),
@@ -369,15 +390,20 @@ export class NetworkProfilesService {
     ]);
 
     const viewerIds = views.map((v) => v.viewerId);
-    const profiles = await this.prisma.profile.findMany({
-      where: { userId: { in: viewerIds } },
-      include: this.profileInclude,
-    });
+    const [profiles, connectionStatuses] = await Promise.all([
+      this.prisma.profile.findMany({
+        where: { userId: { in: viewerIds } },
+        include: this.profileInclude,
+      }),
+      Promise.all(viewerIds.map((vid) => this.connections.getStatus(userId, vid))),
+    ]);
     const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+    const statusMap = new Map(viewerIds.map((vid, index) => [vid, connectionStatuses[index]]));
 
     return {
       items: views.map((v) => {
         const p = profileMap.get(v.viewerId);
+        const status = statusMap.get(v.viewerId);
         return {
           viewedAt: v.createdAt,
           viewer: p
@@ -387,8 +413,20 @@ export class NetworkProfilesService {
                 headline: publicHeadline(p),
                 avatarUrl: p.avatarUrl,
                 role: p.user.role,
+                connectionStatus: status?.status ?? 'NONE',
+                connectionId: status?.connectionId ?? null,
+                connectionDirection: status?.direction ?? null,
               }
-            : { userId: v.viewerId, fullName: null, headline: null, avatarUrl: null, role: null },
+            : {
+                userId: v.viewerId,
+                fullName: null,
+                headline: null,
+                avatarUrl: null,
+                role: null,
+                connectionStatus: status?.status ?? 'NONE',
+                connectionId: status?.connectionId ?? null,
+                connectionDirection: status?.direction ?? null,
+              },
         };
       }),
       total,

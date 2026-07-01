@@ -6,11 +6,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotificationType, UserRole } from '@moons/shared';
 import { useAuth } from '@/lib/auth-context';
 import {
-  fetchNotifications,
-  fetchUnreadCount,
+  fetchBellNotifications,
   formatNotificationTime,
-  markAllNotificationsRead,
+  markBellNotificationsRead,
   markNotificationRead,
+  notifyNotificationsRefresh,
   type NotificationItem,
 } from '@/lib/notifications';
 
@@ -27,6 +27,8 @@ function notificationIcon(type: NotificationType) {
       return '↓';
     case NotificationType.APPLICATION_SUBMITTED:
       return '✓';
+    case NotificationType.APPLICATION_VIEWED:
+      return '👁';
     default:
       return '•';
   }
@@ -42,46 +44,42 @@ function iconStyles(type: NotificationType) {
       return 'bg-blue-100 text-moons-blue';
     case NotificationType.APPLICATION_SUBMITTED:
       return 'bg-green-100 text-green-700';
+    case NotificationType.APPLICATION_VIEWED:
+      return 'bg-sky-100 text-sky-700';
     default:
       return 'bg-surface text-moons-muted';
   }
 }
 
-export function NotificationBell() {
+function NotificationDot() {
+  return (
+    <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface-elevated bg-moons-blue" />
+  );
+}
+
+export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean }) {
   const router = useRouter();
   const { user, ready } = useAuth();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(false);
 
+  const unreadInList = items.some((item) => !item.readAt);
+  const showDot = hasUnread || unreadInList;
+
   useEffect(() => {
     openRef.current = open;
   }, [open]);
-
-  const refreshUnread = useCallback(async () => {
-    if (!user) return;
-    try {
-      const { count } = await fetchUnreadCount();
-      setUnreadCount(count);
-    } catch {
-      // ignore when logged out or API unavailable
-    }
-  }, [user]);
 
   const loadNotifications = useCallback(
     async (opts?: { silent?: boolean }) => {
       if (!user) return;
       if (!opts?.silent) setLoading(true);
       try {
-        const [data, { count }] = await Promise.all([
-          fetchNotifications(),
-          fetchUnreadCount(),
-        ]);
+        const data = await fetchBellNotifications();
         setItems(data);
-        setUnreadCount(count);
       } catch {
         if (!opts?.silent) setItems([]);
       } finally {
@@ -95,16 +93,13 @@ export function NotificationBell() {
     if (!user) return;
     if (openRef.current) {
       await loadNotifications({ silent: true });
-    } else {
-      await refreshUnread();
     }
-  }, [user, loadNotifications, refreshUnread]);
+  }, [user, loadNotifications]);
 
   useEffect(() => {
     if (!ready || !user) return;
 
     const initialTimer = window.setTimeout(() => {
-      void refreshUnread();
       void loadNotifications({ silent: true });
     }, INITIAL_DELAY_MS);
 
@@ -125,6 +120,7 @@ export function NotificationBell() {
       if (manualRefreshTimer) window.clearTimeout(manualRefreshTimer);
       manualRefreshTimer = window.setTimeout(() => {
         void refreshLive();
+        void loadNotifications({ silent: true });
       }, INITIAL_DELAY_MS);
     }
 
@@ -140,7 +136,7 @@ export function NotificationBell() {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('moons:notifications-refresh', onManualRefresh);
     };
-  }, [ready, user, refreshUnread, loadNotifications, refreshLive]);
+  }, [ready, user, loadNotifications, refreshLive]);
 
   useEffect(() => {
     if (open && user) {
@@ -164,12 +160,12 @@ export function NotificationBell() {
     if (!item.readAt) {
       try {
         await markNotificationRead(item.id);
-        setUnreadCount((c) => Math.max(0, c - 1));
         setItems((prev) =>
           prev.map((n) =>
             n.id === item.id ? { ...n, readAt: new Date().toISOString() } : n,
           ),
         );
+        notifyNotificationsRefresh();
       } catch {
         // continue navigation
       }
@@ -181,19 +177,15 @@ export function NotificationBell() {
   }
 
   async function markAllRead() {
-    setUnreadCount(0);
     setItems((prev) =>
       prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
     );
     try {
-      await markAllNotificationsRead();
+      await markBellNotificationsRead();
+      notifyNotificationsRefresh();
     } catch {
       await loadNotifications();
     }
-  }
-
-  function handleBellClick() {
-    setOpen((prev) => !prev);
   }
 
   if (!ready || !user) return null;
@@ -202,9 +194,9 @@ export function NotificationBell() {
     <div className="relative" ref={panelRef}>
       <button
         type="button"
-        onClick={handleBellClick}
+        onClick={() => setOpen((prev) => !prev)}
         className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface-elevated text-heading shadow-sm transition hover:border-moons-blue/30 hover:bg-surface-hover hover:text-moons-blue md:h-10 md:w-10"
-        aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+        aria-label={`Notifications${showDot ? ', unread' : ''}`}
         aria-expanded={open}
       >
         <svg
@@ -221,21 +213,17 @@ export function NotificationBell() {
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
-        {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-surface-elevated bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
+        {showDot && <NotificationDot />}
       </button>
 
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-[min(100vw-2rem,22rem)] overflow-hidden rounded-lg border border-border bg-surface-elevated shadow-xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h3 className="text-sm font-bold text-heading">Notifications</h3>
-            {unreadCount > 0 && (
+            {unreadInList && (
               <button
                 type="button"
-                onClick={markAllRead}
+                onClick={() => void markAllRead()}
                 className="text-xs font-medium text-moons-blue hover:underline"
               >
                 Mark all read
@@ -257,7 +245,7 @@ export function NotificationBell() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => handleItemClick(item)}
+                  onClick={() => void handleItemClick(item)}
                   className={`flex w-full gap-3 border-b border-border px-4 py-3 text-left transition hover:bg-surface-hover ${
                     item.readAt ? 'opacity-75' : 'bg-moons-blue/10'
                   }`}

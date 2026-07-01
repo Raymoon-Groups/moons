@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Light moon / space — soft silver, pale blue, lunar white */
   --background: #f4f7fb;
@@ -106,6 +108,15 @@ body {
 @layer base {
   .dark .bg-\[\#f0f3f8\] {
     background-color: var(--background);
+  }
+
+  .dark .bg-\[\#f3f2ef\] {
+    background-color: var(--background);
+    background-image: var(--page-gradient-glow), var(--page-gradient);
+  }
+
+  .dark .bg-\[\#d4dde3\] {
+    background-color: var(--surface);
   }
 
   .dark .bg-gradient-to-b.from-\[\#eef2f9\] {
@@ -398,6 +409,17 @@ body {
 
   .app-canvas {
     background-color: var(--page-gradient-base);
+    background-image: var(--page-gradient-glow), var(--page-gradient);
+    background-attachment: fixed;
+  }
+
+  .li-page-bg {
+    min-height: 100vh;
+    background-color: #f3f2ef;
+  }
+
+  .dark .li-page-bg {
+    background-color: var(--background);
     background-image: var(--page-gradient-glow), var(--page-gradient);
     background-attachment: fixed;
   }

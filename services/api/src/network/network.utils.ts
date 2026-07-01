@@ -7,6 +7,28 @@ import {
   UserRole,
 } from '@prisma/client';
 
+export const OPEN_ON_MOONS_LABEL = 'Open on Moons';
+export const OPEN_ON_MOONS_TAGLINE = 'Moons is open for work';
+
+/** Recruiters and the profile owner can see open-on-Moons status. */
+export function openToWorkVisibleToViewer(
+  viewerRole: UserRole | string | null | undefined,
+  isOwner: boolean,
+  openToWork: boolean,
+): boolean {
+  if (!openToWork) return false;
+  if (isOwner) return true;
+  return viewerRole === UserRole.RECRUITER;
+}
+
+export function maskOpenToWorkForViewer(
+  openToWork: boolean,
+  viewerRole: UserRole | string | null | undefined,
+  isOwner: boolean,
+): boolean {
+  return openToWorkVisibleToViewer(viewerRole, isOwner, openToWork);
+}
+
 export type ProfileWithUser = Profile & {
   user: Pick<User, 'id' | 'email' | 'role' | 'updatedAt'>;
 };

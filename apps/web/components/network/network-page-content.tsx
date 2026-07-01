@@ -1,8 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { UserRole } from '@moons/shared';
 import { useCallback, useEffect, useState } from 'react';
+import { DashPageHero } from '@/components/dash/dash-page-shell';
 import { PersonCard, type ConnectionUpdate } from '@/components/network/person-card';
+import { useAuth } from '@/lib/auth-context';
+import { OPEN_ON_MOONS_LABEL } from '@/lib/open-on-moons';
 import {
   fetchRecentConnections,
   fetchSuggestions,
@@ -12,11 +16,15 @@ import {
 import type { NetworkUserCard } from '@moons/shared';
 
 const TABS = [
-  { id: 'suggestions', label: 'People Who Can Help', short: 'Suggestions' },
-  { id: 'recent', label: 'Recently Connected', short: 'Recent' },
+  { id: 'suggestions', label: 'People you may know', short: 'Suggestions' },
+  { id: 'recent', label: 'Recently connected', short: 'Recent' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
+
+const PAGE_BG = 'li-page-bg';
+const PANEL =
+  'overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_4px_24px_rgba(26,39,68,0.06)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.28)]';
 
 function SearchIcon({ className }: { className?: string }) {
   return (
@@ -70,8 +78,32 @@ function FilterPill({
       onClick={onClick}
       className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
         active
-          ? 'bg-moons-navy/90 text-white shadow-md shadow-moons-navy/15'
-          : 'text-moons-muted hover:bg-surface-elevated/80 hover:text-foreground'
+          ? 'bg-moons-blue text-white shadow-sm ring-1 ring-moons-blue/30'
+          : 'bg-surface text-moons-muted ring-1 ring-border/60 hover:bg-surface-hover hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function TabPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+        active
+          ? 'bg-moons-blue text-white shadow-sm'
+          : 'text-moons-muted hover:bg-surface hover:text-foreground'
       }`}
     >
       {children}
@@ -80,6 +112,8 @@ function FilterPill({
 }
 
 export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?: TabId }) {
+  const { user } = useAuth();
+  const isRecruiter = user?.role === UserRole.RECRUITER;
   const [tab, setTab] = useState<TabId>(initialTab === 'recent' ? 'recent' : 'suggestions');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -170,222 +204,277 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
       ? suggestions.length
       : recent.length;
 
+  const heroSubtitle = isRecruiter
+    ? 'Discover talent and build your professional network. Search by skills, location, or who is Open on Moons.'
+    : 'Connect with professionals who share your skills and industry. Grow relationships that open doors.';
+
   return (
-    <div className="dash-page">
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        {/* Hero — open layout, no boxed container */}
-        <div className="relative mb-10">
-          <div
-            className="pointer-events-none absolute -left-8 top-0 h-48 w-48 rounded-full bg-moons-blue/10 blur-3xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute right-0 top-8 h-32 w-32 rounded-full bg-moons-blue/5 blur-2xl"
-            aria-hidden
-          />
-          <div className="relative flex items-start gap-5">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-moons-blue to-moons-navy text-white shadow-lg shadow-moons-blue/30">
-              <UsersIcon className="h-6 w-6" />
+    <div className={PAGE_BG}>
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        <DashPageHero
+          eyebrow="Connections"
+          eyebrowIcon={<UsersIcon className="h-3.5 w-3.5" />}
+          title="My Network"
+          subtitle={heroSubtitle}
+        />
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+          <div className="min-w-0 space-y-4">
+            {/* Search */}
+            <form onSubmit={runSearch} className={`${PANEL} p-5 sm:p-6`}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-heading">Search professionals</p>
+                  <p className="mt-0.5 text-xs text-moons-muted">
+                    {isRecruiter
+                      ? 'Find candidates by name, skills, location, or availability'
+                      : 'Name, skills, location, or hiring status'}
+                  </p>
+                </div>
+                {searchActive && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="shrink-0 rounded-full border border-border/80 px-3 py-1 text-xs font-semibold text-moons-blue transition hover:border-moons-blue/30 hover:bg-moons-blue/5"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="relative flex-1">
+                    <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-moons-muted" />
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by name or headline"
+                      className="space-input h-11 w-full pl-10"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={searching}
+                    className="h-11 shrink-0 rounded-full bg-moons-blue px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark disabled:opacity-60"
+                  >
+                    {searching ? 'Searching…' : 'Search'}
+                  </button>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <input
+                    value={searchSkills}
+                    onChange={(e) => setSearchSkills(e.target.value)}
+                    placeholder="Skills"
+                    className="space-input h-10"
+                  />
+                  <input
+                    value={searchLocation}
+                    onChange={(e) => setSearchLocation(e.target.value)}
+                    placeholder="Location"
+                    className="space-input h-10"
+                  />
+                  <select
+                    value={searchRole}
+                    onChange={(e) => setSearchRole(e.target.value)}
+                    className="space-input h-10"
+                  >
+                    <option value="">All roles</option>
+                    <option value={UserRole.CANDIDATE}>Candidates</option>
+                    <option value={UserRole.RECRUITER}>Recruiters</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {isRecruiter && (
+                    <FilterPill active={searchOpenToWork} onClick={() => setSearchOpenToWork((v) => !v)}>
+                      {OPEN_ON_MOONS_LABEL}
+                    </FilterPill>
+                  )}
+                  <FilterPill active={searchHiring} onClick={() => setSearchHiring((v) => !v)}>
+                    Hiring
+                  </FilterPill>
+                </div>
+              </div>
+            </form>
+
+            {/* Results */}
+            <div className={PANEL}>
+              <div className="flex flex-col gap-3 border-b border-border/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                {!searchActive ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {TABS.map((item) => (
+                      <TabPill key={item.id} active={tab === item.id} onClick={() => setTab(item.id)}>
+                        <span className="hidden sm:inline">{item.label}</span>
+                        <span className="sm:hidden">{item.short}</span>
+                      </TabPill>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold text-heading">Search results</p>
+                )}
+
+                <div className="flex items-center gap-2">
+                  {!loading && !searching && (
+                    <span className="rounded-full bg-moons-blue/10 px-2.5 py-0.5 text-[11px] font-semibold text-moons-blue">
+                      {resultCount} {resultCount === 1 ? 'person' : 'people'}
+                    </span>
+                  )}
+                  {!searchActive && activeTabMeta && (
+                    <span className="hidden text-xs text-moons-muted sm:inline">{activeTabMeta.label}</span>
+                  )}
+                </div>
+              </div>
+
+              {error && (
+                <p className="mx-4 mt-4 rounded-lg border border-red-200/80 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300 sm:mx-5">
+                  {error}
+                </p>
+              )}
+
+              <div className="p-4 sm:p-5">
+                {loading && !searchActive ? (
+                  <LoadingGrid />
+                ) : searching ? (
+                  <LoadingGrid />
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {searchActive
+                      ? searchResults.map((person) => (
+                          <PersonCard
+                            key={person.userId}
+                            variant="discovery"
+                            person={person}
+                            onConnectionChange={handleLocalConnectionChange}
+                            onDismiss={() => handleDismissCard(person.userId)}
+                          />
+                        ))
+                      : tab === 'suggestions'
+                        ? suggestions.map((person) => (
+                            <PersonCard
+                              key={person.userId}
+                              variant="discovery"
+                              person={person}
+                              onConnectionChange={handleLocalConnectionChange}
+                              onDismiss={() => handleDismissCard(person.userId)}
+                            />
+                          ))
+                        : recent.map((item) => (
+                            <PersonCard
+                              key={item.connectionId}
+                              variant="network"
+                              person={{
+                                ...item.user,
+                                connectionStatus: 'ACCEPTED',
+                                connectionId: item.connectionId,
+                              }}
+                              onUpdated={loadTab}
+                            />
+                          ))}
+                  </div>
+                )}
+
+                {!loading && !searching && searchActive && searchResults.length === 0 && (
+                  <EmptyState
+                    title="No matches found"
+                    message={
+                      isRecruiter
+                        ? 'Try different keywords, loosen filters, or browse suggestions.'
+                        : 'Try different keywords or loosen your filters.'
+                    }
+                  />
+                )}
+                {!loading && !searchActive && tab === 'suggestions' && suggestions.length === 0 && (
+                  <EmptyState
+                    title="No suggestions yet"
+                    message="Add skills and experience to your profile for better recommendations."
+                    action={{ href: '/profile', label: 'Complete your profile' }}
+                  />
+                )}
+                {!loading && !searchActive && tab === 'recent' && recent.length === 0 && (
+                  <EmptyState
+                    title="No recent connections"
+                    message="People you connect with will appear here."
+                    action={{ href: '/network', label: 'Browse suggestions' }}
+                  />
+                )}
+              </div>
             </div>
-            <div>
-              <p className="font-script text-3xl text-moons-blue">My Network</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-heading sm:text-3xl">
-                Build meaningful professional relationships
-              </h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-moons-muted">
-                Connect with recruiters, mentors, and professionals who can help advance your career.
+          </div>
+
+          {/* Sidebar */}
+          <aside className="hidden space-y-4 lg:sticky lg:top-24 lg:block">
+            <div className="dash-tips-card">
+              <h2 className="text-sm font-bold text-heading">
+                {isRecruiter ? 'Recruiter tips' : 'Grow your network'}
+              </h2>
+              <ul className="mt-3 space-y-2.5 text-xs leading-relaxed text-moons-muted">
+                {isRecruiter ? (
+                  <>
+                    <li className="flex gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
+                      Use the {OPEN_ON_MOONS_LABEL} filter to find candidates actively open to opportunities
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
+                      Search by skills and location to narrow your talent pool
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
+                      Add a personal note when connecting — it appears in their inbox
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li className="flex gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
+                      Connect with people who share your skills or industry
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
+                      Add a personal note when sending invitations
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-moons-blue" />
+                      Mutual connections make great introductions
+                    </li>
+                  </>
+                )}
+              </ul>
+            </div>
+
+            <div className="dash-sidebar-card">
+              <h2 className="text-sm font-bold text-heading">Invitation notes</h2>
+              <p className="mt-2 text-xs leading-relaxed text-moons-muted">
+                Notes you send with Connect appear in the recipient&apos;s{' '}
+                <Link href="/messages" className="font-semibold text-moons-blue hover:underline">
+                  Messaging
+                </Link>{' '}
+                inbox. Accept or ignore invites from your notifications or inbox.
               </p>
             </div>
-          </div>
-        </div>
 
-        {/* Search — soft floating panel */}
-        <form
-          onSubmit={runSearch}
-          className="mb-10 rounded-[1.75rem] bg-surface-elevated/90 p-6 shadow-[0_8px_40px_rgba(26,39,68,0.07)] backdrop-blur-sm sm:p-7"
-        >
-          <div className="mb-5">
-            <p className="text-sm font-semibold text-heading">Discover professionals</p>
-            <p className="mt-0.5 text-xs text-moons-muted">Search by name, skills, location, or hiring status</p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-moons-muted" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Name, headline, company…"
-                  className="w-full rounded-2xl border-0 bg-surface/80 py-3 pl-11 pr-4 text-sm text-foreground shadow-inner shadow-black/[0.03] outline-none ring-1 ring-border/40 transition placeholder:text-moons-muted focus:ring-2 focus:ring-moons-blue/30"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={searching}
-                className="inline-flex h-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-moons-navy to-moons-blue px-8 text-sm font-semibold text-white shadow-lg shadow-moons-navy/20 transition hover:scale-[1.02] hover:shadow-xl disabled:opacity-60"
-              >
-                {searching ? 'Searching…' : 'Search'}
-              </button>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-moons-muted/80">
-                  Skills
-                </label>
-                <input
-                  value={searchSkills}
-                  onChange={(e) => setSearchSkills(e.target.value)}
-                  placeholder="e.g. React, Python"
-                  className="w-full rounded-2xl border-0 bg-surface/60 py-2.5 px-3.5 text-sm outline-none ring-1 ring-border/30 focus:ring-2 focus:ring-moons-blue/25"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-moons-muted/80">
-                  Location
-                </label>
-                <input
-                  value={searchLocation}
-                  onChange={(e) => setSearchLocation(e.target.value)}
-                  placeholder="City or region"
-                  className="w-full rounded-2xl border-0 bg-surface/60 py-2.5 px-3.5 text-sm outline-none ring-1 ring-border/30 focus:ring-2 focus:ring-moons-blue/25"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-moons-muted/80">
-                  Role
-                </label>
-                <select
-                  value={searchRole}
-                  onChange={(e) => setSearchRole(e.target.value)}
-                  className="w-full rounded-2xl border-0 bg-surface/60 py-2.5 px-3.5 text-sm outline-none ring-1 ring-border/30 focus:ring-2 focus:ring-moons-blue/25"
+            <div className="dash-sidebar-card">
+              <h2 className="text-sm font-bold text-heading">
+                {isRecruiter ? 'Find the right fit' : 'Profile tip'}
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed text-moons-muted">
+                {isRecruiter
+                  ? 'Candidates with complete profiles — skills, experience, and a cover photo — are easier to evaluate and more likely to respond.'
+                  : 'A complete profile with skills, experience, and a cover photo helps you appear in more relevant suggestions.'}
+              </p>
+              {!isRecruiter && (
+                <Link
+                  href="/profile"
+                  className="mt-3 inline-flex text-xs font-semibold text-moons-blue hover:underline"
                 >
-                  <option value="">All roles</option>
-                  <option value={UserRole.CANDIDATE}>Candidates</option>
-                  <option value={UserRole.RECRUITER}>Recruiters</option>
-                </select>
-              </div>
+                  Edit your profile →
+                </Link>
+              )}
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <FilterPill active={searchOpenToWork} onClick={() => setSearchOpenToWork((v) => !v)}>
-                Open to work
-              </FilterPill>
-              <FilterPill active={searchHiring} onClick={() => setSearchHiring((v) => !v)}>
-                Hiring
-              </FilterPill>
-            </div>
-          </div>
-        </form>
-
-        {/* Tabs — pill strip, no outer box */}
-        {!searchActive && (
-          <div className="mb-6 inline-flex rounded-full bg-surface/70 p-1 shadow-sm backdrop-blur-sm">
-            {TABS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setTab(item.id)}
-                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                  tab === item.id
-                    ? 'bg-surface-elevated text-heading shadow-md shadow-black/[0.04]'
-                    : 'text-moons-muted hover:text-foreground'
-                }`}
-              >
-                <span className="hidden sm:inline">{item.label}</span>
-                <span className="sm:hidden">{item.short}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            {searchActive ? (
-              <p className="text-sm font-semibold text-heading">Search results</p>
-            ) : (
-              activeTabMeta && (
-                <p className="text-sm font-semibold text-heading">{activeTabMeta.label}</p>
-              )
-            )}
-            {!loading && !searching && (
-              <span className="rounded-full bg-moons-blue/10 px-2.5 py-0.5 text-[10px] font-bold text-moons-blue">
-                {resultCount}
-              </span>
-            )}
-          </div>
-          {searchActive && (
-            <button
-              type="button"
-              onClick={clearSearch}
-              className="rounded-full px-4 py-1.5 text-xs font-semibold text-moons-blue transition hover:bg-moons-blue/10"
-            >
-              Clear search
-            </button>
-          )}
+          </aside>
         </div>
-
-        {error && (
-          <p className="mb-4 rounded-2xl bg-red-50/90 px-4 py-3 text-sm text-red-700">{error}</p>
-        )}
-
-        {loading && !searchActive ? (
-          <LoadingGrid />
-        ) : searching ? (
-          <LoadingGrid />
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {searchActive
-              ? searchResults.map((person) => (
-                  <PersonCard
-                    key={person.userId}
-                    variant="discovery"
-                    person={person}
-                    onConnectionChange={handleLocalConnectionChange}
-                    onDismiss={() => handleDismissCard(person.userId)}
-                  />
-                ))
-              : tab === 'suggestions'
-                ? suggestions.map((person) => (
-                    <PersonCard
-                      key={person.userId}
-                      variant="discovery"
-                      person={person}
-                      onConnectionChange={handleLocalConnectionChange}
-                      onDismiss={() => handleDismissCard(person.userId)}
-                    />
-                  ))
-                : recent.map((item) => (
-                    <PersonCard
-                      key={item.connectionId}
-                      variant="network"
-                      person={{
-                        ...item.user,
-                        connectionStatus: 'ACCEPTED',
-                        connectionId: item.connectionId,
-                      }}
-                      onUpdated={loadTab}
-                    />
-                  ))}
-          </div>
-        )}
-
-        {!loading && !searching && searchActive && searchResults.length === 0 && (
-          <EmptyState
-            title="No matches found"
-            message="Try different keywords or loosen your filters."
-          />
-        )}
-        {!loading && !searchActive && tab === 'suggestions' && suggestions.length === 0 && (
-          <EmptyState
-            title="No suggestions yet"
-            message="Complete your profile and add skills to get smarter recommendations."
-          />
-        )}
-        {!loading && !searchActive && tab === 'recent' && recent.length === 0 && (
-          <EmptyState title="No recent connections" message="People you connect with will appear here." />
-        )}
       </div>
     </div>
   );
@@ -393,19 +482,18 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
 
 function LoadingGrid() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, i) => (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse overflow-hidden rounded-[1.75rem] bg-surface-elevated/80 shadow-[0_8px_30px_rgba(26,39,68,0.06)]"
+          className="animate-pulse overflow-hidden rounded-xl border border-border/70 bg-surface-elevated shadow-sm"
         >
-          <div className="flex flex-col items-center px-4 pb-4 pt-10">
-            <div className="h-16 w-16 rounded-full bg-surface" />
-            <div className="mt-4 h-3 w-24 rounded-full bg-surface" />
-            <div className="mt-2 h-2 w-32 rounded-full bg-surface" />
-          </div>
-          <div className="p-4 pt-2">
-            <div className="h-10 rounded-full bg-surface" />
+          <div className="h-14 bg-gradient-to-r from-moons-blue/10 to-transparent" />
+          <div className="flex flex-col items-center px-4 pb-5 pt-0">
+            <div className="-mt-8 h-16 w-16 rounded-full bg-surface ring-4 ring-surface-elevated" />
+            <div className="mt-4 h-3 w-28 rounded-full bg-surface" />
+            <div className="mt-2 h-2.5 w-36 rounded-full bg-surface" />
+            <div className="mt-5 h-9 w-full rounded-full bg-surface" />
           </div>
         </div>
       ))}
@@ -413,14 +501,30 @@ function LoadingGrid() {
   );
 }
 
-function EmptyState({ title, message }: { title: string; message: string }) {
+function EmptyState({
+  title,
+  message,
+  action,
+}: {
+  title: string;
+  message: string;
+  action?: { href: string; label: string };
+}) {
   return (
-    <div className="mt-6 px-4 py-16 text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-moons-blue/10">
-        <UsersIcon className="h-7 w-7 text-moons-blue" />
+    <div className="flex flex-col items-center py-14 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-moons-blue/10 text-moons-blue">
+        <UsersIcon className="h-7 w-7" />
       </div>
-      <p className="mt-5 text-base font-semibold text-heading">{title}</p>
-      <p className="mx-auto mt-2 max-w-sm text-sm text-moons-muted">{message}</p>
+      <p className="mt-4 text-base font-semibold text-heading">{title}</p>
+      <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-moons-muted">{message}</p>
+      {action && (
+        <Link
+          href={action.href}
+          className="mt-5 inline-flex items-center rounded-full bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+        >
+          {action.label}
+        </Link>
+      )}
     </div>
   );
 }

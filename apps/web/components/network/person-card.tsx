@@ -4,11 +4,19 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { resolveAvatarUrl } from '@/lib/assets';
 import {
+  OPEN_ON_MOONS_LABEL,
+  showOpenOnMoonsToViewer,
+} from '@/lib/open-on-moons';
+import { useAuth } from '@/lib/auth-context';
+import {
+  ConnectInviteModal,
+  formatRecommendationReason,
+} from '@/components/network/network-modals';
+import {
   acceptConnection,
   cancelConnection,
   rejectConnection,
   removeConnection,
-  sendConnectionRequest,
 } from '@/lib/network';
 import type { NetworkUserCard } from '@moons/shared';
 
@@ -37,13 +45,53 @@ function CloseIcon({ className }: { className?: string }) {
 }
 
 const btnBase =
-  'inline-flex h-10 w-full items-center justify-center rounded-full px-4 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moons-blue/40';
-const btnPrimary = `${btnBase} bg-gradient-to-r from-moons-navy to-moons-blue text-white shadow-lg shadow-moons-navy/15 hover:scale-[1.02] hover:brightness-110 disabled:opacity-60`;
-const btnSecondary = `${btnBase} bg-surface/80 text-foreground shadow-sm ring-1 ring-border/30 hover:bg-surface`;
-const btnGhost = `${btnBase} text-moons-muted hover:bg-surface/80 hover:text-foreground`;
+  'inline-flex h-8 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moons-blue/40';
+const btnPrimary = `${btnBase} bg-moons-blue text-white hover:bg-moons-blue-dark disabled:opacity-60`;
+const btnSecondary = `${btnBase} border border-border bg-surface-elevated text-heading hover:bg-surface`;
+const btnGhost = `${btnBase} text-moons-muted hover:bg-surface hover:text-foreground`;
+const btnOutline = `${btnBase} border border-foreground/40 bg-transparent text-heading hover:bg-surface disabled:opacity-60`;
+
+function SuggestionContext({ person }: { person: NetworkUserCard }) {
+  const reason = formatRecommendationReason(person.recommendationReason);
+  const mutuals = person.mutualConnections ?? 0;
+  const skills = person.sharedSkills?.slice(0, 3) ?? [];
+
+  if (!reason && mutuals === 0 && skills.length === 0) return null;
+
+  return (
+    <div className="mt-2 w-full border-t border-border/50 pt-2.5 text-left">
+      {reason && (
+        <p className="text-[11px] leading-snug text-moons-muted">
+          <span className="font-medium text-foreground/80">Based on your profile: </span>
+          {reason}
+        </p>
+      )}
+      {mutuals > 0 && (
+        <p className={`text-[11px] font-semibold text-moons-blue ${reason ? 'mt-1' : ''}`}>
+          {mutuals} mutual connection{mutuals === 1 ? '' : 's'}
+        </p>
+      )}
+      {skills.length > 0 && (
+        <div className={`flex flex-wrap justify-center gap-1 sm:justify-start ${reason || mutuals ? 'mt-1.5' : ''}`}>
+          {skills.map((skill) => (
+            <span
+              key={skill}
+              className="rounded-full bg-moons-blue/8 px-2 py-0.5 text-[10px] font-medium text-moons-blue ring-1 ring-moons-blue/15"
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ConnectActions({
   userId,
+  fullName,
+  headline,
+  avatarUrl,
   connectionStatus,
   connectionId,
   connectionDirection,
@@ -52,6 +100,9 @@ function ConnectActions({
   layout = 'stacked',
 }: {
   userId: string;
+  fullName: string;
+  headline?: string | null;
+  avatarUrl?: string | null;
   connectionStatus: string;
   connectionId?: string | null;
   connectionDirection?: 'sent' | 'received' | null;
@@ -61,6 +112,7 @@ function ConnectActions({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showInvite, setShowInvite] = useState(false);
 
   async function applyUpdate(update: ConnectionUpdate) {
     onConnectionChange?.(update);
@@ -95,34 +147,33 @@ function ConnectActions({
   if (connectionStatus === 'ACCEPTED') {
     return (
       <div className="space-y-2">
-        <p className="text-center text-[10px] font-medium uppercase tracking-wide text-emerald-600">
-          Connected
-        </p>
         <Link href={`/network/${userId}`} className={btnSecondary}>
           View profile
         </Link>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() =>
-            run(
-              async () => {
-                await removeConnection(userId);
-              },
-              {
-                refreshAll: true,
-                update: {
-                  connectionId: '',
-                  connectionStatus: 'NONE',
-                  connectionDirection: null,
+        {onUpdated && (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() =>
+              run(
+                async () => {
+                  await removeConnection(userId);
                 },
-              },
-            )
-          }
-          className={btnGhost}
-        >
-          Remove
-        </button>
+                {
+                  refreshAll: true,
+                  update: {
+                    connectionId: '',
+                    connectionStatus: 'NONE',
+                    connectionDirection: null,
+                  },
+                },
+              )
+            }
+            className={btnGhost}
+          >
+            Remove connection
+          </button>
+        )}
         {error && <p className="text-center text-[10px] text-red-600">{error}</p>}
       </div>
     );
@@ -131,9 +182,6 @@ function ConnectActions({
   if (connectionStatus === 'PENDING' && connectionDirection === 'received' && connectionId) {
     return (
       <div className="space-y-2">
-        <p className="text-center text-[10px] font-medium uppercase tracking-wide text-amber-700">
-          Wants to connect
-        </p>
         <div className={layout === 'inline' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}>
           <button
             type="button"
@@ -176,7 +224,7 @@ function ConnectActions({
             }
             className={btnSecondary}
           >
-            Decline
+            Ignore
           </button>
         </div>
         {error && <p className="text-center text-[10px] text-red-600">{error}</p>}
@@ -187,9 +235,9 @@ function ConnectActions({
   if (connectionStatus === 'PENDING') {
     return (
       <div className="space-y-2">
-        <p className="text-center text-[10px] font-medium uppercase tracking-wide text-amber-700">
+        <button type="button" disabled className={btnOutline}>
           Pending
-        </p>
+        </button>
         {connectionId ? (
           <button
             type="button"
@@ -209,9 +257,9 @@ function ConnectActions({
                 },
               )
             }
-            className={btnSecondary}
+            className={btnGhost}
           >
-            Cancel request
+            Withdraw
           </button>
         ) : null}
         {error && <p className="text-center text-[10px] text-red-600">{error}</p>}
@@ -221,27 +269,44 @@ function ConnectActions({
 
   return (
     <div>
+      <ConnectInviteModal
+        open={showInvite}
+        userId={userId}
+        fullName={fullName}
+        headline={headline}
+        avatarUrl={avatarUrl}
+        onClose={() => setShowInvite(false)}
+        onSent={(id) => {
+          applyUpdate({
+            connectionId: id,
+            connectionStatus: 'PENDING',
+            connectionDirection: 'sent',
+          });
+        }}
+      />
       <button
         type="button"
         disabled={loading}
-        onClick={() => run(() => sendConnectionRequest(userId))}
+        onClick={() => setShowInvite(true)}
         className={btnPrimary}
       >
-        {loading ? 'Sending…' : 'Connect'}
+        Connect
       </button>
       {error && <p className="mt-1.5 text-center text-[10px] text-red-600">{error}</p>}
     </div>
   );
 }
 
-function PersonAvatar({ person }: { person: NetworkUserCard }) {
+function PersonAvatar({ person, size = 'md' }: { person: NetworkUserCard; size?: 'md' | 'sm' }) {
   const avatar = resolveAvatarUrl(person.avatarUrl);
   const initial = (person.fullName ?? '?').charAt(0).toUpperCase();
+  const dim = size === 'sm' ? 'h-12 w-12 text-base' : 'h-[72px] w-[72px] text-xl';
 
   return (
     <Link href={`/network/${person.userId}`} className="relative z-10 mx-auto block shrink-0">
-      <div className="absolute inset-0 -m-2 rounded-full bg-moons-blue/15 blur-xl" aria-hidden />
-      <div className="relative flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full bg-surface-elevated text-lg font-bold text-moons-navy shadow-lg ring-2 ring-white/80 dark:ring-surface-elevated/80">
+      <div
+        className={`relative flex ${dim} items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-surface to-surface-hover font-semibold text-moons-navy ring-[3px] ring-surface-elevated`}
+      >
         {avatar ? (
           <img src={avatar} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -249,6 +314,15 @@ function PersonAvatar({ person }: { person: NetworkUserCard }) {
         )}
       </div>
     </Link>
+  );
+}
+
+function CardBanner() {
+  return (
+    <div
+      className="h-12 w-full bg-gradient-to-r from-moons-blue/25 via-moons-blue/12 to-surface sm:h-14"
+      aria-hidden
+    />
   );
 }
 
@@ -287,20 +361,21 @@ function CelebrationCardShell({
   footer: React.ReactNode;
 }) {
   return (
-    <article className={`${CARD_SHELL} ring-1 ring-emerald-200/70 dark:ring-emerald-800/50`}>
-      <StatusBadges person={person} align="left" />
+    <article className={`${CARD_SHELL} ring-1 ring-emerald-300/50`}>
+      <CardBanner />
+      <StatusBadges person={person} align="right" />
       <button
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="absolute right-3 top-3 z-10 rounded-full bg-surface-elevated/90 p-1.5 text-moons-muted shadow-sm transition hover:text-foreground"
+        className="absolute right-2 top-2 z-10 rounded-full p-1 text-moons-muted transition hover:bg-surface-elevated hover:text-foreground"
       >
-        <CloseIcon className="h-3.5 w-3.5" />
+        <CloseIcon className="h-4 w-4" />
       </button>
 
-      <div className="flex flex-1 flex-col items-center px-5 pb-4 pt-8 text-center">{children}</div>
+      <div className="-mt-9 flex flex-1 flex-col items-center px-4 pb-3 pt-0 text-center">{children}</div>
 
-      <div className="mt-auto rounded-b-[1.75rem] bg-emerald-50 px-5 py-4 dark:bg-emerald-950/30">
+      <div className="border-t border-emerald-200/60 bg-emerald-50/80 px-4 py-3 dark:border-emerald-800/40 dark:bg-emerald-950/20">
         {footer}
       </div>
     </article>
@@ -317,8 +392,11 @@ function ConnectedFooter({
   removing?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2.5">
-      <p className="text-center text-[10px] font-medium uppercase tracking-wide text-emerald-600">Connected</p>
+    <div className="space-y-2">
+      <p className="text-center text-xs font-semibold text-emerald-700">Connected</p>
+      <Link href={`/messages?with=${userId}`} className={btnPrimary}>
+        Message
+      </Link>
       <Link href={`/network/${userId}`} className={btnSecondary}>
         View profile
       </Link>
@@ -340,7 +418,14 @@ function StatusBadges({
   position?: 'corner' | 'inline';
   align?: 'left' | 'right';
 }) {
-  if (!person.openToWork && !person.isHiring) {
+  const { user } = useAuth();
+  const showOpen = showOpenOnMoonsToViewer(
+    person.openToWork,
+    user?.role,
+    user?.id === person.userId,
+  );
+
+  if (!showOpen && !person.isHiring) {
     return null;
   }
 
@@ -352,8 +437,8 @@ function StatusBadges({
       {person.isHiring && (
         <span className={`${badgeClass} bg-moons-blue text-white`}>Hiring</span>
       )}
-      {person.openToWork && (
-        <span className={`${badgeClass} bg-emerald-500 text-white`}>Open</span>
+      {showOpen && (
+        <span className={`${badgeClass} bg-moons-navy text-white`}>{OPEN_ON_MOONS_LABEL}</span>
       )}
     </>
   );
@@ -374,9 +459,9 @@ function StatusBadges({
 }
 
 const CARD_SHELL =
-  'group relative flex h-full min-h-[248px] flex-col overflow-hidden rounded-[1.75rem] bg-surface-elevated/95 shadow-[0_8px_30px_rgba(26,39,68,0.07)] backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(26,39,68,0.12)]';
+  'group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-surface-elevated shadow-sm transition hover:border-moons-blue/30 hover:shadow-[0_8px_24px_rgba(74,127,212,0.1)]';
 
-const FOOTER_SHELL = 'mt-auto px-5 pb-5 pt-3';
+const FOOTER_SHELL = 'mt-auto border-t border-border/50 px-4 py-3';
 
 export function PersonCard({
   person,
@@ -384,6 +469,7 @@ export function PersonCard({
   showConnect = true,
   embedded = false,
   message,
+  messageLabel = 'Personal note',
   onUpdated,
   onConnectionChange,
   onDismiss,
@@ -393,6 +479,7 @@ export function PersonCard({
   showConnect?: boolean;
   embedded?: boolean;
   message?: string;
+  messageLabel?: string;
   onUpdated?: () => void;
   onConnectionChange?: (userId: string, update: ConnectionUpdate) => void;
   onDismiss?: () => void;
@@ -400,6 +487,7 @@ export function PersonCard({
   const [status, setStatus] = useState(person.connectionStatus ?? 'NONE');
   const [connectionId, setConnectionId] = useState(person.connectionId ?? null);
   const [direction, setDirection] = useState(person.connectionDirection ?? null);
+  const [celebrating, setCelebrating] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -415,10 +503,13 @@ export function PersonCard({
 
   const subtitle = [person.currentCompany, person.location].filter(Boolean).join(' · ');
   const isAccepted = status === 'ACCEPTED';
-  const showCelebration = variant === 'discovery' && isAccepted;
-  const showConnected = variant === 'network' && isAccepted;
+  const showCelebration = variant === 'discovery' && isAccepted && celebrating;
+  const showConnected = isAccepted && !showCelebration;
 
   function handleConnectionChange(update: ConnectionUpdate) {
+    if (update.connectionStatus === 'ACCEPTED' && status !== 'ACCEPTED') {
+      setCelebrating(true);
+    }
     setStatus(update.connectionStatus);
     setConnectionId(update.connectionId || null);
     setDirection(update.connectionDirection);
@@ -454,6 +545,9 @@ export function PersonCard({
     footerContent = (
       <ConnectActions
         userId={person.userId}
+        fullName={person.fullName ?? 'Professional'}
+        headline={person.headline}
+        avatarUrl={person.avatarUrl}
         connectionStatus={status}
         connectionId={connectionId}
         connectionDirection={direction}
@@ -462,20 +556,16 @@ export function PersonCard({
         layout={embedded ? 'inline' : 'stacked'}
       />
     );
+  } else if (!showConnect) {
+    footerContent = (
+      <Link href={`/network/${person.userId}`} className={btnSecondary}>
+        View profile
+      </Link>
+    );
   }
 
-  const profileBody = (
+  const profileText = (
     <>
-      {!embedded && (
-        <div className="relative mb-3">
-          <div
-            className="pointer-events-none absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 rounded-full bg-gradient-to-b from-moons-blue/25 to-transparent blur-sm"
-            aria-hidden
-          />
-          <PersonAvatar person={person} />
-        </div>
-      )}
-
       {embedded && (
         <div className="mb-3 flex w-full items-start gap-3 text-left">
           <Link href={`/network/${person.userId}`} className="shrink-0">
@@ -509,30 +599,32 @@ export function PersonCard({
       )}
 
       {!embedded && (
-        <div className="w-full space-y-1 px-1">
+        <div className="w-full space-y-0.5 text-center">
           <Link
             href={`/network/${person.userId}`}
-            className="block truncate text-[15px] font-bold leading-tight text-heading transition group-hover:text-moons-blue"
+            className="block truncate text-[15px] font-semibold leading-tight text-heading transition hover:text-moons-blue hover:underline"
           >
             {person.fullName ?? 'Professional'}
           </Link>
           {person.headline && (
-            <p className="line-clamp-2 min-h-[2rem] text-xs leading-relaxed text-foreground/70">{person.headline}</p>
+            <p className="line-clamp-2 text-xs leading-snug text-moons-muted">{person.headline}</p>
           )}
-          {subtitle ? (
-            <p className="truncate text-[11px] text-moons-muted">{subtitle}</p>
-          ) : (
-            <span className="block min-h-[1rem]" aria-hidden />
-          )}
+          {subtitle && <p className="truncate text-[11px] text-moons-muted/90">{subtitle}</p>}
+          {variant === 'discovery' && <SuggestionContext person={person} />}
         </div>
       )}
 
       {embedded && subtitle && <p className="mb-2 truncate text-[11px] text-moons-muted">{subtitle}</p>}
 
       {message && (
-        <p className="mt-3 w-full rounded-2xl bg-surface/60 px-3 py-2.5 text-left text-xs leading-relaxed text-moons-muted">
-          &ldquo;{message}&rdquo;
-        </p>
+        <div className="mt-3 w-full rounded-md border border-border/50 bg-surface/50 px-3 py-2.5 text-left">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-moons-muted">
+            {messageLabel}
+          </p>
+          <p className="mt-1 text-xs italic leading-relaxed text-foreground/90">
+            &ldquo;{message}&rdquo;
+          </p>
+        </div>
       )}
     </>
   );
@@ -544,20 +636,23 @@ export function PersonCard({
         onDismiss={handleDismiss}
         footer={<AcceptedCelebrationFooter userId={person.userId} />}
       >
-        {profileBody}
+        <div className="-mt-9 mb-2">
+          <PersonAvatar person={person} />
+        </div>
+        {profileText}
       </CelebrationCardShell>
     );
   }
 
   const body = (
     <div className={`flex flex-1 flex-col ${embedded ? 'items-start text-left' : 'items-center text-center'}`}>
-      {profileBody}
+      {profileText}
     </div>
   );
 
   if (embedded) {
     return (
-      <article className={`${CARD_SHELL} p-5`}>
+      <article className={`${CARD_SHELL} p-4`}>
         <StatusBadges person={person} align="right" />
         {body}
         {footerContent && <div className={FOOTER_SHELL}>{footerContent}</div>}
@@ -567,8 +662,24 @@ export function PersonCard({
 
   return (
     <article className={CARD_SHELL}>
+      {variant === 'discovery' && onDismiss && (
+        <button
+          type="button"
+          onClick={handleDismiss}
+          aria-label="Dismiss suggestion"
+          className="absolute right-2 top-2 z-10 rounded-full p-1 text-moons-muted transition hover:bg-surface hover:text-foreground"
+        >
+          <CloseIcon className="h-4 w-4" />
+        </button>
+      )}
+      <CardBanner />
       <StatusBadges person={person} align="right" />
-      <div className="flex flex-1 flex-col px-5 pb-2 pt-8">{body}</div>
+      <div className="-mt-9 flex flex-1 flex-col px-4 pb-3 pt-0">
+        <div className="mb-2 flex justify-center">
+          <PersonAvatar person={person} />
+        </div>
+        {body}
+      </div>
       {footerContent && <div className={FOOTER_SHELL}>{footerContent}</div>}
     </article>
   );
@@ -589,6 +700,7 @@ export function ConnectButton(props: {
   return (
     <ConnectActions
       userId={props.userId}
+      fullName="Professional"
       connectionStatus={props.connectionStatus ?? 'NONE'}
       connectionId={props.connectionId}
       connectionDirection={props.connectionDirection}

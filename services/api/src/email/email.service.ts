@@ -3,6 +3,7 @@ import * as nodemailer from 'nodemailer';
 import {
   buildApplicationReceivedEmail,
   buildApplicationStatusEmail,
+  buildNewsletterWelcomeEmail,
   buildOtpEmail,
   buildPasswordResetEmail,
 } from './email-templates';
@@ -75,6 +76,13 @@ export class EmailService implements OnModuleInit {
     const subject = `New application for ${jobTitle}`;
     const { text, html } = buildApplicationReceivedEmail(jobTitle, candidateName);
     await this.deliverEmail(from, recruiterEmail, subject, text, html, subject, 'application');
+  }
+
+  async sendNewsletterWelcomeEmail(email: string) {
+    const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
+    const subject = 'You are subscribed to MoonsJob updates';
+    const { text, html } = buildNewsletterWelcomeEmail(email);
+    await this.deliverEmail(from, email, subject, text, html, email, 'newsletter');
   }
 
   async sendApplicationStatusEmail(

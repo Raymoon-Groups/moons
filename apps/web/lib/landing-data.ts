@@ -2,9 +2,9 @@ export const landingImages = {
   categories: {
     tech: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80&auto=format&fit=crop',
     sales: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&q=80&auto=format&fit=crop',
-    finance: 'https://images.unsplash.com/photo-1554224311-beee415c201f?w=400&q=80&auto=format&fit=crop',
-    hr: 'https://images.unsplash.com/photo-1521737711869-e3b97375f902?w=400&q=80&auto=format&fit=crop',
-    healthcare: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&q=80&auto=format&fit=crop',
+    finance: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80&auto=format&fit=crop',
+    hr: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400&q=80&auto=format&fit=crop',
+    healthcare: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=400&q=80&auto=format&fit=crop',
     design: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&q=80&auto=format&fit=crop',
     engineering: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&q=80&auto=format&fit=crop',
     operations: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&q=80&auto=format&fit=crop',
