@@ -34,11 +34,10 @@ function parseApiErrorBody(body: unknown): { message: string; code?: string } {
     message = message.join(', ');
   }
 
-  if (typeof message !== 'string' || !message.trim()) {
-    message = 'Request failed';
-  }
+  const messageText =
+    typeof message === 'string' && message.trim() ? message : 'Request failed';
 
-  return { message, code };
+  return { message: messageText, code };
 }
 
 export function getApiErrorMessage(err: unknown, fallback = 'Request failed'): string {
