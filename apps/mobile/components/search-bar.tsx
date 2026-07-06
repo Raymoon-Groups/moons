@@ -9,10 +9,12 @@ export function SearchBar({
   value,
   onChangeText,
   placeholder = 'Search jobs, companies…',
+  onSubmitEditing,
 }: {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  onSubmitEditing?: () => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(
@@ -54,6 +56,7 @@ export function SearchBar({
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
+        onSubmitEditing={onSubmitEditing}
       />
     </View>
   );

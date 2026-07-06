@@ -8,6 +8,7 @@ import {
   InfoText,
   Input,
   LinkText,
+  PasswordInput,
   PrimaryButton,
   SecondaryButton,
 } from '@/components/ui';
@@ -93,12 +94,11 @@ export default function ForgotPasswordScreen() {
           <FieldLabel>Verification code</FieldLabel>
           <Input value={otp} onChangeText={setOtp} keyboardType="number-pad" placeholder="123456" />
           <FieldLabel>New password</FieldLabel>
-          <Input value={password} onChangeText={setPassword} secureTextEntry placeholder="New password" />
+          <PasswordInput value={password} onChangeText={setPassword} placeholder="New password" />
           <FieldLabel>Confirm password</FieldLabel>
-          <Input
+          <PasswordInput
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            secureTextEntry
             placeholder="Confirm password"
           />
           {error ? <ErrorText>{error}</ErrorText> : null}

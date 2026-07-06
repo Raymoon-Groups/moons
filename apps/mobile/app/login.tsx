@@ -12,6 +12,7 @@ import {
   InfoText,
   Input,
   LinkText,
+  PasswordInput,
   PrimaryButton,
 } from '@/components/ui';
 import { ApiError } from '@/lib/api';
@@ -81,7 +82,7 @@ export default function LoginScreen() {
       />
 
       <FieldLabel>Password</FieldLabel>
-      <Input value={password} onChangeText={setPassword} secureTextEntry placeholder="Your password" />
+      <PasswordInput value={password} onChangeText={setPassword} placeholder="Your password" />
 
       <View style={styles.forgotRow}>
         <LinkText onPress={() => router.push('/forgot-password')}>Forgot password?</LinkText>

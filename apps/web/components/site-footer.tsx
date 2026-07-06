@@ -88,7 +88,7 @@ export function SiteFooter() {
   }
 
   return (
-    <footer className="relative overflow-hidden bg-surface px-5 py-14 pb-28 sm:px-8 md:py-20 md:pb-36 lg:px-10">
+    <footer id="site-footer" className="relative overflow-hidden bg-surface px-5 py-14 pb-28 sm:px-8 md:py-20 md:pb-36 lg:px-10">
       <p
         aria-hidden
         className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2 translate-y-[28%] select-none whitespace-nowrap text-[clamp(9rem,34vw,19rem)] font-extrabold leading-none tracking-tight text-border"

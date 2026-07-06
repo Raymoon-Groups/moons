@@ -1,6 +1,6 @@
 import type { AuthResponse } from '@moons/shared';
 import { cachedFetch } from './api-cache';
-import { getAccessToken, setAuthSession } from './auth';
+import { clearAuthSession, getAccessToken, setAuthSession } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -13,6 +13,38 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+function parseApiErrorBody(body: unknown): { message: string; code?: string } {
+  if (!body || typeof body !== 'object') {
+    return { message: 'Request failed' };
+  }
+
+  const record = body as Record<string, unknown>;
+  let message: unknown = record.message;
+  let code = typeof record.code === 'string' ? record.code : undefined;
+
+  if (message && typeof message === 'object' && !Array.isArray(message)) {
+    const nested = message as Record<string, unknown>;
+    if (typeof nested.message === 'string') message = nested.message;
+    if (typeof nested.code === 'string') code = nested.code;
+  }
+
+  if (Array.isArray(message)) {
+    message = message.join(', ');
+  }
+
+  if (typeof message !== 'string' || !message.trim()) {
+    message = 'Request failed';
+  }
+
+  return { message, code };
+}
+
+export function getApiErrorMessage(err: unknown, fallback = 'Request failed'): string {
+  if (err instanceof ApiError) return err.message;
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
 async function refreshAccessToken(): Promise<string | null> {
@@ -52,13 +84,9 @@ async function apiFetchRaw<T>(
     let code: string | undefined;
     try {
       const body = await response.json();
-      message = body.message ?? message;
-      if (Array.isArray(message)) {
-        message = message.join(', ');
-      }
-      if (typeof body.code === 'string') {
-        code = body.code;
-      }
+      const parsed = parseApiErrorBody(body);
+      message = parsed.message;
+      code = parsed.code;
     } catch {
       // ignore parse errors
     }
@@ -103,6 +131,8 @@ async function withAuthRetry<T>(
       if (newToken) {
         return request(newToken);
       }
+      clearAuthSession();
+      throw new ApiError('Your session has expired. Please sign in again.', 401, 'SESSION_EXPIRED');
     }
     throw err;
   }

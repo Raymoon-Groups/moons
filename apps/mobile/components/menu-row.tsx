@@ -34,11 +34,19 @@ export function MenuRow({
         <Ionicons name={icon} size={20} color={danger ? colors.error : colors.blue} />
       </View>
       <View style={styles.textWrap}>
-        <Text style={[styles.label, { color: danger ? colors.error : colors.heading }, fontStyle('bold')]}>
+        <Text
+          numberOfLines={1}
+          style={[styles.label, { color: danger ? colors.error : colors.heading }, fontStyle('bold')]}
+        >
           {label}
         </Text>
         {subtitle ? (
-          <Text style={[styles.subtitle, { color: colors.muted }, fontStyle('regular')]}>{subtitle}</Text>
+          <Text
+            numberOfLines={2}
+            style={[styles.subtitle, { color: colors.muted }, fontStyle('regular')]}
+          >
+            {subtitle}
+          </Text>
         ) : null}
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.muted} />
@@ -59,9 +67,21 @@ export function StatCard({
   const styles = useRowStyles();
 
   return (
-    <View style={[styles.stat, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-      <Text style={[styles.statValue, { color: accent ?? colors.heading }, fontStyle('extrabold')]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.muted }, fontStyle('semibold')]}>{label}</Text>
+      <View style={[styles.stat, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[styles.statValue, { color: accent ?? colors.heading }, fontStyle('extrabold')]}
+      >
+        {value}
+      </Text>
+      <Text
+        numberOfLines={2}
+        style={[styles.statLabel, { color: colors.muted }, fontStyle('semibold')]}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
@@ -92,9 +112,13 @@ export function QuickLinkCard({
       <View style={[styles.quickIcon, { backgroundColor: `${colors.blue}12` }]}>
         <Ionicons name={icon} size={22} color={colors.blue} />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.quickTitle, { color: colors.heading }, fontStyle('bold')]}>{title}</Text>
-        <Text style={[styles.quickSubtitle, { color: colors.muted }, fontStyle('regular')]}>{subtitle}</Text>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text numberOfLines={1} style={[styles.quickTitle, { color: colors.heading }, fontStyle('bold')]}>
+          {title}
+        </Text>
+        <Text numberOfLines={2} style={[styles.quickSubtitle, { color: colors.muted }, fontStyle('regular')]}>
+          {subtitle}
+        </Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.muted} />
     </Pressable>
@@ -124,19 +148,27 @@ function useRowStyles() {
           alignItems: 'center',
           justifyContent: 'center',
         },
-        textWrap: { flex: 1 },
+        textWrap: { flex: 1, minWidth: 0 },
         label: { fontSize: 15 },
         subtitle: { marginTop: 2, fontSize: 12 },
         stat: {
           flex: 1,
+          minWidth: 0,
           borderRadius: theme.radius.lg,
           borderWidth: 1,
-          padding: 14,
+          paddingVertical: 14,
+          paddingHorizontal: 8,
           alignItems: 'center',
           ...theme.shadow.soft,
         },
         statValue: { fontSize: 22 },
-        statLabel: { marginTop: 4, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 },
+        statLabel: {
+          marginTop: 4,
+          fontSize: 10,
+          textTransform: 'uppercase',
+          letterSpacing: 0.3,
+          textAlign: 'center',
+        },
         quick: {
           flexDirection: 'row',
           alignItems: 'center',

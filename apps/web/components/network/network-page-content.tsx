@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { UserRole } from '@moons/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { DashPageHero } from '@/components/dash/dash-page-shell';
 import { PersonCard, type ConnectionUpdate } from '@/components/network/person-card';
 import { useAuth } from '@/lib/auth-context';
+import { ApiError, getApiErrorMessage } from '@/lib/api-client';
 import { OPEN_ON_MOONS_LABEL } from '@/lib/open-on-moons';
 import {
   fetchRecentConnections,
@@ -112,7 +114,8 @@ function TabPill({
 }
 
 export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?: TabId }) {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, ready } = useAuth();
   const isRecruiter = user?.role === UserRole.RECRUITER;
   const [tab, setTab] = useState<TabId>(initialTab === 'recent' ? 'recent' : 'suggestions');
   const [loading, setLoading] = useState(true);
@@ -142,17 +145,31 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
         setRecent(await fetchRecentConnections());
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load network data');
+      if (err instanceof ApiError) {
+        if (err.status === 401 || err.code === 'SESSION_EXPIRED') {
+          router.replace('/login?next=/network');
+          return;
+        }
+        if (err.code === 'ONBOARDING_REQUIRED' || err.message.toLowerCase().includes('onboarding')) {
+          router.replace('/onboarding');
+          return;
+        }
+      }
+      setError(getApiErrorMessage(err, 'Failed to load network data'));
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, [tab, router]);
 
   useEffect(() => {
-    if (!searchActive) {
-      loadTab();
+    if (!ready) return;
+    if (!user) {
+      setLoading(false);
+      return;
     }
-  }, [loadTab, searchActive]);
+    if (searchActive) return;
+    void loadTab();
+  }, [ready, user, loadTab, searchActive]);
 
   function handleLocalConnectionChange(userId: string, update: ConnectionUpdate) {
     setSuggestions((prev) => applyConnectionUpdate(prev, userId, update));
@@ -180,7 +197,17 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
       });
       setSearchResults(data.items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed');
+      if (err instanceof ApiError) {
+        if (err.status === 401 || err.code === 'SESSION_EXPIRED') {
+          router.replace('/login?next=/network');
+          return;
+        }
+        if (err.code === 'ONBOARDING_REQUIRED' || err.message.toLowerCase().includes('onboarding')) {
+          router.replace('/onboarding');
+          return;
+        }
+      }
+      setError(getApiErrorMessage(err, 'Search failed'));
     } finally {
       setSearching(false);
     }

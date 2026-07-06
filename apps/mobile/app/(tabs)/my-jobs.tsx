@@ -16,11 +16,13 @@ import { JobCard } from '@/components/job-card';
 import { EmptyState, ScreenHeader } from '@/components/portal-ui';
 import { authFetch } from '@/lib/api';
 import { useTheme } from '@/lib/theme-context';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { JobListing } from '@/lib/types';
 
 export default function MyJobsScreen() {
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding();
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,7 +32,7 @@ export default function MyJobsScreen() {
       StyleSheet.create({
         center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
         list: { flex: 1 },
-        listContent: { padding: theme.spacing.md, paddingBottom: 32 },
+        listContent: { padding: theme.spacing.md, paddingBottom: bottomPadding },
         header: { marginBottom: theme.spacing.md },
         postButton: {
           flexDirection: 'row',
@@ -48,7 +50,7 @@ export default function MyJobsScreen() {
         actionText: { color: colors.blue, fontFamily: theme.fonts.bold, fontSize: 13 },
         danger: { color: colors.error, fontFamily: theme.fonts.bold, fontSize: 13 },
       }),
-    [colors],
+    [colors, bottomPadding],
   );
 
   const load = useCallback(async (isRefresh = false) => {

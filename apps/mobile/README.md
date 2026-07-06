@@ -79,6 +79,46 @@ Make sure your phone and PC are on the same Wi‑Fi, and Windows firewall allows
 
 Set `EXPO_PUBLIC_API_URL=https://api.moonsjob.com/api/v1` when building for App Store / Play Store.
 
+## Google Sign-In on phone
+
+**Expo Go cannot use Google sign-in.** Google only allows `https://` redirect URIs on Web OAuth clients — `exp://192.168.x.x:8081` is rejected (you will see “Invalid redirect” in Google Cloud Console).
+
+| Where you test | Google sign-in |
+|----------------|----------------|
+| Website | Works — Web OAuth client |
+| Expo Go on phone | Use **email + password**, or log in on the website |
+| Dev build on phone (`npx expo run:android`) | Works — needs Android OAuth client |
+
+### Set up Google for a dev build (Android)
+
+1. **Google Cloud Console** → APIs & Services → Credentials → **Create credentials** → **OAuth client ID**
+2. Application type: **Android** (not Web)
+3. Package name: `com.moonsjob.app`
+4. SHA-1 fingerprint (debug keystore on Windows):
+
+```powershell
+keytool -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
+```
+
+Copy the **SHA-1** line into Google Cloud Console.
+
+5. Copy the new **Android client ID** into `apps/mobile/.env`:
+
+```env
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=xxxx.apps.googleusercontent.com
+```
+
+6. Keep `EXPO_PUBLIC_GOOGLE_CLIENT_ID` as your existing **Web** client ID (same as website).
+
+7. Build and install on your phone (not Expo Go):
+
+```bash
+cd apps/mobile
+npx expo run:android
+```
+
+OAuth consent screen → **Test users**: add your Gmail if the app is still in **Testing**.
+
 Build with [EAS Build](https://docs.expo.dev/build/introduction/):
 
 ```bash

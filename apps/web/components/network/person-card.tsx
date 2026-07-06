@@ -13,6 +13,9 @@ import {
   formatRecommendationReason,
 } from '@/components/network/network-modals';
 import {
+  isStaleConnectionInviteError,
+} from '@/lib/connection-invites';
+import {
   acceptConnection,
   cancelConnection,
   rejectConnection,
@@ -138,6 +141,11 @@ function ConnectActions({
       }
       if (refreshAll) onUpdated?.();
     } catch (err) {
+      if (update && isStaleConnectionInviteError(err)) {
+        await applyUpdate(update);
+        if (refreshAll) onUpdated?.();
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Action failed');
     } finally {
       setLoading(false);

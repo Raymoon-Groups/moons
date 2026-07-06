@@ -153,7 +153,7 @@ export function NavUniversalSearch({
       <form onSubmit={handleSubmit}>
         <div
           className={`flex w-full items-center rounded-full border border-border bg-surface transition focus-within:border-moons-blue/50 focus-within:ring-2 focus-within:ring-moons-blue/20 ${
-            stretched ? 'px-4 py-2.5' : 'px-3 py-1.5'
+            stretched ? 'px-4 py-3' : 'px-3 py-1.5'
           }`}
         >
           <SearchIcon />

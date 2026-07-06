@@ -212,9 +212,36 @@ function MessagesPageInner() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [error, setError] = useState('');
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const threadScrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
 
   const mobileShowThread = Boolean(activeId);
   const messageGroups = useMemo(() => groupMessagesByDay(messages), [messages]);
+
+  const scrollThreadToEnd = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const el = threadScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }, []);
+
+  const handleThreadScroll = useCallback(() => {
+    const el = threadScrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 120;
+  }, []);
+
+  function applyThreadMessages(next: MessageItem[]) {
+    setMessages((prev) => {
+      if (
+        prev.length === next.length &&
+        prev.every((message, index) => message.id === next[index]?.id)
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }
 
   const loadConversations = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoadingList(true);
@@ -234,7 +261,7 @@ function MessagesPageInner() {
     if (!activeId) return;
     try {
       const msgs = await fetchMessages(activeId);
-      setMessages(msgs.items);
+      applyThreadMessages(msgs.items);
     } catch {
       // ignore background refresh errors
     }
@@ -251,7 +278,8 @@ function MessagesPageInner() {
       setActiveId(conversationId);
       setOtherUser(detail.otherUser);
       setThreadDetail(detail);
-      setMessages(msgs.items);
+      stickToBottomRef.current = true;
+      applyThreadMessages(msgs.items);
       void loadConversations();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load messages');
@@ -301,7 +329,10 @@ function MessagesPageInner() {
           setThreadDetail(detail);
           return fetchMessages(detail.id);
         })
-        .then((msgs) => setMessages(msgs.items))
+        .then((msgs) => {
+          stickToBottomRef.current = true;
+          applyThreadMessages(msgs.items);
+        })
         .catch((err) =>
           setError(err instanceof Error ? err.message : 'Could not open conversation'),
         )
@@ -310,8 +341,9 @@ function MessagesPageInner() {
   }, [conversationParam, withParam, loadThread, router]);
 
   useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!stickToBottomRef.current) return;
+    scrollThreadToEnd();
+  }, [messages, scrollThreadToEnd]);
 
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
@@ -321,6 +353,7 @@ function MessagesPageInner() {
     setError('');
     try {
       const sent = await sendMessage(activeId, draft.trim(), attachment ?? undefined);
+      stickToBottomRef.current = true;
       setMessages((prev) => [...prev, sent]);
       setDraft('');
       setAttachment(null);
@@ -355,6 +388,7 @@ function MessagesPageInner() {
   }
 
   function selectConversation(id: string) {
+    stickToBottomRef.current = true;
     router.push(`/messages?conversation=${id}`, { scroll: false });
   }
 
@@ -364,6 +398,7 @@ function MessagesPageInner() {
     setOtherUser(null);
     setThreadDetail(null);
     setMessages([]);
+    stickToBottomRef.current = true;
   }
 
   const displayName = otherUser?.fullName?.trim() || 'Professional';
@@ -538,7 +573,11 @@ function MessagesPageInner() {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto bg-gradient-to-b from-surface via-surface to-moons-blue/[0.03] px-4 py-5 sm:px-6">
+                <div
+                  ref={threadScrollRef}
+                  onScroll={handleThreadScroll}
+                  className="flex-1 overflow-y-auto bg-gradient-to-b from-surface via-surface to-moons-blue/[0.03] px-4 py-5 sm:px-6"
+                >
                   {loadingThread ? (
                     <div className="flex h-full items-center justify-center">
                       <p className="text-sm text-moons-muted">Loading messages…</p>

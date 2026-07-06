@@ -248,8 +248,13 @@ export function PrimaryBanner({
         marginBottom: theme.spacing.md,
       }}
     >
-      <Text style={{ fontSize: 15, color: colors.heading, ...fontStyle('bold') }}>{title}</Text>
-      <Text style={{ marginTop: 4, fontSize: 13, color: colors.muted, lineHeight: 19, ...fontStyle('regular') }}>
+      <Text style={{ fontSize: 15, color: colors.heading, ...fontStyle('bold') }} numberOfLines={2}>
+        {title}
+      </Text>
+      <Text
+        style={{ marginTop: 4, fontSize: 13, color: colors.muted, lineHeight: 19, ...fontStyle('regular') }}
+        numberOfLines={3}
+      >
         {subtitle}
       </Text>
       <Text style={{ marginTop: 10, fontSize: 13, color: colors.blue, ...fontStyle('bold') }}>{ctaLabel} →</Text>

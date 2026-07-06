@@ -15,11 +15,13 @@ import { resolveAssetUrl } from '@/lib/assets';
 import { EmptyState, ScreenHeader } from '@/components/portal-ui';
 import { apiFetch } from '@/lib/api';
 import { useTheme } from '@/lib/theme-context';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { CompaniesPage, CompanyListing } from '@/lib/types';
 
 export default function CompaniesScreen() {
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding();
   const [companies, setCompanies] = useState<CompanyListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,7 +31,7 @@ export default function CompaniesScreen() {
       StyleSheet.create({
         center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
         list: { flex: 1 },
-        listContent: { padding: theme.spacing.md, paddingBottom: 32 },
+        listContent: { padding: theme.spacing.md, paddingBottom: bottomPadding },
         header: { marginBottom: theme.spacing.md },
         title: { fontSize: 26, fontFamily: theme.fonts.extrabold, color: colors.heading },
         subtitle: { marginTop: 4, fontSize: 15, fontFamily: theme.fonts.regular, color: colors.muted, lineHeight: 22 },
@@ -47,7 +49,7 @@ export default function CompaniesScreen() {
         meta: { marginTop: 4, fontSize: 13, fontFamily: theme.fonts.regular, color: colors.muted },
         jobs: { marginTop: 6, fontSize: 12, fontFamily: theme.fonts.bold, color: colors.blue },
       }),
-    [colors],
+    [colors, bottomPadding],
   );
 
   const load = useCallback(async (isRefresh = false) => {

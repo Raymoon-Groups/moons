@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -9,7 +10,11 @@ import { router } from 'expo-router';
 import { ApiError, googleAuthRequest } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { getPostAuthPath } from '@/lib/auth-redirect';
-import { GOOGLE_CLIENT_ID } from '@/lib/config';
+import {
+  GOOGLE_ANDROID_CLIENT_ID,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_IOS_CLIENT_ID,
+} from '@/lib/config';
 import { isExpoGo } from '@/lib/expo-runtime';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
@@ -18,74 +23,125 @@ import { ErrorText } from './ui';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const redirectUri = AuthSession.makeRedirectUri({
-  scheme: 'moonsjob',
-  path: 'oauth',
-});
+type GoogleSignInButtonProps = { role?: UserRole };
 
-export function GoogleSignInButton({ role = UserRole.CANDIDATE }: { role?: UserRole }) {
+function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    button: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: theme.radius.full,
+      paddingVertical: 14,
+      backgroundColor: colors.surface,
+    },
+    buttonDisabled: { opacity: 0.55 },
+    buttonText: {
+      color: colors.heading,
+      ...fontStyle('bold'),
+      fontSize: 15,
+    },
+    hint: {
+      fontSize: 12,
+      color: colors.muted,
+      lineHeight: 18,
+      marginTop: 10,
+    },
+    warning: {
+      fontSize: 12,
+      color: colors.warning,
+      lineHeight: 18,
+    },
+    noticeBox: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: theme.radius.lg,
+      padding: 14,
+      backgroundColor: colors.surface,
+      gap: 8,
+    },
+    noticeTitle: {
+      color: colors.heading,
+      ...fontStyle('bold'),
+      fontSize: 14,
+    },
+    noticeText: {
+      color: colors.muted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
+  });
+}
+
+function getGoogleRedirectUri() {
+  if (Platform.OS === 'web') {
+    return AuthSession.makeRedirectUri();
+  }
+  if (isExpoGo) {
+    const packageName =
+      Platform.OS === 'android'
+        ? 'host.exp.exponent'
+        : (Constants.expoConfig?.ios?.bundleIdentifier ?? 'host.exp.Exponent');
+    return AuthSession.makeRedirectUri({
+      native: `${packageName}:/oauthredirect`,
+    });
+  }
+  return AuthSession.makeRedirectUri({ scheme: 'moonsjob', path: 'oauth' });
+}
+
+/** expo-auth-session requires androidClientId on Android — use platform ID or web client as fallback. */
+function getGoogleAuthRequestConfig(redirectUri: string) {
+  const webId = GOOGLE_CLIENT_ID || undefined;
+  const androidId = GOOGLE_ANDROID_CLIENT_ID || webId;
+  const iosId = GOOGLE_IOS_CLIENT_ID || webId;
+
+  return {
+    webClientId: webId,
+    clientId: webId,
+    androidClientId: Platform.OS === 'android' ? androidId : undefined,
+    iosClientId: Platform.OS === 'ios' ? iosId : undefined,
+    redirectUri,
+  };
+}
+
+function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInButtonProps) {
   const { signIn } = useAuth();
   const { colors } = useTheme();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        button: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: theme.radius.full,
-          paddingVertical: 14,
-          backgroundColor: colors.surface,
-        },
-        buttonDisabled: { opacity: 0.6 },
-        buttonText: {
-          color: colors.heading,
-          ...fontStyle('bold'),
-          fontSize: 15,
-        },
-        notice: {
-          fontSize: 13,
-          color: colors.muted,
-          lineHeight: 19,
-          marginBottom: 10,
-        },
-        warning: {
-          fontSize: 12,
-          color: colors.warning,
-          lineHeight: 18,
-        },
-      }),
-    [colors],
+  const redirectUri = useMemo(() => getGoogleRedirectUri(), []);
+  const googleConfig = useMemo(
+    () => getGoogleAuthRequestConfig(redirectUri),
+    [redirectUri],
   );
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_CLIENT_ID || undefined,
-    androidClientId: GOOGLE_CLIENT_ID || undefined,
-    iosClientId: GOOGLE_CLIENT_ID || undefined,
-    redirectUri,
-  });
+  const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAuthReady(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!response) return;
 
     if (response.type === 'error') {
+      const message = response.error?.message ?? '';
       setError(
-        response.error?.message ??
-          'Google sign-in failed. Google OAuth does not work in Expo Go — use email sign-in.',
+        message.toLowerCase().includes('unauthorized')
+          ? 'Google blocked sign-in. Add an Android OAuth client in Google Cloud Console and set EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID in apps/mobile/.env.'
+          : message || 'Google sign-in failed.',
       );
       return;
     }
 
-    if (response.type === 'cancel' || response.type === 'dismiss') {
-      return;
-    }
-
+    if (response.type === 'cancel' || response.type === 'dismiss') return;
     if (response.type !== 'success') return;
 
     (async () => {
@@ -102,48 +158,48 @@ export function GoogleSignInButton({ role = UserRole.CANDIDATE }: { role?: UserR
         await signIn(data);
         router.replace(getPostAuthPath(data.user) as never);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Google sign-in failed');
+        const message = err instanceof ApiError ? err.message : 'Google sign-in failed';
+        setError(
+          message === 'Invalid Google token' || message === 'Unauthorized'
+            ? 'Server rejected the Google token. Ensure GOOGLE_CLIENT_ID is set on the API and restart it.'
+            : message,
+        );
       } finally {
         setLoading(false);
       }
     })();
   }, [response, role, signIn]);
 
-  if (!GOOGLE_CLIENT_ID) {
-    return (
-      <Text style={styles.warning}>
-        Add EXPO_PUBLIC_GOOGLE_CLIENT_ID to apps/mobile/.env for Google sign-in.
-      </Text>
-    );
+  async function handlePress() {
+    setError('');
+    if (!request) {
+      setError(
+        authReady
+          ? 'Google sign-in could not start. Restart Expo after changing .env.'
+          : 'Preparing Google sign-in…',
+      );
+      return;
+    }
+    try {
+      await promptAsync();
+    } catch {
+      setError('Could not open Google sign-in. Try again.');
+    }
   }
 
-  if (isExpoGo) {
-    return (
-      <View>
-        <Text style={styles.notice}>
-          Google sign-in is not available in Expo Go. Use email and password above to test on your
-          phone. Google works on the website and in a production/dev build of the app.
-        </Text>
-        <Pressable disabled style={[styles.button, styles.buttonDisabled]}>
-          <Ionicons name="logo-google" size={18} color={colors.muted} />
-          <Text style={[styles.buttonText, { color: colors.muted }]}>Continue with Google</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  const disabled = loading || (!request && !authReady);
+  const usingWebClientOnAndroid =
+    Platform.OS === 'android' && !GOOGLE_ANDROID_CLIENT_ID && Boolean(GOOGLE_CLIENT_ID);
 
   return (
     <View>
       <Pressable
-        onPress={() => {
-          setError('');
-          promptAsync();
-        }}
-        disabled={!request || loading}
+        onPress={() => void handlePress()}
+        disabled={disabled}
         style={({ pressed }) => [
           styles.button,
-          (!request || loading) && styles.buttonDisabled,
-          pressed && { opacity: 0.9 },
+          disabled && styles.buttonDisabled,
+          pressed && !disabled && { opacity: 0.9 },
         ]}
       >
         {loading ? (
@@ -156,6 +212,28 @@ export function GoogleSignInButton({ role = UserRole.CANDIDATE }: { role?: UserR
         )}
       </Pressable>
       {error ? <ErrorText>{error}</ErrorText> : null}
+      {usingWebClientOnAndroid && !error ? (
+        <Text style={styles.hint}>
+          For reliable Google sign-in on Android, create an Android OAuth client (package{' '}
+          {isExpoGo ? 'host.exp.exponent' : 'com.moonsjob.app'}) and set
+          EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID in apps/mobile/.env.
+        </Text>
+      ) : null}
     </View>
   );
+}
+
+export function GoogleSignInButton({ role = UserRole.CANDIDATE }: GoogleSignInButtonProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  if (!GOOGLE_CLIENT_ID) {
+    return (
+      <Text style={styles.warning}>
+        Add EXPO_PUBLIC_GOOGLE_CLIENT_ID to apps/mobile/.env (same Web client ID as the website).
+      </Text>
+    );
+  }
+
+  return <GoogleSignInButtonNative role={role} />;
 }

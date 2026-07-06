@@ -1,19 +1,51 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, Tabs } from 'expo-router';
-import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Redirect, Tabs, router } from 'expo-router';
+import { ActivityIndicator, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { UserRole } from '@moons/shared';
+import { BottomPillTabBar } from '@/components/bottom-pill-tab-bar';
+import { NotificationBell } from '@/components/notification-bell';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/lib/auth-context';
+import { useNavIndicators } from '@/lib/nav-indicators';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+
+function HeaderActions() {
+  const { indicators } = useNavIndicators();
+  const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const compact = width < 380;
+  const iconSize = compact ? 18 : 20;
+  const btnSize = compact ? 36 : 40;
+
+  return (
+    <View style={[styles.headerRight, compact && styles.headerRightCompact]}>
+      <NotificationBell hasUnread={indicators.bell} compact={compact} />
+      <ThemeToggle size={compact ? 36 : 40} />
+      <Pressable
+        onPress={() => router.push('/(tabs)/profile')}
+        style={[
+          styles.profileBtn,
+          {
+            width: btnSize,
+            height: btnSize,
+            borderRadius: btnSize / 2,
+            borderColor: colors.border,
+            backgroundColor: colors.surfaceElevated,
+          },
+        ]}
+        accessibilityLabel="Profile"
+      >
+        <Ionicons name="person-outline" size={iconSize} color={colors.heading} />
+      </Pressable>
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const { user, ready } = useAuth();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const isRecruiter = user?.role === UserRole.RECRUITER;
-  const tabBarHeight = 56 + Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
 
   if (!ready) {
     return (
@@ -28,6 +60,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => <BottomPillTabBar {...props} />}
       screenOptions={{
         headerStyle: {
           backgroundColor: colors.surfaceElevated,
@@ -37,26 +70,8 @@ export default function TabsLayout() {
         headerTintColor: colors.heading,
         headerTitleStyle: { fontFamily: theme.fonts.semibold, fontSize: 17, color: colors.heading },
         headerShadowVisible: false,
-        headerRight: () => (
-          <View style={{ marginRight: 12 }}>
-            <ThemeToggle />
-          </View>
-        ),
+        headerRight: () => <HeaderActions />,
         sceneStyle: { backgroundColor: colors.background },
-        tabBarStyle: {
-          backgroundColor: colors.surfaceElevated,
-          borderTopColor: colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          height: tabBarHeight,
-          paddingTop: 6,
-          paddingBottom: Math.max(insets.bottom, 8),
-        },
-        tabBarActiveTintColor: colors.heading,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontFamily: theme.fonts.medium,
-        },
       }}
     >
       <Tabs.Screen
@@ -64,15 +79,15 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           headerTitle: 'MoonsJob',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="jobs"
         options={{
-          title: isRecruiter ? 'Browse' : 'Jobs',
-          headerTitle: isRecruiter ? 'Browse jobs' : 'Jobs',
-          tabBarIcon: ({ color, size }) => <Ionicons name="briefcase-outline" size={size} color={color} />,
+          title: 'Jobs',
+          headerTitle: 'Jobs',
+          href: isRecruiter ? null : undefined,
         }}
       />
       <Tabs.Screen
@@ -80,17 +95,29 @@ export default function TabsLayout() {
         options={{
           title: 'Applied',
           headerTitle: 'Applications',
-          href: isRecruiter ? null : undefined,
-          tabBarIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={size} color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="my-jobs"
         options={{
-          title: 'My jobs',
+          title: 'Jobs',
           headerTitle: 'My jobs',
           href: isRecruiter ? undefined : null,
-          tabBarIcon: ({ color, size }) => <Ionicons name="folder-open-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="network"
+        options={{
+          title: 'Network',
+          headerTitle: 'My Network',
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          headerTitle: 'Messaging',
         }}
       />
       <Tabs.Screen
@@ -98,7 +125,15 @@ export default function TabsLayout() {
         options={{
           title: 'Companies',
           headerTitle: 'Companies',
-          tabBarIcon: ({ color, size }) => <Ionicons name="business-outline" size={size} color={color} />,
+          href: isRecruiter ? null : undefined,
+        }}
+      />
+      <Tabs.Screen
+        name="candidates"
+        options={{
+          title: 'Candidates',
+          headerTitle: 'Candidates',
+          href: isRecruiter ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -106,9 +141,28 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           headerTitle: 'Profile',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+          href: null,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginRight: 12,
+    flexShrink: 1,
+  },
+  headerRightCompact: {
+    gap: 6,
+    marginRight: 8,
+  },
+  profileBtn: {
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

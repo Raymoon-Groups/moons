@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import type { AuthResponse, AuthUser } from '@moons/shared';
-import { authFetch } from './api-client';
+import { ApiError, authFetch } from './api-client';
 import {
   clearAuthSession,
   getAccessToken,
@@ -59,8 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const profile = await authFetch<Profile>('/profiles/me');
       syncUserFromProfile(profile);
-    } catch {
-      // keep cached user if profile fetch fails
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        clearAuthSession();
+        setUser(null);
+      }
     }
   }, [syncUserFromProfile]);
 

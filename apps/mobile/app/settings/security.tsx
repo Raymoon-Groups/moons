@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Card, ErrorText, FieldLabel, InfoText, Input, PrimaryButton, Screen } from '@/components/ui';
+import { Card, ErrorText, FieldLabel, InfoText, PasswordInput, PrimaryButton, Screen } from '@/components/ui';
 import { ApiError, authFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -106,11 +106,11 @@ export default function SecurityScreen() {
           <>
             <Text style={styles.sectionTitle}>Change password</Text>
             <FieldLabel>Current password</FieldLabel>
-            <Input value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry />
+            <PasswordInput value={currentPassword} onChangeText={setCurrentPassword} placeholder="Current password" />
             <FieldLabel>New password</FieldLabel>
-            <Input value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+            <PasswordInput value={newPassword} onChangeText={setNewPassword} placeholder="New password" />
             <FieldLabel>Confirm new password</FieldLabel>
-            <Input value={confirmNewPassword} onChangeText={setConfirmNewPassword} secureTextEntry />
+            <PasswordInput value={confirmNewPassword} onChangeText={setConfirmNewPassword} placeholder="Confirm new password" />
             <PrimaryButton
               label={loading ? 'Saving…' : 'Change password'}
               onPress={handleChangePassword}
@@ -122,9 +122,9 @@ export default function SecurityScreen() {
             <Text style={styles.sectionTitle}>Create a password</Text>
             <Text style={styles.hint}>Add a password so you can also sign in with email.</Text>
             <FieldLabel>Password</FieldLabel>
-            <Input value={password} onChangeText={setPassword} secureTextEntry />
+            <PasswordInput value={password} onChangeText={setPassword} placeholder="Password" />
             <FieldLabel>Confirm password</FieldLabel>
-            <Input value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+            <PasswordInput value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" />
             <PrimaryButton
               label={loading ? 'Saving…' : 'Create password'}
               onPress={handleSetPassword}

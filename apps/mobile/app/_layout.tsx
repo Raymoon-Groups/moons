@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
 import { AuthProvider } from '@/lib/auth-context';
@@ -34,6 +35,8 @@ function RootStack() {
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="network/[userId]" options={{ title: 'Profile' }} />
+        <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="job/[id]" options={{ title: 'Job details' }} />
         <Stack.Screen name="companies/[recruiterId]" options={{ title: 'Company' }} />
         <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
@@ -74,9 +77,11 @@ function AppRoot() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <AppRoot />
-      </ThemeProvider>
+      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+        <ThemeProvider>
+          <AppRoot />
+        </ThemeProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

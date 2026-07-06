@@ -587,6 +587,20 @@ export class AuthService {
     return `/uploads/resumes/${filename}`;
   }
 
+  private getGoogleAudiences(): string[] {
+    const audiences = [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_ANDROID_CLIENT_ID,
+      process.env.GOOGLE_IOS_CLIENT_ID,
+    ].filter((id): id is string => Boolean(id));
+
+    if (audiences.length === 0) {
+      throw new UnauthorizedException('Google sign-in is not configured');
+    }
+
+    return [...new Set(audiences)];
+  }
+
   private getGoogleClient() {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
@@ -600,9 +614,10 @@ export class AuthService {
 
   private async verifyGoogleToken(idToken: string) {
     const client = this.getGoogleClient();
+    const audiences = this.getGoogleAudiences();
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: audiences.length === 1 ? audiences[0] : audiences,
     });
     const payload = ticket.getPayload();
     if (!payload?.email || !payload.sub) {

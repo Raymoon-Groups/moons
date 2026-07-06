@@ -45,6 +45,9 @@ export function ConnectionInvitesBanner() {
     try {
       await acceptConnectionInvite(connectionId);
       setInvites((prev) => prev.filter((i) => i.id !== connectionId));
+    } catch {
+      setInvites((prev) => prev.filter((i) => i.id !== connectionId));
+      void load();
     } finally {
       setLoadingId(null);
     }
@@ -55,6 +58,9 @@ export function ConnectionInvitesBanner() {
     try {
       await ignoreConnectionInvite(connectionId);
       setInvites((prev) => prev.filter((i) => i.id !== connectionId));
+    } catch {
+      setInvites((prev) => prev.filter((i) => i.id !== connectionId));
+      void load();
     } finally {
       setLoadingId(null);
     }

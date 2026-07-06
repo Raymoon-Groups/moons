@@ -195,7 +195,7 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface-elevated text-heading shadow-sm transition hover:border-moons-blue/30 hover:bg-surface-hover hover:text-moons-blue md:h-10 md:w-10"
+        className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface-elevated text-heading shadow-sm transition hover:border-moons-blue/30 hover:bg-surface-hover hover:text-moons-blue"
         aria-label={`Notifications${showDot ? ', unread' : ''}`}
         aria-expanded={open}
       >

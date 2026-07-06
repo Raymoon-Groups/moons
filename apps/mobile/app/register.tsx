@@ -12,6 +12,7 @@ import {
   InfoText,
   Input,
   LinkText,
+  PasswordInput,
   PrimaryButton,
   SecondaryButton,
 } from '@/components/ui';
@@ -120,7 +121,7 @@ export default function RegisterScreen() {
             placeholder="you@email.com"
           />
           <FieldLabel>Password</FieldLabel>
-          <Input value={password} onChangeText={setPassword} secureTextEntry placeholder="At least 8 characters" />
+          <PasswordInput value={password} onChangeText={setPassword} placeholder="At least 8 characters" />
           {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton label={loading ? 'Sending code…' : 'Continue'} onPress={handleSendOtp} loading={loading} />

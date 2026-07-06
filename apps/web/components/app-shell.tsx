@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
+import { SiteBottomNav } from '@/components/nav/site-bottom-nav';
 import { ConnectionInvitesBanner } from '@/components/network/connection-invites-banner';
 
 const AUTH_PATHS = ['/login', '/register', '/onboarding', '/forgot-password'];
@@ -24,8 +25,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <SiteHeader />
       <ConnectionInvitesBanner />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-28">{children}</main>
       <SiteFooter />
+      <SiteBottomNav />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,6 +12,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -52,6 +53,23 @@ function useUiStyles() {
           marginBottom: 8,
           fontSize: 15,
           fontFamily: theme.fonts.regular,
+        },
+        passwordWrap: {
+          position: 'relative',
+          marginBottom: 8,
+        },
+        passwordInput: {
+          marginBottom: 0,
+          paddingRight: 48,
+        },
+        eyeButton: {
+          position: 'absolute',
+          right: 4,
+          top: 0,
+          bottom: 0,
+          width: 44,
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         primaryButton: {
           backgroundColor: colors.blue,
@@ -150,6 +168,36 @@ export function Input(props: TextInputProps) {
   const { colors } = useTheme();
   return (
     <TextInput placeholderTextColor={colors.muted} style={styles.input} {...props} />
+  );
+}
+
+export function PasswordInput(props: Omit<TextInputProps, 'secureTextEntry'>) {
+  const styles = useUiStyles();
+  const { colors } = useTheme();
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <View style={styles.passwordWrap}>
+      <TextInput
+        {...props}
+        secureTextEntry={!visible}
+        placeholderTextColor={colors.muted}
+        style={[styles.input, styles.passwordInput]}
+      />
+      <Pressable
+        onPress={() => setVisible((v) => !v)}
+        style={styles.eyeButton}
+        accessibilityRole="button"
+        accessibilityLabel={visible ? 'Hide password' : 'Show password'}
+        hitSlop={8}
+      >
+        <Ionicons
+          name={visible ? 'eye-off-outline' : 'eye-outline'}
+          size={20}
+          color={colors.muted}
+        />
+      </Pressable>
+    </View>
   );
 }
 

@@ -18,11 +18,13 @@ import { StatusBadge } from '@/components/status-badge';
 import { authFetch } from '@/lib/api';
 import { formatEmploymentType } from '@/lib/format';
 import { useTheme } from '@/lib/theme-context';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { ApplicationWithJob } from '@/lib/types';
 
 export default function ApplicationsScreen() {
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding();
   const [apps, setApps] = useState<ApplicationWithJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,7 +35,7 @@ export default function ApplicationsScreen() {
       StyleSheet.create({
         center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
         list: { flex: 1 },
-        listContent: { padding: theme.spacing.md, paddingBottom: 32 },
+        listContent: { padding: theme.spacing.md, paddingBottom: bottomPadding },
         header: { marginBottom: theme.spacing.md },
         title: { fontSize: 26, fontFamily: theme.fonts.extrabold, color: colors.heading },
         subtitle: { marginTop: 4, fontSize: 15, fontFamily: theme.fonts.regular, color: colors.muted, lineHeight: 22 },
@@ -55,7 +57,7 @@ export default function ApplicationsScreen() {
         withdraw: { marginTop: 12, alignSelf: 'flex-start' },
         withdrawText: { color: colors.error, fontFamily: theme.fonts.bold, fontSize: 13 },
       }),
-    [colors],
+    [colors, bottomPadding],
   );
 
   const load = useCallback(async (isRefresh = false) => {

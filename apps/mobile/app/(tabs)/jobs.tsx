@@ -15,6 +15,7 @@ import { EmptyState, FilterChips, ScreenHeader } from '@/components/portal-ui';
 import { SearchBar } from '@/components/search-bar';
 import { apiFetch } from '@/lib/api';
 import { useTheme } from '@/lib/theme-context';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { JobListing, JobsPage } from '@/lib/types';
 
@@ -27,6 +28,7 @@ const FILTER_OPTIONS = [
 
 export default function JobsScreen() {
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding();
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
@@ -95,7 +97,7 @@ export default function JobsScreen() {
         style={styles.list}
         data={filteredJobs}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />}
         ListHeaderComponent={header}
         ListEmptyComponent={
@@ -118,5 +120,5 @@ export default function JobsScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { flex: 1 },
-  listContent: { padding: theme.spacing.md, paddingBottom: 32 },
+  listContent: { padding: theme.spacing.md },
 });

@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { UserRole } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
+import { AuthenticatedScreen } from '@/components/authenticated-screen';
 import { JobCard } from '@/components/job-card';
 import { QuickLinkCard, StatCard } from '@/components/menu-row';
 import { ProfileRing } from '@/components/profile-ring';
@@ -19,6 +20,8 @@ import type { ApplicationWithJob, CandidateStats, JobListing, RecruiterStats } f
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { width } = useWindowDimensions();
+  const compact = width < 380;
   const isRecruiter = user?.role === UserRole.RECRUITER;
   const { profile, loading: profileLoading, name, avatarUrl, logoUrl } = useProfile();
 
@@ -84,15 +87,24 @@ export default function DashboardScreen() {
 
   return (
     <AppScreen>
+      <AuthenticatedScreen>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <LinearGradient colors={heroColors} style={[styles.hero, { borderColor: colors.border }]}>
           <View style={styles.heroRow}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.heroCopy}>
               <Text style={[styles.eyebrow, { color: colors.blue }, fontStyle('bold')]}>MOONSJOB</Text>
-              <Text style={[styles.greeting, { color: colors.heading }, fontStyle('extrabold')]}>
+              <Text
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                style={[styles.greeting, { color: colors.heading, fontSize: compact ? 21 : 24 }, fontStyle('extrabold')]}
+              >
                 Hello, {displayName.split(' ')[0]}
               </Text>
-              <Text style={[styles.subtitle, { color: colors.muted }, fontStyle('regular')]}>
+              <Text
+                numberOfLines={2}
+                style={[styles.subtitle, { color: colors.muted }, fontStyle('regular')]}
+              >
                 {isRecruiter ? 'Your hiring command center' : 'Your job search dashboard'}
               </Text>
             </View>
@@ -101,7 +113,7 @@ export default function DashboardScreen() {
               name={displayName}
               avatarUrl={avatarUrl}
               logoUrl={isRecruiter ? logoUrl : null}
-              size={76}
+              size={compact ? 68 : 76}
             />
           </View>
           {profile ? (
@@ -140,16 +152,16 @@ export default function DashboardScreen() {
         {isRecruiter ? (
           <>
             <QuickLinkCard title="My jobs" subtitle="Manage postings" icon="folder-open" onPress={() => router.push('/(tabs)/my-jobs')} />
-            <QuickLinkCard title="Post a job" subtitle="Create a new listing" icon="add-circle" onPress={() => router.push('/recruiter/jobs/new')} />
-            <QuickLinkCard title="Candidates" subtitle="Browse applicants" icon="people" onPress={() => router.push('/recruiter/candidates')} />
-            <QuickLinkCard title="Companies" subtitle="Explore employers" icon="business" onPress={() => router.push('/(tabs)/companies')} />
+            <QuickLinkCard title="Network" subtitle="Grow connections" icon="people" onPress={() => router.push('/(tabs)/network')} />
+            <QuickLinkCard title="Messages" subtitle="Your inbox" icon="chatbubble" onPress={() => router.push('/(tabs)/messages')} />
+            <QuickLinkCard title="Candidates" subtitle="Browse applicants" icon="person-add" onPress={() => router.push('/(tabs)/candidates')} />
           </>
         ) : (
           <>
             <QuickLinkCard title="Browse jobs" subtitle="Find your next role" icon="briefcase" onPress={() => router.push('/(tabs)/jobs')} />
+            <QuickLinkCard title="Network" subtitle="Grow connections" icon="people" onPress={() => router.push('/(tabs)/network')} />
+            <QuickLinkCard title="Messages" subtitle="Your inbox" icon="chatbubble" onPress={() => router.push('/(tabs)/messages')} />
             <QuickLinkCard title="Applications" subtitle="Track your status" icon="document-text" onPress={() => router.push('/(tabs)/applications')} />
-            <QuickLinkCard title="Companies" subtitle="Explore employers" icon="business" onPress={() => router.push('/(tabs)/companies')} />
-            <QuickLinkCard title="Edit profile" subtitle="Boost visibility" icon="create" onPress={() => router.push('/profile/edit')} />
           </>
         )}
 
@@ -162,13 +174,14 @@ export default function DashboardScreen() {
           </>
         ) : null}
       </ScrollView>
+      </AuthenticatedScreen>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { padding: theme.spacing.md, paddingBottom: 32 },
+  container: { padding: theme.spacing.md, paddingBottom: theme.spacing.md },
   hero: {
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
@@ -176,9 +189,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroCopy: { flex: 1, minWidth: 0 },
   eyebrow: { fontSize: 10, letterSpacing: 1.4, marginBottom: 4 },
   greeting: { fontSize: 24, lineHeight: 30 },
   subtitle: { marginTop: 6, fontSize: 14, lineHeight: 21 },
   completion: { marginTop: 12, fontSize: 13 },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: theme.spacing.md },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: theme.spacing.md },
 });
