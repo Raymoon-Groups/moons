@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User, UserRole } from '@prisma/client';
+import { isRecruiterCompanyEmail, RECRUITER_COMPANY_EMAIL_MESSAGE } from '../common/utils/recruiter-email';
 import * as bcrypt from 'bcrypt';
 import { randomInt, randomUUID } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
@@ -53,6 +54,9 @@ export class AuthService {
 
   async sendRegistrationOtp(dto: SendOtpDto) {
     const email = normalizeEmail(dto.email);
+    if (dto.role === UserRole.RECRUITER) {
+      this.assertRecruiterCompanyEmail(email);
+    }
     const existing = await this.usersService.findByEmail(email);
     if (existing) {
       this.throwExistingAccountConflict(existing);
@@ -158,6 +162,10 @@ export class AuthService {
       throw new BadRequestException('Invalid verification code.');
     }
 
+    if (payload.role === UserRole.RECRUITER) {
+      this.assertRecruiterCompanyEmail(email);
+    }
+
     const existing = await this.usersService.findByEmail(email);
     if (existing) {
       await this.redisService.del(key);
@@ -190,6 +198,10 @@ export class AuthService {
     }
 
     this.assertEmailVerified(user);
+
+    if (user.role === UserRole.RECRUITER) {
+      this.assertRecruiterCompanyEmail(email);
+    }
 
     if (!user.passwordHash) {
       throw new HttpException(
@@ -226,6 +238,9 @@ export class AuthService {
     if (!user) {
       const byEmail = await this.usersService.findByEmail(email);
       if (byEmail) {
+        if (byEmail.role === UserRole.RECRUITER) {
+          this.assertRecruiterCompanyEmail(email);
+        }
         if (byEmail.googleId && byEmail.googleId !== googleUser.googleId) {
           throw new ConflictException(
             'Email already linked to another Google account',
@@ -238,6 +253,9 @@ export class AuthService {
         );
         user = linked!;
       } else {
+        if (role === UserRole.RECRUITER) {
+          this.assertRecruiterCompanyEmail(email);
+        }
         user = await this.usersService.createGoogleUser({
           email,
           googleId: googleUser.googleId,
@@ -246,6 +264,10 @@ export class AuthService {
           avatarUrl: googleUser.avatarUrl,
         });
       }
+    }
+
+    if (user.role === UserRole.RECRUITER) {
+      this.assertRecruiterCompanyEmail(email);
     }
 
     const withProfile = await this.usersService.findByIdWithProfile(user.id);
@@ -513,6 +535,12 @@ export class AuthService {
     }
 
     return { success: true };
+  }
+
+  private assertRecruiterCompanyEmail(email: string): void {
+    if (!isRecruiterCompanyEmail(email)) {
+      throw new BadRequestException(RECRUITER_COMPANY_EMAIL_MESSAGE);
+    }
   }
 
   private throwExistingAccountConflict(existing: User): never {

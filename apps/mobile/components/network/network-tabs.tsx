@@ -3,75 +3,194 @@ import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
-export type NetworkTabId = 'suggestions' | 'recent';
+export type NetworkTabId = 'connections' | 'pending' | 'sent' | 'suggestions' | 'recent';
 
-const TABS: { id: NetworkTabId; label: string; shortLabel: string }[] = [
-  { id: 'suggestions', label: 'People you may know', shortLabel: 'Suggestions' },
-  { id: 'recent', label: 'Recently connected', shortLabel: 'Recent' },
+const PRIMARY_TABS: { id: NetworkTabId; label: string }[] = [
+  { id: 'connections', label: 'Connections' },
+  { id: 'pending', label: 'Pending' },
+  { id: 'sent', label: 'Sent' },
 ];
 
-export function NetworkTabs({
-  value,
-  onChange,
-  compact,
+const DISCOVER_TABS: { id: NetworkTabId; label: string }[] = [
+  { id: 'suggestions', label: 'Suggestions' },
+  { id: 'recent', label: 'Recent' },
+];
+
+function InstagramTab({
+  label,
+  active,
+  count,
+  onPress,
 }: {
-  value: NetworkTabId;
-  onChange: (tab: NetworkTabId) => void;
-  compact?: boolean;
+  label: string;
+  active: boolean;
+  count?: number;
+  onPress: () => void;
 }) {
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.row, { backgroundColor: `${colors.muted}18`, borderColor: colors.border }]}>
-      {TABS.map((tab) => {
-        const active = value === tab.id;
-        return (
-          <Pressable
-            key={tab.id}
-            onPress={() => onChange(tab.id)}
-            style={[
-              styles.tab,
-              active
-                ? { backgroundColor: colors.blue, ...theme.shadow.soft }
-                : { backgroundColor: 'transparent' },
-            ]}
-          >
+    <Pressable onPress={onPress} style={styles.tab}>
+      <View style={styles.tabInner}>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.tabLabel,
+            active
+              ? { color: colors.heading, ...fontStyle('bold') }
+              : { color: colors.muted, ...fontStyle('semibold') },
+          ]}
+        >
+          {label}
+        </Text>
+        {typeof count === 'number' && count > 0 ? (
+          <View style={[styles.countBadge, { backgroundColor: active ? colors.blue : `${colors.muted}33` }]}>
             <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
               style={[
-                styles.label,
+                styles.countText,
                 { color: active ? '#fff' : colors.muted },
-                active ? fontStyle('bold') : fontStyle('semibold'),
+                fontStyle('bold'),
               ]}
             >
-              {compact ? tab.shortLabel : tab.label}
+              {count > 99 ? '99+' : count}
             </Text>
-          </Pressable>
-        );
-      })}
+          </View>
+        ) : null}
+      </View>
+      <View
+        style={[
+          styles.indicator,
+          active ? { backgroundColor: colors.heading } : { backgroundColor: 'transparent' },
+        ]}
+      />
+    </Pressable>
+  );
+}
+
+export function NetworkTabs({
+  value,
+  onChange,
+  counts,
+}: {
+  value: NetworkTabId;
+  onChange: (tab: NetworkTabId) => void;
+  counts?: Partial<Record<'connections' | 'pending' | 'sent', number>>;
+}) {
+  const { colors } = useTheme();
+
+  return (
+    <View style={[styles.wrap, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}>
+      <View style={styles.primaryRow}>
+        {PRIMARY_TABS.map((tab) => (
+          <InstagramTab
+            key={tab.id}
+            label={tab.label}
+            active={value === tab.id}
+            count={
+              tab.id === 'connections'
+                ? counts?.connections
+                : tab.id === 'pending'
+                  ? counts?.pending
+                  : tab.id === 'sent'
+                    ? counts?.sent
+                    : undefined
+            }
+            onPress={() => onChange(tab.id)}
+          />
+        ))}
+      </View>
+
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+      <View style={styles.discoverRow}>
+        {DISCOVER_TABS.map((tab) => {
+          const active = value === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              onPress={() => onChange(tab.id)}
+              style={[
+                styles.discoverTab,
+                active
+                  ? { backgroundColor: `${colors.blue}14`, borderColor: `${colors.blue}44` }
+                  : { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.discoverLabel,
+                  active
+                    ? { color: colors.blue, ...fontStyle('bold') }
+                    : { color: colors.muted, ...fontStyle('semibold') },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 4,
+  wrap: {
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
     marginBottom: theme.spacing.md,
-    gap: 4,
+    overflow: 'hidden',
+    ...theme.shadow.soft,
+  },
+  primaryRow: {
+    flexDirection: 'row',
   },
   tab: {
     flex: 1,
-    minWidth: 0,
+    alignItems: 'center',
+    paddingTop: 14,
+  },
+  tabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+  },
+  tabLabel: {
+    fontSize: 13,
+    letterSpacing: 0.1,
+  },
+  countBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+  },
+  countText: { fontSize: 10, lineHeight: 12 },
+  indicator: {
+    marginTop: 12,
+    height: 2,
+    width: '72%',
     borderRadius: 999,
   },
-  label: { fontSize: 13, textAlign: 'center' },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: theme.spacing.md,
+  },
+  discoverRow: {
+    flexDirection: 'row',
+    gap: 8,
+    padding: theme.spacing.sm,
+  },
+  discoverTab: {
+    flex: 1,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  discoverLabel: { fontSize: 12 },
 });

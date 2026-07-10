@@ -7,18 +7,18 @@ import { apiFetch } from '@/lib/api-client';
 
 const navigationLinks = [
   { label: 'Browse jobs', href: '/jobs' },
-  { label: 'Companies', href: '/jobs' },
+  { label: 'Companies', href: '/companies' },
   { label: 'For employers', href: '/register?role=recruiter' },
   { label: 'Create profile', href: '/register' },
   { label: 'My applications', href: '/applications' },
 ] as const;
 
 const companyLinks = [
-  { label: 'About', href: '/jobs' },
-  { label: 'Contact us', href: '/jobs' },
-  { label: 'Terms & conditions', href: '/jobs' },
-  { label: 'Privacy policy', href: '/jobs' },
-  { label: 'Fraud alert', href: '/jobs' },
+  { label: 'About', href: '/about' },
+  { label: 'Contact us', href: '/contact' },
+  { label: 'Terms & conditions', href: '/terms' },
+  { label: 'Privacy policy', href: '/privacy' },
+  { label: 'Fraud alert', href: '/fraud-alert' },
 ] as const;
 
 const socialLinks = [

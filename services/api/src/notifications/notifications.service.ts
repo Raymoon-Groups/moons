@@ -100,9 +100,23 @@ export class NotificationsService {
 
     return {
       network: networkNotificationCount > 0 || pendingInviteCount > 0,
+      networkPendingCount: pendingInviteCount,
+      networkNotificationCount: networkNotificationCount,
       messages: unreadMessageCount > 0,
       bell: bellCount > 0,
     };
+  }
+
+  async markNetworkNotificationsRead(userId: string) {
+    await this.prisma.notification.updateMany({
+      where: {
+        userId,
+        readAt: null,
+        type: { in: NETWORK_NOTIFICATION_TYPES },
+      },
+      data: { readAt: new Date() },
+    });
+    return { success: true };
   }
 
   async listBellNotifications(userId: string, limit = 30) {

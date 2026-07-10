@@ -1,17 +1,21 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { AppScreen } from '@/components/app-screen';
 import { ConnectInviteModal } from '@/components/network/connect-invite-modal';
+import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
 import { resolveAvatarUrl } from '@/lib/assets';
+import { useAuth } from '@/lib/auth-context';
 import {
   acceptConnection,
   cancelConnection,
@@ -25,23 +29,32 @@ import {
   notifyConnectionsRefresh,
 } from '@/lib/connection-invites';
 import { fontStyle } from '@/lib/font-style';
+import { OPEN_ON_MOONS_TAGLINE, showOpenOnMoonsToViewer } from '@/lib/open-on-moons';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
+const PROFILE_WEB_BASE = 'https://moonsjob.com/network';
+
 export default function NetworkProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
+  const { user } = useAuth();
   const { colors } = useTheme();
   const [data, setData] = useState<NetworkProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [error, setError] = useState('');
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [bannerUpdatedAt, setBannerUpdatedAt] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     try {
-      setData(await fetchNetworkProfile(userId));
+      const next = await fetchNetworkProfile(userId);
+      setData(next);
+      setBannerUrl((next.profile.bannerUrl as string | null) ?? null);
+      setBannerUpdatedAt((next.profile.updatedAt as string | null) ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Profile unavailable');
     } finally {
@@ -52,6 +65,54 @@ export default function NetworkProfileScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        scroll: { paddingBottom: 32 },
+        header: { alignItems: 'center', paddingHorizontal: theme.spacing.md, marginTop: -40 },
+        avatar: {
+          width: 80,
+          height: 80,
+          borderRadius: 40,
+          borderWidth: 4,
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        },
+        avatarImg: { width: '100%', height: '100%' },
+        name: { marginTop: 12, fontSize: 22, textAlign: 'center' },
+        badge: {
+          marginTop: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 999,
+          backgroundColor: `${colors.blue}18`,
+        },
+        badgeText: { color: colors.blue, fontSize: 12, ...fontStyle('semibold') },
+        actions: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 10,
+          justifyContent: 'center',
+          padding: theme.spacing.md,
+        },
+        btnPrimary: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 999 },
+        btnSecondary: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 999, borderWidth: 1 },
+        section: {
+          marginHorizontal: theme.spacing.md,
+          marginBottom: theme.spacing.md,
+          borderRadius: theme.radius.lg,
+          borderWidth: 1,
+          padding: theme.spacing.md,
+        },
+        sectionTitle: { fontSize: 16, marginBottom: 8 },
+        skills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+        skill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+        error: { color: colors.error, textAlign: 'center', padding: 12 },
+      }),
+    [colors],
+  );
 
   async function runAction(action: () => Promise<unknown>) {
     setActionLoading(true);
@@ -68,6 +129,19 @@ export default function NetworkProfileScreen() {
       }
     } finally {
       setActionLoading(false);
+    }
+  }
+
+  async function shareProfile(name: string, headline: string | null) {
+    const url = `${PROFILE_WEB_BASE}/${userId}`;
+    try {
+      await Share.share({
+        title: `${name} on MoonsJob`,
+        message: `${headline ?? `View ${name}'s professional profile`}\n${url}`,
+        url,
+      });
+    } catch {
+      Alert.alert('Could not share', 'Try again in a moment.');
     }
   }
 
@@ -93,13 +167,28 @@ export default function NetworkProfileScreen() {
 
   const profile = data.profile;
   const name = profile.fullName?.trim() || 'Professional';
+  const headline = (profile.headline as string | null) ?? null;
   const avatar = resolveAvatarUrl(profile.avatarUrl as string | null);
   const skills = (profile.skills as string[] | undefined) ?? [];
+  const isOwnProfile = user?.id === profile.userId;
+  const showOpenBadge = showOpenOnMoonsToViewer(
+    Boolean(profile.openToWork),
+    user?.role,
+    isOwnProfile,
+  );
 
   return (
     <AppScreen>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={[styles.banner, { backgroundColor: `${colors.blue}33` }]} />
+        <CoverPhotoBanner
+          bannerUrl={bannerUrl}
+          updatedAt={bannerUpdatedAt}
+          editable={isOwnProfile}
+          onUpdated={(nextUrl, updatedAt) => {
+            setBannerUrl(nextUrl);
+            setBannerUpdatedAt(updatedAt);
+          }}
+        />
         <View style={styles.header}>
           <View style={[styles.avatar, { borderColor: colors.surfaceElevated, backgroundColor: colors.surface }]}>
             {avatar ? (
@@ -112,20 +201,30 @@ export default function NetworkProfileScreen() {
           </View>
           <Text style={[styles.name, { color: colors.heading }, fontStyle('bold')]}>{name}</Text>
           <Text style={{ color: colors.muted, fontSize: 15, textAlign: 'center' }}>
-            {(profile.headline as string) || (profile.currentCompany as string) || 'Professional'}
+            {headline || (profile.currentCompany as string) || 'Professional'}
           </Text>
+          {showOpenBadge ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{OPEN_ON_MOONS_TAGLINE}</Text>
+            </View>
+          ) : null}
           {profile.location ? (
             <Text style={{ color: colors.muted, marginTop: 6 }}>{String(profile.location)}</Text>
           ) : null}
           <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>
             {data.connectionCount} connections
-            {data.mutualConnections.count > 0
-              ? ` · ${data.mutualConnections.count} mutual`
-              : ''}
+            {data.mutualConnections.count > 0 ? ` · ${data.mutualConnections.count} mutual` : ''}
           </Text>
         </View>
 
         <View style={styles.actions}>
+          <Pressable
+            onPress={() => void shareProfile(name, headline)}
+            style={[styles.btnSecondary, { borderColor: colors.border }]}
+          >
+            <Text style={{ color: colors.heading, ...fontStyle('semibold') }}>Share</Text>
+          </Pressable>
+
           {data.connectionStatus === 'ACCEPTED' ? (
             <>
               <Pressable
@@ -134,13 +233,15 @@ export default function NetworkProfileScreen() {
               >
                 <Text style={{ color: '#fff', ...fontStyle('semibold') }}>Message</Text>
               </Pressable>
-              <Pressable
-                disabled={actionLoading}
-                onPress={() => void runAction(() => removeConnection(userId!))}
-                style={[styles.btnSecondary, { borderColor: colors.border }]}
-              >
-                <Text style={{ color: colors.heading, ...fontStyle('semibold') }}>Remove connection</Text>
-              </Pressable>
+              {!isOwnProfile ? (
+                <Pressable
+                  disabled={actionLoading}
+                  onPress={() => void runAction(() => removeConnection(userId!))}
+                  style={[styles.btnSecondary, { borderColor: colors.border }]}
+                >
+                  <Text style={{ color: colors.heading, ...fontStyle('semibold') }}>Remove connection</Text>
+                </Pressable>
+              ) : null}
             </>
           ) : data.connectionStatus === 'PENDING' && data.connectionDirection === 'received' && data.connectionId ? (
             <>
@@ -167,20 +268,33 @@ export default function NetworkProfileScreen() {
             >
               <Text style={{ color: colors.muted, ...fontStyle('semibold') }}>Withdraw request</Text>
             </Pressable>
-          ) : (
+          ) : !isOwnProfile ? (
             <Pressable
               onPress={() => setShowInvite(true)}
               style={[styles.btnPrimary, { backgroundColor: colors.blue }]}
             >
               <Text style={{ color: '#fff', ...fontStyle('semibold') }}>Connect</Text>
             </Pressable>
-          )}
+          ) : null}
         </View>
 
         {profile.summary ? (
           <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>About</Text>
             <Text style={{ color: colors.muted, lineHeight: 22 }}>{String(profile.summary)}</Text>
+          </View>
+        ) : null}
+
+        {data.sharedSkills.length > 0 ? (
+          <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>Shared skills</Text>
+            <View style={styles.skills}>
+              {data.sharedSkills.map((skill) => (
+                <View key={skill} style={[styles.skill, { backgroundColor: `${colors.blue}14` }]}>
+                  <Text style={{ color: colors.blue, fontSize: 12, ...fontStyle('medium') }}>{skill}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -213,34 +327,3 @@ export default function NetworkProfileScreen() {
     </AppScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: { paddingBottom: 32 },
-  banner: { height: 120 },
-  header: { alignItems: 'center', paddingHorizontal: theme.spacing.md, marginTop: -40 },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  avatarImg: { width: '100%', height: '100%' },
-  name: { marginTop: 12, fontSize: 22, textAlign: 'center' },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', padding: theme.spacing.md },
-  btnPrimary: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 999 },
-  btnSecondary: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 999, borderWidth: 1 },
-  section: {
-    marginHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    padding: theme.spacing.md,
-  },
-  sectionTitle: { fontSize: 16, marginBottom: 8 },
-  skills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  skill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-  error: { color: '#dc2626', textAlign: 'center', padding: 12 },
-});

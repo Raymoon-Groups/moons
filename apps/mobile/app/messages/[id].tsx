@@ -8,7 +8,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -19,6 +18,8 @@ import {
 } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppScreen } from '@/components/app-screen';
+import { MessageAttachmentContent } from '@/components/messages/message-attachment-content';
+import { MessageComposeField } from '@/components/messages/message-compose-field';
 import {
   acceptConnectionInvite,
   ignoreConnectionInvite,
@@ -33,6 +34,7 @@ import {
   fetchMessages,
   notifyMessagesRefresh,
   sendMessage,
+  type MessageAttachment,
   type MessageItem,
 } from '@/lib/messages';
 import { resolveAvatarUrl } from '@/lib/assets';
@@ -54,6 +56,7 @@ export default function MessageThreadScreen() {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
+  const [attachment, setAttachment] = useState<MessageAttachment | null>(null);
   const [sending, setSending] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [error, setError] = useState('');
@@ -103,13 +106,14 @@ export default function MessageThreadScreen() {
     detail.connectionId;
 
   async function handleSend() {
-    if (!id || !text.trim()) return;
+    if (!id || (!text.trim() && !attachment)) return;
     setSending(true);
     setError('');
     try {
-      const msg = await sendMessage(id, text.trim());
+      const msg = await sendMessage(id, text.trim(), attachment ?? undefined);
       setMessages((prev) => [...prev, msg]);
       setText('');
+      setAttachment(null);
       notifyMessagesRefresh();
       scrollToEnd(true);
     } catch (err) {
@@ -169,7 +173,7 @@ export default function MessageThreadScreen() {
             {
               borderBottomColor: colors.border,
               backgroundColor: colors.surfaceElevated,
-              paddingTop: insets.top + 4,
+              paddingTop: insets.top + theme.spacing.xs,
             },
           ]}
         >
@@ -200,7 +204,15 @@ export default function MessageThreadScreen() {
         </View>
 
         {pendingInvite ? (
-          <View style={[styles.inviteBar, { backgroundColor: `${colors.blue}14`, borderColor: `${colors.blue}33` }]}>
+          <View
+            style={[
+              styles.inviteBar,
+              {
+                backgroundColor: `${colors.blue}14`,
+                borderColor: `${colors.blue}33`,
+              },
+            ]}
+          >
             <Text style={{ color: colors.heading, fontSize: 13, flex: 1, ...fontStyle('medium') }}>
               {name} invited you to connect
             </Text>
@@ -245,6 +257,9 @@ export default function MessageThreadScreen() {
                 );
               }
               const message = item.item;
+              const showBody =
+                message.body.trim().length > 0 &&
+                !(message.attachmentUrl && message.body.trim().startsWith('📎'));
               return (
                 <View
                   style={[
@@ -259,9 +274,19 @@ export default function MessageThreadScreen() {
                         },
                   ]}
                 >
-                  <Text style={{ color: message.isMine ? '#fff' : colors.heading, fontSize: 15, lineHeight: 21 }}>
-                    {message.body}
-                  </Text>
+                  {showBody ? (
+                    <Text style={{ color: message.isMine ? '#fff' : colors.heading, fontSize: 15, lineHeight: 21 }}>
+                      {message.body}
+                    </Text>
+                  ) : null}
+                  {message.attachmentUrl && message.attachmentFileName ? (
+                    <MessageAttachmentContent
+                      url={message.attachmentUrl}
+                      fileName={message.attachmentFileName}
+                      mimeType={message.attachmentMimeType}
+                      isMine={message.isMine}
+                    />
+                  ) : null}
                   <Text
                     style={{
                       color: message.isMine ? 'rgba(255,255,255,0.75)' : colors.muted,
@@ -297,38 +322,18 @@ export default function MessageThreadScreen() {
               },
             ]}
           >
-            <TextInput
-              nativeID={COMPOSE_INPUT_ID}
+            <MessageComposeField
+              inputId={COMPOSE_INPUT_ID}
               value={text}
-              onChangeText={setText}
-              onFocus={() => scrollToEnd(true)}
+              onChange={setText}
+              attachment={attachment}
+              onAttachmentChange={setAttachment}
+              onSubmit={() => void handleSend()}
+              sending={sending}
+              editable={detail.canReply}
               placeholder={detail.canReply ? 'Write a message…' : 'Connect to reply'}
-              placeholderTextColor={colors.muted}
-              editable={detail.canReply && !sending}
-              multiline
-              textAlignVertical="center"
-              style={[
-                styles.input,
-                { color: colors.heading, borderColor: colors.border, backgroundColor: colors.surface },
-              ]}
+              onFocus={() => scrollToEnd(true)}
             />
-            <Pressable
-              disabled={!detail.canReply || sending || !text.trim()}
-              onPress={() => void handleSend()}
-              style={[
-                styles.sendBtn,
-                {
-                  backgroundColor: colors.blue,
-                  opacity: detail.canReply && text.trim() && !sending ? 1 : 0.45,
-                },
-              ]}
-            >
-              {sending ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Ionicons name="send" size={18} color="#fff" />
-              )}
-            </Pressable>
           </KeyboardStickyView>
         </View>
       </View>
@@ -345,14 +350,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingBottom: 10,
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
+    marginLeft: -theme.spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -360,17 +366,21 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: theme.spacing.sm,
     minWidth: 0,
-    paddingRight: 8,
   },
   headerCopy: { flex: 1, minWidth: 0 },
   inviteBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: theme.spacing.sm,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
   },
   inviteBtn: {
     paddingHorizontal: 12,
@@ -389,7 +399,8 @@ const styles = StyleSheet.create({
   avatarImg: { width: '100%', height: '100%' },
   messages: {
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
     flexGrow: 1,
   },
   dayWrap: { alignItems: 'center', marginVertical: 10 },
@@ -407,31 +418,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 8,
   },
-  emptyThread: { flex: 1, justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24 },
+  emptyThread: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
+  },
   compose: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
-    fontSize: 15,
+  error: {
+    textAlign: 'center',
+    fontSize: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  error: { textAlign: 'center', fontSize: 12, padding: 8 },
 });

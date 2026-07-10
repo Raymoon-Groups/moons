@@ -42,6 +42,12 @@ function RootStack() {
         <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
         <Stack.Screen name="settings/security" options={{ title: 'Security' }} />
         <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
+        <Stack.Screen name="profile/network" options={{ title: 'My network' }} />
+        <Stack.Screen name="about" options={{ title: 'About' }} />
+        <Stack.Screen name="contact" options={{ title: 'Contact' }} />
+        <Stack.Screen name="privacy" options={{ title: 'Privacy Policy' }} />
+        <Stack.Screen name="terms" options={{ title: 'Terms & Conditions' }} />
+        <Stack.Screen name="fraud-alert" options={{ title: 'Fraud Alert' }} />
         <Stack.Screen name="recruiter" options={{ headerShown: false }} />
       </Stack>
     </>

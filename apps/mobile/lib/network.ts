@@ -23,6 +23,11 @@ export interface PendingRequestItem {
   toUser?: NetworkUserCard;
 }
 
+export interface ProfileVisitorItem {
+  viewedAt: string;
+  viewer: NetworkUserCard;
+}
+
 export interface NetworkProfileResponse {
   profile: Record<string, unknown> & {
     userId: string;
@@ -43,6 +48,20 @@ export interface NetworkProfileResponse {
 
 export function fetchNetworkStats() {
   return authFetch<NetworkStats>('/network/stats');
+}
+
+export function fetchConnections(page = 1) {
+  return authFetch<Paginated<ConnectionListItem>>(`/network/connections?page=${page}`);
+}
+
+export function fetchPendingSent(page = 1) {
+  return authFetch<Paginated<PendingRequestItem>>(
+    `/network/connections/pending/sent?page=${page}`,
+  );
+}
+
+export function fetchProfileVisitors(page = 1) {
+  return authFetch<Paginated<ProfileVisitorItem>>(`/network/visitors?page=${page}`);
 }
 
 export function fetchSuggestions(page = 1) {

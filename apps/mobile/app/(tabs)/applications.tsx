@@ -54,6 +54,14 @@ export default function ApplicationsScreen() {
         jobTitle: { marginTop: 8, fontSize: 16, fontFamily: theme.fonts.bold, color: colors.heading },
         company: { marginTop: 2, fontSize: 14, fontFamily: theme.fonts.regular, color: colors.foreground },
         meta: { marginTop: 10, fontSize: 12, fontFamily: theme.fonts.medium, color: colors.muted },
+        coverNote: {
+          marginTop: 10,
+          padding: 10,
+          borderRadius: theme.radius.md,
+          backgroundColor: colors.surface,
+        },
+        coverNoteLabel: { fontSize: 11, fontFamily: theme.fonts.bold, color: colors.muted },
+        coverNoteText: { marginTop: 4, fontSize: 13, fontFamily: theme.fonts.regular, color: colors.foreground, lineHeight: 20 },
         withdraw: { marginTop: 12, alignSelf: 'flex-start' },
         withdrawText: { color: colors.error, fontFamily: theme.fonts.bold, fontSize: 13 },
       }),
@@ -147,6 +155,12 @@ export default function ApplicationsScreen() {
                 <Text style={styles.meta}>
                   {[item.job.location, formatEmploymentType(item.job.employmentType)].filter(Boolean).join(' · ')}
                 </Text>
+                {item.coverNote ? (
+                  <View style={styles.coverNote}>
+                    <Text style={styles.coverNoteLabel}>Cover note</Text>
+                    <Text style={styles.coverNoteText}>{item.coverNote}</Text>
+                  </View>
+                ) : null}
                 {canWithdraw ? (
                   <Pressable onPress={() => withdraw(item)} disabled={withdrawingId === item.id} style={styles.withdraw}>
                     <Text style={styles.withdrawText}>

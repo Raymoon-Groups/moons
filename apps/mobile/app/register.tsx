@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-import { UserRole } from '@moons/shared';
+import { UserRole, isRecruiterCompanyEmail, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
 import { AuthLayout } from '@/components/auth-layout';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
 import { RolePicker } from '@/components/role-picker';
@@ -16,7 +16,7 @@ import {
   PrimaryButton,
   SecondaryButton,
 } from '@/components/ui';
-import { ApiError, resendRegisterOtp, sendRegisterOtp, verifyRegisterOtp } from '@/lib/api';
+import { ApiError, NetworkError, resendRegisterOtp, sendRegisterOtp, verifyRegisterOtp } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { getPostAuthPath } from '@/lib/auth-redirect';
 import { useTheme } from '@/lib/theme-context';
@@ -51,6 +51,10 @@ export default function RegisterScreen() {
   async function handleSendOtp() {
     setError('');
     setInfo('');
+    if (role === UserRole.RECRUITER && !isRecruiterCompanyEmail(email.trim())) {
+      setError(RECRUITER_COMPANY_EMAIL_MESSAGE);
+      return;
+    }
     setLoading(true);
     try {
       const res = await sendRegisterOtp(email.trim(), password, role);
@@ -62,7 +66,13 @@ export default function RegisterScreen() {
       } else if (err instanceof ApiError && err.code === 'ACCOUNT_EXISTS') {
         setError('Account already exists. Please log in instead.');
       } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to send verification code');
+        setError(
+          err instanceof NetworkError
+            ? err.message
+            : err instanceof ApiError
+              ? err.message
+              : 'Failed to send verification code',
+        );
       }
     } finally {
       setLoading(false);
@@ -77,7 +87,13 @@ export default function RegisterScreen() {
       const res = await resendRegisterOtp(email.trim());
       setInfo(res.message);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to resend code');
+      setError(
+        err instanceof NetworkError
+          ? err.message
+          : err instanceof ApiError
+            ? err.message
+            : 'Failed to resend code',
+      );
     } finally {
       setLoading(false);
     }
@@ -91,7 +107,13 @@ export default function RegisterScreen() {
       await signIn(data);
       router.replace(getPostAuthPath(data.user) as never);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Verification failed');
+      setError(
+        err instanceof NetworkError
+          ? err.message
+          : err instanceof ApiError
+            ? err.message
+            : 'Verification failed',
+      );
     } finally {
       setLoading(false);
     }
@@ -132,7 +154,13 @@ export default function RegisterScreen() {
         <>
           <Text style={styles.otpHint}>Enter the 6-digit code sent to {email}</Text>
           <FieldLabel>Verification code</FieldLabel>
-          <Input value={otp} onChangeText={setOtp} keyboardType="number-pad" placeholder="123456" maxLength={6} />
+          <Input
+            value={otp}
+            onChangeText={(text) => setOtp(text.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+            placeholder="123456"
+            maxLength={6}
+          />
           {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton

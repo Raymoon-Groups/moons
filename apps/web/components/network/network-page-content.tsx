@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserRole } from '@moons/shared';
+import { UserRole, type NetworkStats } from '@moons/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { DashPageHero } from '@/components/dash/dash-page-shell';
 import { PersonCard, type ConnectionUpdate } from '@/components/network/person-card';
@@ -10,19 +10,27 @@ import { useAuth } from '@/lib/auth-context';
 import { ApiError, getApiErrorMessage } from '@/lib/api-client';
 import { OPEN_ON_MOONS_LABEL } from '@/lib/open-on-moons';
 import {
+  fetchConnections,
+  fetchNetworkStats,
+  fetchPendingReceived,
+  fetchPendingSent,
   fetchRecentConnections,
   fetchSuggestions,
   searchProfessionals,
   type ConnectionListItem,
+  type PendingRequestItem,
 } from '@/lib/network';
 import type { NetworkUserCard } from '@moons/shared';
 
 const TABS = [
+  { id: 'connections', label: 'My connections', short: 'Connections' },
+  { id: 'pending', label: 'Pending requests', short: 'Pending' },
+  { id: 'sent', label: 'Sent requests', short: 'Sent' },
   { id: 'suggestions', label: 'People you may know', short: 'Suggestions' },
   { id: 'recent', label: 'Recently connected', short: 'Recent' },
 ] as const;
 
-type TabId = (typeof TABS)[number]['id'];
+export type NetworkTabId = (typeof TABS)[number]['id'];
 
 const PAGE_BG = 'li-page-bg';
 const PANEL =
@@ -93,34 +101,55 @@ function TabPill({
   active,
   onClick,
   children,
+  count,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  count?: number;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+      className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${
         active
           ? 'bg-moons-blue text-white shadow-sm'
           : 'text-moons-muted hover:bg-surface hover:text-foreground'
       }`}
     >
       {children}
+      {typeof count === 'number' && (
+        <span
+          className={`min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-center text-[10px] font-bold leading-none ${
+            active ? 'bg-white/20 text-white' : 'bg-moons-blue/10 text-moons-blue'
+          }`}
+        >
+          {count}
+        </span>
+      )}
     </button>
   );
 }
 
-export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?: TabId }) {
+function isNetworkTab(value: string | null | undefined): value is NetworkTabId {
+  return TABS.some((tab) => tab.id === value);
+}
+
+export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?: NetworkTabId }) {
   const router = useRouter();
   const { user, ready } = useAuth();
   const isRecruiter = user?.role === UserRole.RECRUITER;
-  const [tab, setTab] = useState<TabId>(initialTab === 'recent' ? 'recent' : 'suggestions');
+  const [tab, setTab] = useState<NetworkTabId>(
+    isNetworkTab(initialTab) ? initialTab : 'connections',
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [stats, setStats] = useState<NetworkStats | null>(null);
+  const [connections, setConnections] = useState<ConnectionListItem[]>([]);
+  const [pending, setPending] = useState<PendingRequestItem[]>([]);
+  const [sent, setSent] = useState<PendingRequestItem[]>([]);
   const [suggestions, setSuggestions] = useState<NetworkUserCard[]>([]);
   const [recent, setRecent] = useState<ConnectionListItem[]>([]);
   const [searchResults, setSearchResults] = useState<NetworkUserCard[]>([]);
@@ -134,15 +163,52 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
   const [searchOpenToWork, setSearchOpenToWork] = useState(false);
   const [searchHiring, setSearchHiring] = useState(false);
 
+  const refreshStats = useCallback(async () => {
+    try {
+      setStats(await fetchNetworkStats());
+    } catch {
+      // Keep existing counts if stats fail independently of list load.
+    }
+  }, []);
+
   const loadTab = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      if (tab === 'suggestions') {
-        const data = await fetchSuggestions();
-        setSuggestions(data.items);
-      } else {
-        setRecent(await fetchRecentConnections());
+      const [, listResult] = await Promise.all([
+        refreshStats(),
+        (async () => {
+          switch (tab) {
+            case 'connections':
+              return { type: 'connections' as const, data: await fetchConnections() };
+            case 'pending':
+              return { type: 'pending' as const, data: await fetchPendingReceived() };
+            case 'sent':
+              return { type: 'sent' as const, data: await fetchPendingSent() };
+            case 'suggestions':
+              return { type: 'suggestions' as const, data: await fetchSuggestions() };
+            case 'recent':
+              return { type: 'recent' as const, data: await fetchRecentConnections() };
+          }
+        })(),
+      ]);
+
+      switch (listResult.type) {
+        case 'connections':
+          setConnections(listResult.data.items);
+          break;
+        case 'pending':
+          setPending(listResult.data.items);
+          break;
+        case 'sent':
+          setSent(listResult.data.items);
+          break;
+        case 'suggestions':
+          setSuggestions(listResult.data.items);
+          break;
+        case 'recent':
+          setRecent(listResult.data);
+          break;
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -159,7 +225,7 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
     } finally {
       setLoading(false);
     }
-  }, [tab, router]);
+  }, [tab, router, refreshStats]);
 
   useEffect(() => {
     if (!ready) return;
@@ -171,14 +237,25 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
     void loadTab();
   }, [ready, user, loadTab, searchActive]);
 
+  function handleTabChange(next: NetworkTabId) {
+    setSearchActive(false);
+    setTab(next);
+    router.replace(`/network?tab=${next}`, { scroll: false });
+  }
+
   function handleLocalConnectionChange(userId: string, update: ConnectionUpdate) {
     setSuggestions((prev) => applyConnectionUpdate(prev, userId, update));
     setSearchResults((prev) => applyConnectionUpdate(prev, userId, update));
+    void refreshStats();
   }
 
   function handleDismissCard(userId: string) {
     setSuggestions((prev) => prev.filter((p) => p.userId !== userId));
     setSearchResults((prev) => prev.filter((p) => p.userId !== userId));
+  }
+
+  async function handleListUpdated() {
+    await loadTab();
   }
 
   async function runSearch(e?: React.FormEvent) {
@@ -224,12 +301,13 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
     setSearchHiring(false);
   }
 
-  const activeTabMeta = TABS.find((t) => t.id === tab);
-  const resultCount = searchActive
-    ? searchResults.length
-    : tab === 'suggestions'
-      ? suggestions.length
-      : recent.length;
+  const tabCount = (id: NetworkTabId): number | undefined => {
+    if (!stats) return undefined;
+    if (id === 'connections') return stats.connections;
+    if (id === 'pending') return stats.pendingReceived;
+    if (id === 'sent') return stats.pendingSent;
+    return undefined;
+  };
 
   const heroSubtitle = isRecruiter
     ? 'Discover talent and build your professional network. Search by skills, location, or who is Open on Moons.'
@@ -243,11 +321,19 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
           eyebrowIcon={<UsersIcon className="h-3.5 w-3.5" />}
           title="My Network"
           subtitle={heroSubtitle}
+          action={
+            stats ? (
+              <div className="flex flex-wrap gap-2">
+                <StatChip label="Connections" value={stats.connections} />
+                <StatChip label="Pending" value={stats.pendingReceived} />
+                <StatChip label="Sent" value={stats.pendingSent} />
+              </div>
+            ) : undefined
+          }
         />
 
         <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
           <div className="min-w-0 space-y-4">
-            {/* Search */}
             <form onSubmit={runSearch} className={`${PANEL} p-5 sm:p-6`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -326,13 +412,17 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
               </div>
             </form>
 
-            {/* Results */}
             <div className={PANEL}>
               <div className="flex flex-col gap-3 border-b border-border/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 {!searchActive ? (
                   <div className="flex flex-wrap gap-1.5">
                     {TABS.map((item) => (
-                      <TabPill key={item.id} active={tab === item.id} onClick={() => setTab(item.id)}>
+                      <TabPill
+                        key={item.id}
+                        active={tab === item.id}
+                        onClick={() => handleTabChange(item.id)}
+                        count={tabCount(item.id)}
+                      >
                         <span className="hidden sm:inline">{item.label}</span>
                         <span className="sm:hidden">{item.short}</span>
                       </TabPill>
@@ -341,17 +431,6 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
                 ) : (
                   <p className="text-sm font-bold text-heading">Search results</p>
                 )}
-
-                <div className="flex items-center gap-2">
-                  {!loading && !searching && (
-                    <span className="rounded-full bg-moons-blue/10 px-2.5 py-0.5 text-[11px] font-semibold text-moons-blue">
-                      {resultCount} {resultCount === 1 ? 'person' : 'people'}
-                    </span>
-                  )}
-                  {!searchActive && activeTabMeta && (
-                    <span className="hidden text-xs text-moons-muted sm:inline">{activeTabMeta.label}</span>
-                  )}
-                </div>
               </div>
 
               {error && (
@@ -377,17 +456,8 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
                             onDismiss={() => handleDismissCard(person.userId)}
                           />
                         ))
-                      : tab === 'suggestions'
-                        ? suggestions.map((person) => (
-                            <PersonCard
-                              key={person.userId}
-                              variant="discovery"
-                              person={person}
-                              onConnectionChange={handleLocalConnectionChange}
-                              onDismiss={() => handleDismissCard(person.userId)}
-                            />
-                          ))
-                        : recent.map((item) => (
+                      : tab === 'connections'
+                        ? connections.map((item) => (
                             <PersonCard
                               key={item.connectionId}
                               variant="network"
@@ -396,9 +466,67 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
                                 connectionStatus: 'ACCEPTED',
                                 connectionId: item.connectionId,
                               }}
-                              onUpdated={loadTab}
+                              onUpdated={handleListUpdated}
                             />
-                          ))}
+                          ))
+                        : tab === 'pending'
+                          ? pending.map((item) =>
+                              item.fromUser ? (
+                                <PersonCard
+                                  key={item.id}
+                                  variant="discovery"
+                                  showConnect={false}
+                                  person={{
+                                    ...item.fromUser,
+                                    connectionStatus: 'PENDING',
+                                    connectionId: item.id,
+                                    connectionDirection: 'received',
+                                  }}
+                                  onConnectionChange={() => {
+                                    void handleListUpdated();
+                                  }}
+                                  onUpdated={handleListUpdated}
+                                />
+                              ) : null,
+                            )
+                          : tab === 'sent'
+                            ? sent.map((item) =>
+                                item.toUser ? (
+                                  <PersonCard
+                                    key={item.id}
+                                    variant="network"
+                                    person={{
+                                      ...item.toUser,
+                                      connectionStatus: 'PENDING',
+                                      connectionId: item.id,
+                                      connectionDirection: 'sent',
+                                    }}
+                                    onUpdated={handleListUpdated}
+                                  />
+                                ) : null,
+                              )
+                            : tab === 'suggestions'
+                              ? suggestions.map((person) => (
+                                  <PersonCard
+                                    key={person.userId}
+                                    variant="discovery"
+                                    person={person}
+                                    onConnectionChange={handleLocalConnectionChange}
+                                    onDismiss={() => handleDismissCard(person.userId)}
+                                  />
+                                ))
+                              : recent.map((item) => (
+                                  <PersonCard
+                                    key={item.connectionId}
+                                    variant="network"
+                                    person={{
+                                      ...item.user,
+                                      connectionStatus: 'ACCEPTED',
+                                      connectionId: item.connectionId,
+                                    }}
+                                    onUpdated={handleListUpdated}
+                                  />
+                                ))}
                   </div>
                 )}
 
@@ -412,6 +540,27 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
                     }
                   />
                 )}
+                {!loading && !searchActive && tab === 'connections' && connections.length === 0 && (
+                  <EmptyState
+                    title="No connections yet"
+                    message="Browse suggestions or search professionals to start building your network."
+                    action={{ href: '/network?tab=suggestions', label: 'Browse suggestions' }}
+                  />
+                )}
+                {!loading && !searchActive && tab === 'pending' && pending.length === 0 && (
+                  <EmptyState
+                    title="No pending requests"
+                    message="When someone sends you a connection invite, it will show up here."
+                    action={{ href: '/network?tab=suggestions', label: 'Browse suggestions' }}
+                  />
+                )}
+                {!loading && !searchActive && tab === 'sent' && sent.length === 0 && (
+                  <EmptyState
+                    title="No sent requests"
+                    message="Invites you send will appear here until they are accepted or declined."
+                    action={{ href: '/network?tab=suggestions', label: 'Find people to connect' }}
+                  />
+                )}
                 {!loading && !searchActive && tab === 'suggestions' && suggestions.length === 0 && (
                   <EmptyState
                     title="No suggestions yet"
@@ -423,15 +572,34 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
                   <EmptyState
                     title="No recent connections"
                     message="People you connect with will appear here."
-                    action={{ href: '/network', label: 'Browse suggestions' }}
+                    action={{ href: '/network?tab=suggestions', label: 'Browse suggestions' }}
                   />
                 )}
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
           <aside className="hidden space-y-4 lg:sticky lg:top-24 lg:block">
+            {stats && (
+              <div className="dash-sidebar-card">
+                <h2 className="text-sm font-bold text-heading">Network overview</h2>
+                <ul className="mt-3 space-y-2.5 text-sm">
+                  <li className="flex items-center justify-between gap-3">
+                    <span className="text-moons-muted">Connections</span>
+                    <span className="font-bold text-heading">{stats.connections}</span>
+                  </li>
+                  <li className="flex items-center justify-between gap-3">
+                    <span className="text-moons-muted">Pending invites</span>
+                    <span className="font-bold text-heading">{stats.pendingReceived}</span>
+                  </li>
+                  <li className="flex items-center justify-between gap-3">
+                    <span className="text-moons-muted">Sent requests</span>
+                    <span className="font-bold text-heading">{stats.pendingSent}</span>
+                  </li>
+                </ul>
+              </div>
+            )}
+
             <div className="dash-tips-card">
               <h2 className="text-sm font-bold text-heading">
                 {isRecruiter ? 'Recruiter tips' : 'Grow your network'}
@@ -478,7 +646,7 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
                 <Link href="/messages" className="font-semibold text-moons-blue hover:underline">
                   Messaging
                 </Link>{' '}
-                inbox. Accept or ignore invites from your notifications or inbox.
+                inbox. Accept or ignore invites from Pending requests or Notifications.
               </p>
             </div>
 
@@ -503,6 +671,15 @@ export function NetworkPageContent({ initialTab = 'suggestions' }: { initialTab?
           </aside>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatChip({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-moons-blue/20 bg-surface-elevated px-3.5 py-1.5 shadow-sm">
+      <span className="text-sm font-bold text-heading">{value}</span>
+      <span className="text-xs font-medium text-moons-muted">{label}</span>
     </div>
   );
 }

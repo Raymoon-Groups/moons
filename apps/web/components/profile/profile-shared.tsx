@@ -1,7 +1,7 @@
 'use client';
 
-import { ChangeEvent, ReactNode, useRef, useState } from 'react';
-import { DashBackLink, DashPageHero } from '@/components/dash/dash-page-shell';
+import { ChangeEvent, FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
+import { DashBackLink } from '@/components/dash/dash-page-shell';
 import { ProfileNetworkSection } from '@/components/profile/profile-network-section';
 import { ImageLightbox } from '@/components/image-lightbox';
 import { resolveAssetUrl } from '@/lib/assets';
@@ -299,6 +299,14 @@ export function ProfileCompletionSidebar({
   );
 }
 
+export function getSubmitCardId(e: FormEvent<HTMLFormElement>): string | null {
+  const submitter = (e.nativeEvent as SubmitEvent).submitter;
+  if (submitter instanceof HTMLButtonElement) {
+    return submitter.dataset.cardId ?? null;
+  }
+  return null;
+}
+
 export function EditableCard({
   id,
   title,
@@ -306,6 +314,7 @@ export function EditableCard({
   editContent,
   saving,
   defaultEditing = false,
+  savedCardSignal,
 }: {
   id: string;
   title: string;
@@ -313,8 +322,15 @@ export function EditableCard({
   editContent: ReactNode;
   saving?: boolean;
   defaultEditing?: boolean;
+  savedCardSignal?: { id: string; at: number } | null;
 }) {
   const [editing, setEditing] = useState(defaultEditing);
+
+  useEffect(() => {
+    if (savedCardSignal?.id === id) {
+      setEditing(false);
+    }
+  }, [savedCardSignal, id]);
 
   return (
     <section id={id} className={cardClass}>
@@ -352,6 +368,7 @@ export function EditableCard({
             <div className="flex justify-end border-t border-border/60 pt-4">
               <button
                 type="submit"
+                data-card-id={id}
                 disabled={saving}
                 className="rounded-xl bg-moons-navy px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue disabled:opacity-60"
               >
@@ -803,12 +820,10 @@ export function CompanyLogoSection({
 }
 
 export function ProfilePageShell({
-  title,
   completion,
   completionItems,
   children,
 }: {
-  title: string;
   completion: number;
   completionItems: CompletionItem[];
   children: ReactNode;
@@ -817,19 +832,6 @@ export function ProfilePageShell({
     <div className="dash-page">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <DashBackLink href="/dashboard">← Back to dashboard</DashBackLink>
-
-        <div className="mt-6">
-          <DashPageHero
-            eyebrow="Your profile"
-            title={title}
-            action={
-              <div className="inline-flex items-center gap-2 rounded-full border border-moons-blue/20 bg-surface-elevated px-4 py-2 shadow-sm">
-                <span className="h-2 w-2 rounded-full bg-moons-blue" />
-                <span className="text-sm font-semibold text-heading">{completion}% complete</span>
-              </div>
-            }
-          />
-        </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
           <div className="space-y-5">

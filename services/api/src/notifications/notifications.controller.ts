@@ -68,4 +68,9 @@ export class NotificationsController {
   markBellRead(@CurrentUser() user: JwtPayload) {
     return this.notificationsService.markBellNotificationsRead(user.sub);
   }
+
+  @Post('read-network')
+  markNetworkRead(@CurrentUser() user: JwtPayload) {
+    return this.notificationsService.markNetworkNotificationsRead(user.sub);
+  }
 }

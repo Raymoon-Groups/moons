@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/free-port.mjs 3000 3001 8081 && turbo dev --filter=@moons/api --filter=@moons/web",
-    "mobile": "node scripts/free-port.mjs 8081 && pnpm --filter @moons/mobile dev",
+    "api": "node scripts/free-port.mjs 3001 && pnpm --filter @moons/api dev:stable",
+    "mobile": "node scripts/free-port.mjs 3001 8081 && turbo dev --filter=@moons/api --filter=@moons/mobile",
     "mobile:web": "node scripts/free-port.mjs 8081 && pnpm --filter @moons/mobile web",
     "build": "turbo build",
     "lint": "turbo lint",

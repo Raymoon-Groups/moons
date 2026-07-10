@@ -62,6 +62,8 @@ export interface Profile {
   preferredLocations: string[];
   preferredIndustries: string[];
   skills: string[];
+  openToWork?: boolean;
+  bannerUrl?: string | null;
   completionPercent: number;
   createdAt: string;
   updatedAt: string;
@@ -90,6 +92,7 @@ export interface CompanyListing {
   companySummary: string | null;
   industry: string | null;
   companyType: string | null;
+  companySize: string | null;
   location: string | null;
   openJobs: number;
 }
@@ -124,9 +127,27 @@ export interface ApplicantRow {
     email: string;
     profile: {
       fullName: string | null;
+      avatarUrl: string | null;
       headline: string | null;
       location: string | null;
+      phone: string | null;
+      currentCompany: string | null;
+      experienceYears: number | null;
+      noticePeriod: string | null;
+      summary: string | null;
       resumeUrl: string | null;
+      resumeFileName: string | null;
+      currentCtc: string | null;
+      expectedCtc: string | null;
+      skills: string[];
+      educations: EducationEntry[];
+      workExperiences: WorkExperienceEntry[];
+      certifications: CertificationEntry[];
+      preferredRoles: string[];
+      preferredLocations: string[];
+      preferredIndustries: string[];
+      designation?: string | null;
+      updatedAt?: string;
     } | null;
   };
 }

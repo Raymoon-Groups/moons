@@ -10,6 +10,7 @@ import {
   CompanyLogoSection,
   EditableCard,
   Field,
+  getSubmitCardId,
   inputClass,
   ProfilePageShell,
   ProfilePhotoSection,
@@ -50,6 +51,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
   const [pendingRemoveLogo, setPendingRemoveLogo] = useState(false);
 
   const [saving, setSaving] = useState(false);
+  const [savedCardSignal, setSavedCardSignal] = useState<{ id: string; at: number } | null>(null);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [photoKey, setPhotoKey] = useState(0);
@@ -154,8 +156,9 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const cardId = getSubmitCardId(e);
     setSaving(true);
     setError('');
 
@@ -203,6 +206,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
       setPhotoKey((k) => k + 1);
       setLogoKey((k) => k + 1);
       setShowSuccess(true);
+      if (cardId) setSavedCardSignal({ id: cardId, at: Date.now() });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
@@ -218,7 +222,6 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
         onClose={() => setShowSuccess(false)}
       />
       <ProfilePageShell
-        title="Edit Profile"
         completion={liveCompletion}
         completionItems={completionItems}
       >
@@ -243,6 +246,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
             id="personal"
             title="Personal Info"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="grid gap-6 sm:grid-cols-2">
                 <ReadOnlyValue label="Full Name" value={fullName} />
@@ -286,6 +290,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
             id="company"
             title="Company information"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="grid gap-6 sm:grid-cols-2">
                 <ReadOnlyValue label="Company name" value={companyName} />
@@ -352,6 +357,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
             id="about"
             title="Bio"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                 {summary.trim() || 'Describe your company culture and what you offer.'}

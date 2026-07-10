@@ -1,10 +1,20 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { EmploymentType } from '@moons/shared';
+import { SelectField } from '@/components/profile/select-field';
 import { LoadingScreen } from '@/components/loading-screen';
 import { Card, ErrorText, FieldLabel, Input, PrimaryButton, Screen } from '@/components/ui';
 import { ApiError, authFetch } from '@/lib/api';
+import { formatEmploymentType } from '@/lib/format';
 import type { JobListing, Profile } from '@/lib/types';
+
+const EMPLOYMENT_OPTIONS = [
+  EmploymentType.FULL_TIME,
+  EmploymentType.PART_TIME,
+  EmploymentType.CONTRACT,
+  EmploymentType.INTERNSHIP,
+  EmploymentType.REMOTE,
+].map((type) => ({ label: formatEmploymentType(type), value: type }));
 
 export default function NewJobScreen() {
   const [title, setTitle] = useState('');
@@ -12,7 +22,7 @@ export default function NewJobScreen() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
-  const [employmentType] = useState(EmploymentType.FULL_TIME);
+  const [employmentType, setEmploymentType] = useState(EmploymentType.FULL_TIME);
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState('');
@@ -65,6 +75,12 @@ export default function NewJobScreen() {
         <Input value={location} onChangeText={setLocation} />
         <FieldLabel>Salary range (optional)</FieldLabel>
         <Input value={salaryRange} onChangeText={setSalaryRange} placeholder="₹8–12 LPA" />
+        <SelectField
+          label="Employment type"
+          value={employmentType}
+          options={EMPLOYMENT_OPTIONS}
+          onChange={(value) => setEmploymentType(value as EmploymentType)}
+        />
         <FieldLabel>Description</FieldLabel>
         <Input
           value={description}

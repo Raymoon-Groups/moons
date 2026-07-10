@@ -12,6 +12,10 @@ export function markBellNotificationsRead() {
   return authFetch<{ success: boolean }>('/notifications/read-bell', { method: 'POST' });
 }
 
+export function markNetworkNotificationsRead() {
+  return authFetch<{ success: boolean }>('/notifications/read-network', { method: 'POST' });
+}
+
 export function notifyNotificationsRefresh() {
   emitRefresh('moons:notifications-refresh');
 }

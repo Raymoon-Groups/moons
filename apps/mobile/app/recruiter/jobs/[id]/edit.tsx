@@ -1,11 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { EmploymentType } from '@moons/shared';
+import { SelectField } from '@/components/profile/select-field';
 import { LoadingScreen } from '@/components/loading-screen';
 import { Card, ErrorText, FieldLabel, Input, PrimaryButton, Screen } from '@/components/ui';
 import { ApiError, authFetch } from '@/lib/api';
+import { formatEmploymentType } from '@/lib/format';
 import type { JobListing } from '@/lib/types';
+
+const EMPLOYMENT_OPTIONS = [
+  EmploymentType.FULL_TIME,
+  EmploymentType.PART_TIME,
+  EmploymentType.CONTRACT,
+  EmploymentType.INTERNSHIP,
+  EmploymentType.REMOTE,
+].map((type) => ({ label: formatEmploymentType(type), value: type }));
 
 export default function EditJobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -14,6 +23,7 @@ export default function EditJobScreen() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
+  const [employmentType, setEmploymentType] = useState(EmploymentType.FULL_TIME);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +37,7 @@ export default function EditJobScreen() {
         setDescription(job.description);
         setLocation(job.location);
         setSalaryRange(job.salaryRange ?? '');
+        setEmploymentType(job.employmentType as EmploymentType);
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -44,7 +55,7 @@ export default function EditJobScreen() {
           description,
           location,
           salaryRange: salaryRange || undefined,
-          employmentType: EmploymentType.FULL_TIME,
+          employmentType,
         }),
       });
       router.back();
@@ -70,6 +81,12 @@ export default function EditJobScreen() {
         <Input value={location} onChangeText={setLocation} />
         <FieldLabel>Salary range</FieldLabel>
         <Input value={salaryRange} onChangeText={setSalaryRange} />
+        <SelectField
+          label="Employment type"
+          value={employmentType}
+          options={EMPLOYMENT_OPTIONS}
+          onChange={(value) => setEmploymentType(value as EmploymentType)}
+        />
         <FieldLabel>Description</FieldLabel>
         <Input
           value={description}

@@ -63,6 +63,14 @@ export default function ApplicantsScreen() {
         },
         chipActive: { borderColor: colors.blue, backgroundColor: colors.surface },
         chipText: { fontSize: 11, color: colors.foreground, fontFamily: theme.fonts.semibold },
+        coverNote: {
+          marginTop: 10,
+          padding: 10,
+          borderRadius: theme.radius.md,
+          backgroundColor: colors.surface,
+        },
+        coverNoteLabel: { fontSize: 11, fontFamily: theme.fonts.bold, color: colors.muted },
+        coverNoteText: { marginTop: 4, fontSize: 13, fontFamily: theme.fonts.regular, color: colors.foreground, lineHeight: 20 },
       }),
     [colors],
   );
@@ -125,6 +133,12 @@ export default function ApplicantsScreen() {
               ) : null}
               {item.candidate.profile?.location ? (
                 <Text style={styles.meta}>{item.candidate.profile.location}</Text>
+              ) : null}
+              {item.coverNote ? (
+                <View style={styles.coverNote}>
+                  <Text style={styles.coverNoteLabel}>Cover note</Text>
+                  <Text style={styles.coverNoteText}>{item.coverNote}</Text>
+                </View>
               ) : null}
               <Pressable
                 onPress={() => router.push(`/recruiter/candidates/${item.candidate.id}`)}

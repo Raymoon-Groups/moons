@@ -18,14 +18,29 @@ export class ApiError extends Error {
   }
 }
 
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
 async function parseError(response: Response): Promise<ApiError> {
   let message = 'Request failed';
   let code: string | undefined;
   try {
     const body = await response.json();
-    message = body.message ?? message;
-    if (Array.isArray(message)) message = message.join(', ');
+    let rawMessage: unknown = body.message;
     if (typeof body.code === 'string') code = body.code;
+
+    if (rawMessage && typeof rawMessage === 'object' && !Array.isArray(rawMessage)) {
+      const nested = rawMessage as Record<string, unknown>;
+      if (typeof nested.message === 'string') rawMessage = nested.message;
+      if (typeof nested.code === 'string') code = nested.code;
+    }
+
+    if (Array.isArray(rawMessage)) rawMessage = rawMessage.join(', ');
+    if (typeof rawMessage === 'string' && rawMessage.trim()) message = rawMessage;
   } catch {
     // ignore
   }
@@ -60,14 +75,21 @@ type FetchOptions = RequestInit & { token?: string; skipAuthRetry?: boolean };
 async function apiFetchRaw<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { token, headers, ...rest } = options;
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...rest,
-    headers: {
-      ...(rest.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...rest,
+      headers: {
+        ...(rest.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+    });
+  } catch {
+    throw new NetworkError(
+      `Cannot reach the server (${API_URL}). Make sure the API is running (pnpm api) and your phone is on the same Wi‑Fi as this computer.`,
+    );
+  }
 
   if (!response.ok) {
     throw await parseError(response);
@@ -228,4 +250,4 @@ export async function logoutRequest() {
   }
   await clearAuthSession();
 }
-
+

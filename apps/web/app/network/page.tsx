@@ -2,12 +2,21 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { NetworkPageContent } from '@/components/network/network-page-content';
+import { NetworkPageContent, type NetworkTabId } from '@/components/network/network-page-content';
+
+const VALID_TABS = new Set<NetworkTabId>([
+  'connections',
+  'pending',
+  'sent',
+  'suggestions',
+  'recent',
+]);
 
 function NetworkPageInner() {
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab');
-  const initialTab = tab === 'recent' ? 'recent' : 'suggestions';
+  const initialTab =
+    tab && VALID_TABS.has(tab as NetworkTabId) ? (tab as NetworkTabId) : 'connections';
 
   return <NetworkPageContent initialTab={initialTab} />;
 }

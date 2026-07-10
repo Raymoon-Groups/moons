@@ -12,12 +12,19 @@ import {
 import { AppScreen } from '@/components/app-screen';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { resolveAssetUrl } from '@/lib/assets';
-import { EmptyState, ScreenHeader } from '@/components/portal-ui';
+import { EmptyState, FilterChips, ScreenHeader } from '@/components/portal-ui';
+import { SearchBar } from '@/components/search-bar';
 import { apiFetch } from '@/lib/api';
+import { COMPANY_CATEGORIES, filterCompanies, type CompanySortKey } from '@/lib/companies-filters';
 import { useTheme } from '@/lib/theme-context';
 import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { CompaniesPage, CompanyListing } from '@/lib/types';
+
+const SORT_OPTIONS = [
+  { label: 'Most jobs', value: 'jobs' as CompanySortKey },
+  { label: 'A–Z', value: 'name' as CompanySortKey },
+];
 
 export default function CompaniesScreen() {
   const { colors } = useTheme();
@@ -25,6 +32,10 @@ export default function CompaniesScreen() {
   const [companies, setCompanies] = useState<CompanyListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQ, setSearchQ] = useState('');
+  const [locationQ, setLocationQ] = useState('');
+  const [category, setCategory] = useState('all');
+  const [sortBy, setSortBy] = useState<CompanySortKey>('jobs');
 
   const styles = useMemo(
     () =>
@@ -32,9 +43,6 @@ export default function CompaniesScreen() {
         center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
         list: { flex: 1 },
         listContent: { padding: theme.spacing.md, paddingBottom: bottomPadding },
-        header: { marginBottom: theme.spacing.md },
-        title: { fontSize: 26, fontFamily: theme.fonts.extrabold, color: colors.heading },
-        subtitle: { marginTop: 4, fontSize: 15, fontFamily: theme.fonts.regular, color: colors.muted, lineHeight: 22 },
         card: {
           backgroundColor: colors.surfaceElevated,
           borderRadius: theme.radius.lg,
@@ -47,6 +55,14 @@ export default function CompaniesScreen() {
         row: { flexDirection: 'row', gap: 12, alignItems: 'center' },
         name: { fontSize: 16, fontFamily: theme.fonts.bold, color: colors.heading },
         meta: { marginTop: 4, fontSize: 13, fontFamily: theme.fonts.regular, color: colors.muted },
+        tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+        tag: {
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          borderRadius: 6,
+          backgroundColor: colors.surface,
+        },
+        tagText: { fontSize: 11, fontFamily: theme.fonts.medium, color: colors.muted },
         jobs: { marginTop: 6, fontSize: 12, fontFamily: theme.fonts.bold, color: colors.blue },
       }),
     [colors, bottomPadding],
@@ -56,7 +72,7 @@ export default function CompaniesScreen() {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const data = await apiFetch<CompaniesPage>('/jobs/companies?limit=50');
+      const data = await apiFetch<CompaniesPage>('/jobs/companies?limit=100');
       setCompanies(data.items);
     } catch {
       setCompanies([]);
@@ -69,6 +85,20 @@ export default function CompaniesScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const filtered = useMemo(
+    () => filterCompanies(companies, { categoryId: category, searchQ, locationQ, sortBy }),
+    [companies, category, searchQ, locationQ, sortBy],
+  );
+
+  const categoryOptions = useMemo(
+    () =>
+      COMPANY_CATEGORIES.map((cat) => ({
+        label: cat.label,
+        value: cat.id,
+      })),
+    [],
+  );
 
   if (loading) {
     return (
@@ -84,22 +114,28 @@ export default function CompaniesScreen() {
     <AppScreen>
       <FlatList
         style={styles.list}
-        data={companies}
+        data={filtered}
         keyExtractor={(item) => item.recruiterId}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />}
         ListHeaderComponent={
-          <ScreenHeader
-            eyebrow="Employers"
-            title="Top companies"
-            subtitle="Discover employers actively hiring on MoonsJob"
-          />
+          <View>
+            <ScreenHeader
+              eyebrow="Employers"
+              title="Top companies"
+              subtitle="Discover employers actively hiring on MoonsJob"
+            />
+            <SearchBar value={searchQ} onChangeText={setSearchQ} placeholder="Search companies…" />
+            <SearchBar value={locationQ} onChangeText={setLocationQ} placeholder="Location…" />
+            <FilterChips options={categoryOptions} value={category} onChange={setCategory} />
+            <FilterChips options={SORT_OPTIONS} value={sortBy} onChange={(v) => setSortBy(v as CompanySortKey)} />
+          </View>
         }
         ListEmptyComponent={
           <EmptyState
             icon="business-outline"
             title="No companies found"
-            message="Check back soon for new employers."
+            message="Try adjusting your search or filters."
           />
         }
         renderItem={({ item }) => (
@@ -116,8 +152,25 @@ export default function CompaniesScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{item.companyName}</Text>
                 <Text style={styles.meta}>
-                  {[item.industry, item.location].filter(Boolean).join(' · ')}
+                  {[item.companySize, item.location].filter(Boolean).join(' · ')}
                 </Text>
+                <View style={styles.tags}>
+                  {item.companyType ? (
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>{item.companyType}</Text>
+                    </View>
+                  ) : null}
+                  {item.industry ? (
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>{item.industry}</Text>
+                    </View>
+                  ) : null}
+                  {item.openJobs >= 3 ? (
+                    <View style={styles.tag}>
+                      <Text style={[styles.tagText, { color: colors.blue }]}>Actively hiring</Text>
+                    </View>
+                  ) : null}
+                </View>
                 <Text style={styles.jobs}>{item.openJobs} open jobs</Text>
               </View>
             </View>
@@ -127,4 +180,3 @@ export default function CompaniesScreen() {
     </AppScreen>
   );
 }
-

@@ -16,6 +16,8 @@ import {
   isStaleConnectionInviteError,
   notifyConnectionsRefresh,
 } from '@/lib/connection-invites';
+import { OPEN_ON_MOONS_LABEL, showOpenOnMoonsToViewer } from '@/lib/open-on-moons';
+import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
@@ -30,12 +32,17 @@ export function PersonCard({
   person,
   onConnectionChange,
   onDismiss,
+  onUpdated,
+  showConnect = true,
 }: {
   person: NetworkUserCard;
   onConnectionChange?: (userId: string, update: ConnectionUpdate) => void;
   onDismiss?: () => void;
+  onUpdated?: () => void;
+  showConnect?: boolean;
 }) {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showInvite, setShowInvite] = useState(false);
@@ -45,6 +52,11 @@ export function PersonCard({
   const name = local.fullName?.trim() || 'Professional';
   const subtitle = local.headline || local.currentCompany || 'Professional';
   const skills = local.sharedSkills?.slice(0, 2) ?? [];
+  const showOpenBadge = showOpenOnMoonsToViewer(
+    local.openToWork,
+    user?.role,
+    user?.id === local.userId,
+  );
 
   function apply(update: ConnectionUpdate) {
     setLocal((prev) => ({
@@ -63,6 +75,7 @@ export function PersonCard({
       await action();
       if (update) apply(update);
       notifyConnectionsRefresh();
+      onUpdated?.();
     } catch (err) {
       if (update && isStaleConnectionInviteError(err)) {
         apply(update);
@@ -113,6 +126,11 @@ export function PersonCard({
               <Text style={[styles.reason, { color: colors.muted }]} numberOfLines={2}>
                 {local.recommendationReason}
               </Text>
+            ) : null}
+            {showOpenBadge ? (
+              <View style={[styles.openBadge, { backgroundColor: '#1a2744' }]}>
+                <Text style={[styles.openBadgeText, fontStyle('semibold')]}>{OPEN_ON_MOONS_LABEL}</Text>
+              </View>
             ) : null}
             {skills.length > 0 ? (
               <View style={styles.skillRow}>
@@ -200,6 +218,7 @@ export function PersonCard({
             <Text style={[styles.btnSecondaryText, { color: colors.muted }, fontStyle('semibold')]}>Pending</Text>
           </Pressable>
         ) : (
+          showConnect ? (
           <Pressable
             disabled={loading}
             onPress={() => setShowInvite(true)}
@@ -208,6 +227,7 @@ export function PersonCard({
             <Ionicons name="person-add-outline" size={15} color="#fff" />
             <Text style={[styles.btnPrimaryText, fontStyle('semibold')]}>Connect</Text>
           </Pressable>
+          ) : null
         )}
       </View>
 
@@ -263,6 +283,14 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, lineHeight: 21 },
   headline: { marginTop: 2, fontSize: 13, lineHeight: 18 },
   reason: { marginTop: 6, fontSize: 12, lineHeight: 17 },
+  openBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    marginTop: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  openBadgeText: { color: '#fff', fontSize: 10 },
   skillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   skill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
   dismiss: {

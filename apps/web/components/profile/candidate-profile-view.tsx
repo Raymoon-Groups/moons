@@ -23,6 +23,7 @@ import {
   Field,
   formatExperience,
   getResumeDisplayName,
+  getSubmitCardId,
   inputClass,
   ProfilePageShell,
   ProfilePhotoSection,
@@ -92,6 +93,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
   const [pendingRemoveResume, setPendingRemoveResume] = useState(false);
 
   const [saving, setSaving] = useState(false);
+  const [savedCardSignal, setSavedCardSignal] = useState<{ id: string; at: number } | null>(null);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [photoKey, setPhotoKey] = useState(0);
@@ -209,8 +211,9 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const cardId = getSubmitCardId(e);
     setSaving(true);
     setError('');
 
@@ -263,6 +266,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
       setPendingRemoveResume(false);
       setPhotoKey((k) => k + 1);
       setShowSuccess(true);
+      if (cardId) setSavedCardSignal({ id: cardId, at: Date.now() });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
@@ -278,7 +282,6 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
         onClose={() => setShowSuccess(false)}
       />
       <ProfilePageShell
-        title="Edit Profile"
         completion={liveCompletion}
         completionItems={completionItems}
       >
@@ -305,6 +308,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="personal"
             title="Personal Info"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="grid gap-6 sm:grid-cols-3">
                 <ReadOnlyValue label="Full Name" value={fullName} />
@@ -331,6 +335,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="location"
             title="Location"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={<ReadOnlyValue label="Current city" value={location} />}
             editContent={
               <Field label="Current city" required>
@@ -356,6 +361,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="career"
             title="Career profile"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="grid gap-6 sm:grid-cols-2">
                 <ReadOnlyValue label="Current designation" value={headline} />
@@ -396,6 +402,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="experience"
             title="Employment history"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="space-y-2 text-sm text-foreground">
                 {workExperiences.length === 0 ? (
@@ -417,6 +424,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="education"
             title="Education"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="space-y-2 text-sm text-foreground">
                 {educations.length === 0 ? (
@@ -438,6 +446,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="salary"
             title="Salary details"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="grid gap-6 sm:grid-cols-2">
                 <ReadOnlyValue label="Current CTC" value={currentCtc} />
@@ -470,6 +479,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="preferences"
             title="Job preferences"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="space-y-4">
                 <div>
@@ -520,6 +530,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="resume"
             title="Resume"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="text-sm text-foreground">
                 {resumeUrl && resumeFileName ? (
@@ -612,6 +623,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="skills"
             title="Key skills"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="flex flex-wrap gap-2">
                 {skills.length === 0 ? (
@@ -658,6 +670,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="certifications"
             title="Certifications"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <div className="space-y-2 text-sm text-foreground">
                 {certifications.length === 0 ? (
@@ -679,6 +692,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             id="summary"
             title="Bio"
             saving={saving}
+            savedCardSignal={savedCardSignal}
             viewContent={
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                 {summary.trim() || 'Add a short summary about your experience and strengths.'}

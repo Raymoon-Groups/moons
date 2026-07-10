@@ -26,17 +26,21 @@ export function AuthSplitLayout({ title, subtitle, footer, children }: AuthSplit
           sizes="(max-width: 1024px) 100vw, 55vw"
         />
         <div
-          className="absolute inset-0 bg-gradient-to-br from-[#4a7fd4]/55 via-[#94a3b8]/40 to-[#e8f0fa]/70"
+          className="absolute inset-0 bg-gradient-to-br from-[#1a2744]/70 via-[#1a2744]/35 to-[#1a2744]/55"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
           aria-hidden
         />
 
         <div className="relative z-10 flex items-center justify-between gap-4">
-          <MoonsLogo size="xl" priority />
+          <MoonsLogo size="xl" priority variant="onWhite" />
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <Link
               href="/"
-              className="text-sm font-medium text-moons-silver/90 transition hover:text-white"
+              className="text-sm font-medium text-white/90 drop-shadow-sm transition hover:text-white"
             >
               ← Back to Website
             </Link>
@@ -44,10 +48,10 @@ export function AuthSplitLayout({ title, subtitle, footer, children }: AuthSplit
         </div>
 
         <div className="relative z-10 mt-auto max-w-lg pb-4 lg:pb-8">
-          <h2 className="text-2xl font-bold leading-snug text-white sm:text-3xl lg:text-4xl">
+          <h2 className="text-2xl font-bold leading-snug text-white drop-shadow-lg sm:text-3xl lg:text-4xl">
             Find jobs faster. Apply smarter. Grow anywhere.
           </h2>
-          <p className="mt-4 text-sm leading-relaxed text-moons-silver/80 sm:text-base">
+          <p className="mt-4 text-sm leading-relaxed text-white/90 drop-shadow-md sm:text-base">
             From your first application to your dream role — browse openings, build your
             profile, and connect with top recruiters across India.
           </p>

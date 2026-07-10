@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { UserRole } from '@moons/shared';
 import { AuthLayout } from '@/components/auth-layout';
 import { SelectField } from '@/components/profile/select-field';
@@ -14,6 +14,7 @@ import {
 import { completeOnboarding } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { COMPANY_SIZE_OPTIONS, INDUSTRY_OPTIONS } from '@/lib/profile-constants';
+import { parseResumeFile } from '@/lib/resume-parse';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -32,6 +33,7 @@ export default function OnboardingScreen() {
   const [companySize, setCompanySize] = useState('');
   const [industry, setIndustry] = useState('');
   const [resume, setResume] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [parsingResume, setParsingResume] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +49,7 @@ export default function OnboardingScreen() {
           marginBottom: 8,
         },
         resumeText: { color: colors.foreground, fontSize: 14 },
+        parseHint: { marginTop: 6, fontSize: 12, color: colors.muted },
       }),
     [colors],
   );
@@ -58,10 +61,26 @@ export default function OnboardingScreen() {
 
   async function pickResume() {
     const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'application/msword'],
+      type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
       copyToCacheDirectory: true,
     });
-    if (!result.canceled && result.assets[0]) setResume(result.assets[0]);
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    setResume(asset);
+    setParsingResume(true);
+    setError('');
+    try {
+      const parsed = await parseResumeFile(asset);
+      if (parsed.fullName) setFullName(parsed.fullName);
+      if (parsed.phone) setPhone(parsed.phone);
+      if (parsed.location) setLocation(parsed.location);
+      if (parsed.headline) setHeadline(parsed.headline);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not parse resume');
+    } finally {
+      setParsingResume(false);
+    }
   }
 
   async function handleSubmit() {
@@ -145,9 +164,18 @@ export default function OnboardingScreen() {
           <FieldLabel>Headline (optional)</FieldLabel>
           <Input value={headline} onChangeText={setHeadline} placeholder="e.g. Frontend Developer" />
           <FieldLabel>Resume (optional)</FieldLabel>
-          <Pressable onPress={pickResume} style={styles.resumeButton}>
-            <Text style={styles.resumeText}>{resume ? resume.name : 'Upload resume (PDF or DOC)'}</Text>
+          <Pressable onPress={pickResume} disabled={parsingResume} style={styles.resumeButton}>
+            <Text style={styles.resumeText}>
+              {parsingResume ? 'Parsing resume…' : resume ? resume.name : 'Upload resume (PDF or DOC)'}
+            </Text>
           </Pressable>
+          {parsingResume ? (
+            <View style={{ marginBottom: 8 }}>
+              <ActivityIndicator color={colors.blue} />
+            </View>
+          ) : (
+            <Text style={styles.parseHint}>We&apos;ll auto-fill your name, phone, location, and headline when possible.</Text>
+          )}
         </>
       )}
       {error ? <ErrorText>{error}</ErrorText> : null}

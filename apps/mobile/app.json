@@ -20,7 +20,8 @@
         "backgroundColor": "#1a2744"
       },
       "package": "com.moonsjob.app",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "usesCleartextTraffic": true
     },
     "plugins": ["expo-router", "expo-secure-store", "expo-font"],
     "web": {

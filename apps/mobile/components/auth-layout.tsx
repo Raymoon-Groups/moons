@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MoonsLogo } from './moons-logo';
+import { AuthLegalLinks } from './auth-legal-links';
 import { ThemeToggle } from './theme-toggle';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
@@ -119,6 +120,7 @@ export function AuthLayout({
             <View style={styles.body}>{children}</View>
             {footer ? <View style={styles.footer}>{footer}</View> : null}
           </View>
+          <AuthLegalLinks />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

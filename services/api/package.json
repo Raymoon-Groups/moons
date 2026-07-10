@@ -5,6 +5,7 @@
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
+    "dev:stable": "nest start",
     "start": "prisma migrate deploy && node dist/main",
     "postinstall": "prisma generate",
     "lint": "tsc --noEmit",

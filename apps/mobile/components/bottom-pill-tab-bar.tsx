@@ -17,19 +17,19 @@ type PillItem = {
   showDot?: boolean;
 };
 
-function getPillItems(isRecruiter: boolean, indicators: { network: boolean; messages: boolean }): PillItem[] {
+function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessagesDot: boolean): PillItem[] {
   if (isRecruiter) {
     return [
       { routeName: 'my-jobs', label: 'Jobs', shortLabel: 'Jobs', icon: 'briefcase-outline' },
-      { routeName: 'network', label: 'Network', shortLabel: 'Network', icon: 'people-outline', showDot: indicators.network },
-      { routeName: 'messages', label: 'Messages', shortLabel: 'Messages', icon: 'chatbubble-outline', showDot: indicators.messages },
+      { routeName: 'network', label: 'Network', shortLabel: 'Network', icon: 'people-outline', showDot: showNetworkDot },
+      { routeName: 'messages', label: 'Messages', shortLabel: 'Messages', icon: 'chatbubble-outline', showDot: showMessagesDot },
       { routeName: 'candidates', label: 'Candidates', shortLabel: 'Candidates', icon: 'person-add-outline' },
     ];
   }
   return [
     { routeName: 'jobs', label: 'Jobs', shortLabel: 'Jobs', icon: 'briefcase-outline' },
-    { routeName: 'network', label: 'Network', shortLabel: 'Network', icon: 'people-outline', showDot: indicators.network },
-    { routeName: 'messages', label: 'Messages', shortLabel: 'Messages', icon: 'chatbubble-outline', showDot: indicators.messages },
+    { routeName: 'network', label: 'Network', shortLabel: 'Network', icon: 'people-outline', showDot: showNetworkDot },
+    { routeName: 'messages', label: 'Messages', shortLabel: 'Messages', icon: 'chatbubble-outline', showDot: showMessagesDot },
     { routeName: 'companies', label: 'Companies', shortLabel: 'Companies', icon: 'business-outline' },
   ];
 }
@@ -38,9 +38,9 @@ export function BottomPillTabBar({ state, navigation }: BottomTabBarProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { indicators } = useNavIndicators();
+  const { indicators, showNetworkDot, acknowledgeNetworkBadge } = useNavIndicators();
   const isRecruiter = user?.role === UserRole.RECRUITER;
-  const items = getPillItems(isRecruiter, indicators);
+  const items = getPillItems(isRecruiter, showNetworkDot, indicators.messages);
   const activeRoute = state.routes[state.index]?.name;
 
   return (
@@ -64,7 +64,12 @@ export function BottomPillTabBar({ state, navigation }: BottomTabBarProps) {
             return (
               <Pressable
                 key={item.routeName}
-                onPress={() => navigation.navigate(item.routeName)}
+                onPress={() => {
+                  if (item.routeName === 'network') {
+                    void acknowledgeNetworkBadge(indicators.networkPendingCount);
+                  }
+                  navigation.navigate(item.routeName);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={item.label}
                 accessibilityState={{ selected: active }}

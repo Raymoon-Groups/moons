@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { UserRole } from '@moons/shared';
 import { AuthLayout } from '@/components/auth-layout';
@@ -15,7 +15,9 @@ import {
   PasswordInput,
   PrimaryButton,
 } from '@/components/ui';
-import { ApiError } from '@/lib/api';
+import { ApiError, NetworkError } from '@/lib/api';
+import { API_URL } from '@/lib/api-url';
+import { checkApiReachable } from '@/lib/api-health';
 import { useAuth } from '@/lib/auth-context';
 import { getPostAuthPath } from '@/lib/auth-redirect';
 import { useTheme } from '@/lib/theme-context';
@@ -32,12 +34,33 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [isGoogleAccount, setIsGoogleAccount] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void checkApiReachable().then((ok) => {
+      if (active) setApiOnline(ok);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         forgotRow: { alignItems: 'flex-end', marginTop: 4 },
         googleHint: { marginTop: 8, fontSize: 13, lineHeight: 18, color: colors.warning },
+        apiBanner: {
+          backgroundColor: colors.errorBg,
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: `${colors.error}33`,
+        },
+        apiBannerText: { color: colors.error, fontSize: 13, lineHeight: 19 },
+        apiBannerHint: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 6 },
         footer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
         footerText: { color: colors.muted, fontSize: 14 },
       }),
@@ -53,7 +76,11 @@ export default function LoginScreen() {
       router.replace(getPostAuthPath(user) as never);
     } catch (err) {
       if (err instanceof ApiError && err.code === 'GOOGLE_ACCOUNT') setIsGoogleAccount(true);
-      setError(err instanceof ApiError ? err.message : 'Login failed');
+      if (err instanceof NetworkError) {
+        setError(err.message);
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -71,6 +98,18 @@ export default function LoginScreen() {
       }
     >
       {params.reset === 'success' ? <InfoText>Password reset successfully. You can now sign in.</InfoText> : null}
+
+      {apiOnline === false ? (
+        <View style={styles.apiBanner}>
+          <Text style={styles.apiBannerText}>
+            API server is not reachable at {API_URL}
+          </Text>
+          <Text style={styles.apiBannerHint}>
+            Run pnpm api (or pnpm mobile, which starts the API) in your project folder, then reload this app.
+            Phone and PC must be on the same Wi‑Fi.
+          </Text>
+        </View>
+      ) : null}
 
       <FieldLabel>Email</FieldLabel>
       <Input

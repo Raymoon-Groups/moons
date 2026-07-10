@@ -1,7 +1,8 @@
 type RefreshEvent =
   | 'moons:connections-refresh'
   | 'moons:messages-refresh'
-  | 'moons:notifications-refresh';
+  | 'moons:notifications-refresh'
+  | 'moons:network-badge-ack';
 
 type Listener = () => void;
 

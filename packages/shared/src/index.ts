@@ -3,6 +3,13 @@ export enum UserRole {
   RECRUITER = 'RECRUITER',
 }
 
+export {
+  extractEmailDomain,
+  isPersonalEmailDomain,
+  isRecruiterCompanyEmail,
+  RECRUITER_COMPANY_EMAIL_MESSAGE,
+} from './recruiter-email';
+
 export enum JobStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',

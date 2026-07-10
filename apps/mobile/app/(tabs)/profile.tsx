@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { UserRole } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { MenuRow } from '@/components/menu-row';
+import { OpenOnMoonsToggle } from '@/components/profile/open-on-moons-toggle';
 import { ProfileRing } from '@/components/profile-ring';
 import { PrimaryBanner, SectionTitle } from '@/components/portal-ui';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -18,7 +19,7 @@ import { theme } from '@/lib/theme';
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { colors, isDark } = useTheme();
-  const { profile, name, avatarUrl } = useProfile();
+  const { profile, name, avatarUrl, refresh } = useProfile();
   const bottomPadding = useTabScreenPadding();
 
   const heroColors = isDark
@@ -138,6 +139,10 @@ export default function ProfileScreen() {
           />
         ) : null}
 
+        {user.role === UserRole.CANDIDATE && profile ? (
+          <OpenOnMoonsToggle profile={profile} onUpdated={() => void refresh()} />
+        ) : null}
+
         <SectionTitle>Preferences</SectionTitle>
         <View style={[styles.themeRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
           <View style={styles.themeCopy}>
@@ -151,9 +156,15 @@ export default function ProfileScreen() {
 
         <SectionTitle>Account</SectionTitle>
         <MenuRow
+          icon="people"
+          label="My network"
+          subtitle="Connections, pending & visitors"
+          onPress={() => router.push('/profile/network')}
+        />
+        <MenuRow
           icon="settings"
           label="Settings"
-          subtitle="Edit profile, security & account"
+          subtitle="Edit profile, security & legal"
           onPress={() => router.push('/settings')}
         />
 

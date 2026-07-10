@@ -163,24 +163,15 @@ function ProfileMenuButton({
             href="/profile"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-surface"
+            className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium transition hover:bg-surface ${
+              pathname === '/profile' || pathname?.startsWith('/profile/')
+                ? 'text-moons-blue'
+                : 'text-foreground'
+            }`}
           >
             <UserIcon />
-            View profile
+            Profile
           </Link>
-          {user?.id && (
-            <Link
-              href={`/network/${user.id}`}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium transition hover:bg-surface ${
-                pathname === `/network/${user.id}` ? 'text-moons-blue' : 'text-foreground'
-              }`}
-            >
-              <UserIcon />
-              Public profile
-            </Link>
-          )}
           <Link
             href="/settings/security"
             role="menuitem"

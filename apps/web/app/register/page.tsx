@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole, type AuthResponse } from '@moons/shared';
+import { UserRole, type AuthResponse, isRecruiterCompanyEmail, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
 import { AuthDivider } from '@/components/auth/auth-divider';
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout';
 import { PasswordField } from '@/components/auth/password-field';
@@ -34,6 +34,10 @@ function RegisterForm() {
     e.preventDefault();
     setError('');
     setInfo('');
+    if (role === UserRole.RECRUITER && !isRecruiterCompanyEmail(email)) {
+      setError(RECRUITER_COMPANY_EMAIL_MESSAGE);
+      return;
+    }
     setLoading(true);
     try {
       const res = await apiFetch<{ success: boolean; message: string }>(

@@ -12,7 +12,7 @@ import { UserRole } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { CompanyAvatar } from '@/components/company-avatar';
 import { Chip } from '@/components/status-badge';
-import { PrimaryButton } from '@/components/ui';
+import { PrimaryButton, FieldLabel, Input } from '@/components/ui';
 import { apiFetch, authFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -29,6 +29,7 @@ export default function JobDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [coverNote, setCoverNote] = useState('');
   const [error, setError] = useState('');
 
   const styles = useMemo(
@@ -58,6 +59,7 @@ export default function JobDetailScreen() {
         },
         sectionTitle: { fontSize: 16, ...fontStyle('extrabold'), color: colors.heading, marginBottom: 10 },
         description: { fontSize: 15, lineHeight: 24, color: colors.foreground },
+        coverInput: { minHeight: 96, textAlignVertical: 'top' },
         hint: { textAlign: 'center', color: colors.muted, fontSize: 14 },
         error: { color: colors.error, textAlign: 'center' },
       }),
@@ -92,7 +94,10 @@ export default function JobDetailScreen() {
     if (!id || !user) return;
     setApplying(true);
     try {
-      await authFetch('/applications', { method: 'POST', body: JSON.stringify({ jobId: id }) });
+      await authFetch('/applications', {
+        method: 'POST',
+        body: JSON.stringify({ jobId: id, coverNote: coverNote.trim() || undefined }),
+      });
       setApplied(true);
       Alert.alert('Applied', 'Your application was submitted successfully.');
     } catch (err) {
@@ -143,12 +148,25 @@ export default function JobDetailScreen() {
         </View>
 
         {canApply ? (
-          <PrimaryButton
-            label={applied ? 'Already applied' : applying ? 'Applying…' : 'Apply now'}
-            onPress={handleApply}
-            loading={applying}
-            disabled={applied}
-          />
+          <>
+            <View style={styles.section}>
+              <FieldLabel>Cover note (optional)</FieldLabel>
+              <Input
+                value={coverNote}
+                onChangeText={setCoverNote}
+                placeholder="Tell the recruiter why you're a great fit…"
+                multiline
+                editable={!applied}
+                style={styles.coverInput}
+              />
+            </View>
+            <PrimaryButton
+              label={applied ? 'Already applied' : applying ? 'Applying…' : 'Apply now'}
+              onPress={handleApply}
+              loading={applying}
+              disabled={applied}
+            />
+          </>
         ) : (
           <Text style={styles.hint}>Sign in as a jobseeker to apply for this role.</Text>
         )}
