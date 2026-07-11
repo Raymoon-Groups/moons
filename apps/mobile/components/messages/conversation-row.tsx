@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ConversationPreview } from '@/lib/messages';
 import { truncateMessagePreview } from '@/lib/messages';
 import { formatConversationTime } from '@/lib/message-format';
@@ -26,30 +27,31 @@ export function ConversationRow({
   const avatar = resolveAvatarUrl(person.avatarUrl);
   const name = person.fullName?.trim() || 'Professional';
   const unread = conversation.unreadCount > 0;
+  const preview = previewText(conversation);
 
   return (
     <Pressable
       onPress={onPress}
+      android_ripple={{ color: `${colors.blue}14`, borderless: false }}
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: unread ? `${colors.blue}0C` : colors.surfaceElevated,
-          borderColor: unread ? `${colors.blue}44` : colors.border,
+          backgroundColor: colors.surfaceElevated,
+          borderColor: unread ? `${colors.blue}40` : colors.border,
         },
-        pressed && { opacity: 0.92 },
+        pressed && styles.pressed,
       ]}
     >
-      <View style={styles.avatarWrap}>
-        <View style={[styles.avatar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {avatar ? (
-            <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
-          ) : (
-            <Text style={[fontStyle('bold'), { color: colors.heading, fontSize: 16 }]}>
-              {name.charAt(0).toUpperCase()}
-            </Text>
-          )}
-        </View>
-        {unread ? <View style={[styles.unreadDot, { backgroundColor: colors.blue, borderColor: colors.surfaceElevated }]} /> : null}
+      {unread ? <View style={[styles.unreadStripe, { backgroundColor: colors.blue }]} /> : null}
+
+      <View style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+        {avatar ? (
+          <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
+        ) : (
+          <Text style={[styles.avatarLetter, { color: colors.blue }, fontStyle('bold')]}>
+            {name.charAt(0).toUpperCase()}
+          </Text>
+        )}
       </View>
 
       <View style={styles.copy}>
@@ -65,74 +67,131 @@ export function ConversationRow({
             {name}
           </Text>
           {conversation.lastMessage ? (
-            <Text style={[styles.time, { color: colors.muted }]}>
+            <Text
+              style={[
+                styles.time,
+                { color: unread ? colors.blue : colors.muted },
+                fontStyle('medium'),
+              ]}
+            >
               {formatConversationTime(conversation.lastMessage.createdAt)}
             </Text>
           ) : null}
         </View>
+
         {person.headline ? (
           <Text numberOfLines={1} style={[styles.headline, { color: colors.muted }]}>
             {person.headline}
           </Text>
         ) : null}
+
         <Text
           numberOfLines={2}
           style={[
             styles.preview,
-            { color: unread ? colors.heading : colors.muted },
-            unread ? fontStyle('medium') : fontStyle('regular'),
+            { color: unread ? colors.foreground : colors.muted },
+            unread ? fontStyle('semibold') : fontStyle('regular'),
           ]}
         >
-          {previewText(conversation)}
+          {preview}
         </Text>
       </View>
 
-      {unread && conversation.unreadCount > 1 ? (
-        <View style={[styles.badge, { backgroundColor: colors.blue }]}>
-          <Text style={[styles.badgeText, fontStyle('bold')]}>{conversation.unreadCount}</Text>
-        </View>
-      ) : null}
+      <View style={styles.trailing}>
+        {unread ? (
+          conversation.unreadCount > 1 ? (
+            <View style={[styles.badge, { backgroundColor: colors.blue }]}>
+              <Text style={[styles.badgeText, fontStyle('bold')]}>{conversation.unreadCount}</Text>
+            </View>
+          ) : (
+            <View style={[styles.unreadDot, { backgroundColor: colors.blue }]} />
+          )
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ opacity: 0.45 }} />
+        )}
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    width: '100%',
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingLeft: 16,
     marginBottom: 10,
-    ...theme.shadow.soft,
+    overflow: 'hidden',
+    ...(Platform.OS === 'ios' ? theme.shadow.soft : { elevation: 0 }),
   },
-  avatarWrap: { position: 'relative' },
+  pressed: {
+    opacity: 0.96,
+  },
+  unreadStripe: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+  },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    flexShrink: 0,
   },
   avatarImg: { width: '100%', height: '100%' },
-  unreadDot: {
-    position: 'absolute',
-    right: -1,
-    top: -1,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
+  avatarLetter: { fontSize: 18 },
+  copy: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
-  copy: { flex: 1, minWidth: 0 },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { flex: 1, fontSize: 15 },
-  time: { fontSize: 11, ...fontStyle('medium') },
-  headline: { marginTop: 2, fontSize: 11, lineHeight: 15 },
-  preview: { marginTop: 4, fontSize: 13, lineHeight: 18 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  name: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  time: {
+    fontSize: 11,
+    flexShrink: 0,
+  },
+  headline: {
+    marginTop: 2,
+    fontSize: 12,
+    lineHeight: 16,
+    ...fontStyle('regular'),
+  },
+  preview: {
+    marginTop: 4,
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  trailing: {
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
   badge: {
     minWidth: 22,
     height: 22,
@@ -140,7 +199,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
   },
-  badgeText: { color: '#fff', fontSize: 11 },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+  },
 });

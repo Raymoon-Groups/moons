@@ -102,6 +102,28 @@ export interface CompaniesPage {
   total: number;
 }
 
+export interface PublicCompanyProfile {
+  recruiterId: string;
+  companyName: string | null;
+  companyLogoUrl: string | null;
+  companyWebsite: string | null;
+  industry: string | null;
+  companyType: string | null;
+  companySize: string | null;
+  companyLocation: string | null;
+  officeAddress: string | null;
+  companySummary: string | null;
+  openJobsCount: number;
+  openJobs: Array<{
+    id: string;
+    title: string;
+    location: string;
+    employmentType: string;
+    salaryRange: string | null;
+    createdAt?: string;
+  }>;
+}
+
 export interface CandidateStats {
   total: number;
   submitted: number;

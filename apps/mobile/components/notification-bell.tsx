@@ -57,7 +57,12 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
 
   function handlePress(item: NotificationItem) {
     setOpen(false);
-    if (item.linkUrl?.startsWith('/')) {
+    if (!item.linkUrl) return;
+    if (item.linkUrl.includes('networkTab=visitors')) {
+      router.push('/profile/network?tab=visitors' as never);
+      return;
+    }
+    if (item.linkUrl.startsWith('/')) {
       router.push(item.linkUrl as never);
     }
   }

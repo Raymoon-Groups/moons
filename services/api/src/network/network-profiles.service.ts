@@ -163,7 +163,7 @@ export class NetworkProfilesService {
       type: NotificationType.PROFILE_VIEW,
       title: 'Profile view',
       body: `${viewerName} viewed your profile.`,
-      linkUrl: `/network/${viewerId}`,
+      linkUrl: `/profile?networkTab=visitors`,
       metadata: { viewerId },
     });
 

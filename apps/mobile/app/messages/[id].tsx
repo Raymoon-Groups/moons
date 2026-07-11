@@ -1,24 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  AppState,
   FlatList,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
+  type ScrollViewProps,
 } from 'react-native';
 import { Image } from 'expo-image';
 import {
+  KeyboardAwareScrollView,
   KeyboardStickyView,
   useKeyboardState,
   useResizeMode,
 } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppScreen } from '@/components/app-screen';
-import { MessageAttachmentContent } from '@/components/messages/message-attachment-content';
+import { MessageBubble, MessageDayDivider } from '@/components/messages/message-bubble';
 import { MessageComposeField } from '@/components/messages/message-compose-field';
 import {
   acceptConnectionInvite,
@@ -26,12 +31,13 @@ import {
 } from '@/lib/connection-invites';
 import {
   buildMessageRows,
-  formatMessageTime,
   type MessageListRow,
 } from '@/lib/message-format';
 import {
   fetchConversation,
   fetchMessages,
+  MESSAGE_FETCH_LIMIT,
+  MESSAGE_THREAD_POLL_MS,
   notifyMessagesRefresh,
   sendMessage,
   type MessageAttachment,
@@ -39,19 +45,49 @@ import {
 } from '@/lib/messages';
 import { resolveAvatarUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
+import { subscribeRefresh } from '@/lib/refresh-events';
+import {
+  notifyPossibleIncomingMessage,
+  prepareMessageSound,
+  setThreadMessageBaseline,
+} from '@/lib/message-sound';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
 const COMPOSE_INPUT_ID = 'message-compose-input';
+const COMPOSE_BAR_SPACE = 76;
+
+function messagesChanged(prev: MessageItem[], next: MessageItem[]) {
+  if (prev.length !== next.length) return true;
+  return !prev.every((message, index) => message.id === next[index]?.id);
+}
+
+function applyThreadMessages(
+  setMessages: Dispatch<SetStateAction<MessageItem[]>>,
+  next: MessageItem[],
+): boolean {
+  let changed = false;
+  setMessages((prev) => {
+    if (!messagesChanged(prev, next)) return prev;
+    changed = true;
+    return next;
+  });
+  return changed;
+}
 
 export default function MessageThreadScreen() {
   useResizeMode();
 
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const keyboardVisible = useKeyboardState((state) => state.isVisible);
+  const keyboardHeight = useKeyboardState((state) => state.height);
   const listRef = useRef<FlatList<MessageListRow>>(null);
+  const stickToBottomRef = useRef(true);
+  const refreshingRef = useRef(false);
+  const lastMessageIdRef = useRef<string | null>(null);
+  const openScrollDoneRef = useRef(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof fetchConversation>> | null>(null);
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,23 +96,67 @@ export default function MessageThreadScreen() {
   const [sending, setSending] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [error, setError] = useState('');
+  const [composeHeight, setComposeHeight] = useState(COMPOSE_BAR_SPACE);
 
   const rows = useMemo(() => buildMessageRows(messages), [messages]);
-  const composeBottomPad = keyboardVisible ? 8 : Math.max(insets.bottom, 8);
+  const listData = useMemo(() => [...rows].reverse(), [rows]);
+  const listInverted = listData.length > 0;
+  const composeBottomPad = Math.max(insets.bottom, 8);
+  const stickyOffsetOpened = Math.max(composeBottomPad - theme.spacing.sm, 0);
 
-  const scrollToEnd = useCallback((animated = true) => {
-    requestAnimationFrame(() => {
-      listRef.current?.scrollToEnd({ animated });
-    });
+  const onComposeLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = event.nativeEvent.layout.height;
+    if (height > 0) setComposeHeight(height);
   }, []);
+
+  const renderScrollComponent = useCallback(
+    (props: ScrollViewProps) => (
+      <KeyboardAwareScrollView
+        {...props}
+        extraKeyboardSpace={composeHeight}
+        bottomOffset={theme.spacing.sm}
+        disableScrollOnKeyboardHide
+      />
+    ),
+    [composeHeight],
+  );
+
+  const scrollToEnd = useCallback(
+    (animated = true) => {
+      requestAnimationFrame(() => {
+        if (!listRef.current) return;
+        if (listInverted) {
+          listRef.current.scrollToOffset({ offset: 0, animated });
+        } else {
+          listRef.current.scrollToEnd({ animated });
+        }
+      });
+    },
+    [listInverted],
+  );
+
+  const scrollToLatest = useCallback(
+    (animated = true) => {
+      stickToBottomRef.current = true;
+      scrollToEnd(animated);
+    },
+    [scrollToEnd],
+  );
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const [conv, msgs] = await Promise.all([fetchConversation(id), fetchMessages(id)]);
+      const [conv, msgs] = await Promise.all([
+        fetchConversation(id),
+        fetchMessages(id, 1, MESSAGE_FETCH_LIMIT),
+      ]);
       setDetail(conv);
-      setMessages(msgs.items);
+      applyThreadMessages(setMessages, msgs.items);
+      const latest = msgs.items[msgs.items.length - 1];
+      lastMessageIdRef.current = latest?.id ?? null;
+      setThreadMessageBaseline(id, msgs.items);
+      stickToBottomRef.current = true;
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load conversation');
@@ -85,20 +165,127 @@ export default function MessageThreadScreen() {
     }
   }, [id]);
 
+  const refreshMessages = useCallback(async () => {
+    if (!id || refreshingRef.current) return;
+    refreshingRef.current = true;
+    try {
+      const msgs = await fetchMessages(id, 1, MESSAGE_FETCH_LIMIT);
+      const changed = applyThreadMessages(setMessages, msgs.items);
+      const latest = msgs.items[msgs.items.length - 1];
+      if (latest) {
+        notifyPossibleIncomingMessage(id, latest);
+      }
+      if (changed && latest && latest.id !== lastMessageIdRef.current) {
+        const incoming = !latest.isMine;
+        lastMessageIdRef.current = latest.id;
+        if (stickToBottomRef.current || incoming) {
+          scrollToEnd(true);
+        }
+      } else if (latest) {
+        lastMessageIdRef.current = latest.id;
+      }
+    } catch {
+      // ignore background refresh errors
+    } finally {
+      refreshingRef.current = false;
+    }
+  }, [id, scrollToEnd]);
+
   useEffect(() => {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!rows.length) return;
-    const timer = setTimeout(() => scrollToEnd(true), 100);
-    return () => clearTimeout(timer);
-  }, [rows.length, id, scrollToEnd]);
+  useFocusEffect(
+    useCallback(() => {
+      void prepareMessageSound();
+      void refreshMessages();
+      if (openScrollDoneRef.current) {
+        scrollToLatest(true);
+      }
+    }, [refreshMessages, scrollToLatest]),
+  );
 
   useEffect(() => {
-    if (!keyboardVisible) return;
-    scrollToEnd(true);
-  }, [keyboardVisible, scrollToEnd]);
+    if (!id) return;
+
+    const refresh = () => {
+      void refreshMessages();
+    };
+
+    refresh();
+
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') {
+        refresh();
+      }
+    }, MESSAGE_THREAD_POLL_MS);
+
+    const unsubMessages = subscribeRefresh('moons:messages-refresh', refresh);
+    const unsubNotifications = subscribeRefresh('moons:notifications-refresh', refresh);
+    const appSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        refresh();
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubMessages();
+      unsubNotifications();
+      appSub.remove();
+    };
+  }, [id, refreshMessages]);
+
+  useEffect(() => {
+    openScrollDoneRef.current = false;
+    fadeAnim.setValue(0);
+  }, [id, fadeAnim]);
+
+  useEffect(() => {
+    if (loading || !rows.length) return;
+
+    const timer = setTimeout(() => {
+      if (!openScrollDoneRef.current) {
+        openScrollDoneRef.current = true;
+        if (listInverted) {
+          listRef.current?.scrollToOffset({ offset: 72, animated: false });
+          requestAnimationFrame(() => {
+            scrollToEnd(true);
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 280,
+              useNativeDriver: true,
+            }).start();
+          });
+        } else {
+          scrollToEnd(false);
+          requestAnimationFrame(() => {
+            scrollToEnd(true);
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 280,
+              useNativeDriver: true,
+            }).start();
+          });
+        }
+        return;
+      }
+
+      scrollToEnd(false);
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [loading, rows.length, listInverted, scrollToEnd, fadeAnim]);
+
+  useEffect(() => {
+    if (keyboardHeight <= 0) return;
+    const timers = [
+      setTimeout(() => scrollToLatest(false), 16),
+      setTimeout(() => scrollToLatest(true), 120),
+      setTimeout(() => scrollToLatest(true), 320),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [keyboardHeight, scrollToLatest]);
 
   const pendingInvite =
     detail?.connectionStatus === 'PENDING' &&
@@ -111,11 +298,13 @@ export default function MessageThreadScreen() {
     setError('');
     try {
       const msg = await sendMessage(id, text.trim(), attachment ?? undefined);
+      stickToBottomRef.current = true;
+      lastMessageIdRef.current = msg.id;
       setMessages((prev) => [...prev, msg]);
       setText('');
       setAttachment(null);
       notifyMessagesRefresh();
-      scrollToEnd(true);
+      scrollToLatest(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send message');
     } finally {
@@ -229,111 +418,113 @@ export default function MessageThreadScreen() {
           </View>
         ) : null}
 
-        <View style={styles.chatBody}>
-          <FlatList
-            ref={listRef}
-            style={styles.flex}
-            data={rows}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.messages}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-            onContentSizeChange={() => scrollToEnd(false)}
-            renderItem={({ item }) => {
-              if (item.type === 'day') {
-                return (
-                  <View style={styles.dayWrap}>
-                    <Text
-                      style={[
-                        styles.dayLabel,
-                        { color: colors.muted, backgroundColor: colors.surface },
-                        fontStyle('semibold'),
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </View>
-                );
-              }
-              const message = item.item;
-              const showBody =
-                message.body.trim().length > 0 &&
-                !(message.attachmentUrl && message.body.trim().startsWith('📎'));
-              return (
-                <View
-                  style={[
-                    styles.bubble,
-                    message.isMine
-                      ? { alignSelf: 'flex-end', backgroundColor: colors.blue }
-                      : {
-                          alignSelf: 'flex-start',
-                          backgroundColor: colors.surfaceElevated,
-                          borderColor: colors.border,
-                          borderWidth: 1,
-                        },
-                  ]}
-                >
-                  {showBody ? (
-                    <Text style={{ color: message.isMine ? '#fff' : colors.heading, fontSize: 15, lineHeight: 21 }}>
-                      {message.body}
-                    </Text>
-                  ) : null}
-                  {message.attachmentUrl && message.attachmentFileName ? (
-                    <MessageAttachmentContent
-                      url={message.attachmentUrl}
-                      fileName={message.attachmentFileName}
-                      mimeType={message.attachmentMimeType}
-                      isMine={message.isMine}
-                    />
-                  ) : null}
-                  <Text
-                    style={{
-                      color: message.isMine ? 'rgba(255,255,255,0.75)' : colors.muted,
-                      fontSize: 10,
-                      marginTop: 4,
-                      alignSelf: 'flex-end',
-                      ...fontStyle('medium'),
-                    }}
-                  >
-                    {formatMessageTime(message.createdAt)}
-                  </Text>
-                </View>
-              );
-            }}
-            ListEmptyComponent={
-              <View style={styles.emptyThread}>
-                <Text style={{ color: colors.muted, textAlign: 'center', ...fontStyle('regular') }}>
-                  {detail.canReply ? 'Say hello — your conversation starts here.' : 'Connect to start messaging.'}
-                </Text>
-              </View>
-            }
-          />
-
-          {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
-
-          <KeyboardStickyView
+        <View style={styles.chatStage}>
+          <View
             style={[
-              styles.compose,
-              {
-                borderTopColor: colors.border,
-                backgroundColor: colors.surfaceElevated,
-                paddingBottom: composeBottomPad,
-              },
+              styles.flex,
+              keyboardHeight > 0 ? { marginBottom: keyboardHeight } : null,
             ]}
           >
-            <MessageComposeField
-              inputId={COMPOSE_INPUT_ID}
-              value={text}
-              onChange={setText}
-              attachment={attachment}
-              onAttachmentChange={setAttachment}
-              onSubmit={() => void handleSend()}
-              sending={sending}
-              editable={detail.canReply}
-              placeholder={detail.canReply ? 'Write a message…' : 'Connect to reply'}
-              onFocus={() => scrollToEnd(true)}
-            />
+            <Animated.View
+              style={[
+                styles.chatBody,
+                {
+                  backgroundColor: isDark ? colors.background : `${colors.blue}06`,
+                  opacity: rows.length ? fadeAnim : 1,
+                },
+              ]}
+            >
+              <FlatList
+                ref={listRef}
+                style={styles.flex}
+                data={listData}
+                inverted={listInverted}
+                renderScrollComponent={renderScrollComponent}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={[
+                  styles.messages,
+                  listInverted
+                    ? { paddingTop: composeHeight + theme.spacing.xs }
+                    : { paddingBottom: composeHeight + theme.spacing.xs },
+                  !listInverted && styles.messagesEmptyGrow,
+                ]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                onScroll={(event) => {
+                  const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+                  if (listInverted) {
+                    stickToBottomRef.current = contentOffset.y < 120;
+                    return;
+                  }
+                  const distanceFromBottom =
+                    contentSize.height - layoutMeasurement.height - contentOffset.y;
+                  stickToBottomRef.current = distanceFromBottom < 120;
+                }}
+                scrollEventThrottle={16}
+                onContentSizeChange={() => {
+                  if (stickToBottomRef.current) scrollToEnd(false);
+                }}
+                onLayout={() => {
+                  if (stickToBottomRef.current) scrollToEnd(false);
+                }}
+                renderItem={({ item }) => {
+                  if (item.type === 'day') {
+                    return <MessageDayDivider label={item.label} />;
+                  }
+
+                  return (
+                    <MessageBubble
+                      message={item.item}
+                      showAvatar={item.showAvatar}
+                      isFirstInGroup={item.isFirstInGroup}
+                      isLastInGroup={item.isLastInGroup}
+                      senderName={name}
+                      senderAvatarUrl={avatar}
+                    />
+                  );
+                }}
+                ListEmptyComponent={
+                  <View style={styles.emptyThread}>
+                    <Text style={{ color: colors.muted, textAlign: 'center', ...fontStyle('regular') }}>
+                      {detail.canReply ? 'Say hello — your conversation starts here.' : 'Connect to start messaging.'}
+                    </Text>
+                  </View>
+                }
+              />
+
+              {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
+            </Animated.View>
+          </View>
+
+          <KeyboardStickyView
+            offset={{ closed: 0, opened: stickyOffsetOpened }}
+            style={styles.composeSticky}
+          >
+            <View
+              onLayout={onComposeLayout}
+              style={[
+                styles.compose,
+                {
+                  borderTopColor: colors.border,
+                  backgroundColor: colors.surfaceElevated,
+                  paddingBottom: composeBottomPad,
+                },
+              ]}
+            >
+              <MessageComposeField
+                inputId={COMPOSE_INPUT_ID}
+                value={text}
+                onChange={setText}
+                attachment={attachment}
+                onAttachmentChange={setAttachment}
+                onSubmit={() => void handleSend()}
+                sending={sending}
+                editable={detail.canReply}
+                placeholder={detail.canReply ? 'Write a message…' : 'Connect to reply'}
+                onFocus={() => scrollToLatest(true)}
+              />
+            </View>
           </KeyboardStickyView>
         </View>
       </View>
@@ -343,9 +534,20 @@ export default function MessageThreadScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  chatStage: {
+    flex: 1,
+    minHeight: 0,
+    position: 'relative',
+  },
   chatBody: {
     flex: 1,
     minHeight: 0,
+  },
+  composeSticky: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   header: {
     flexDirection: 'row',
@@ -401,22 +603,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.sm,
     paddingBottom: theme.spacing.md,
+  },
+  messagesEmptyGrow: {
     flexGrow: 1,
-  },
-  dayWrap: { alignItems: 'center', marginVertical: 10 },
-  dayLabel: {
-    fontSize: 11,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  bubble: {
-    maxWidth: '82%',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 8,
   },
   emptyThread: {
     flex: 1,

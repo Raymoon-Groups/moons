@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PersonCard } from '@/components/network/person-card';
 import {
@@ -26,6 +27,7 @@ type SectionTab = (typeof SECTION_TABS)[number]['id'];
 
 export function ProfileNetworkSection() {
   const { colors } = useTheme();
+  const params = useLocalSearchParams<{ tab?: string }>();
   const [tab, setTab] = useState<SectionTab>('connections');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,6 +35,13 @@ export function ProfileNetworkSection() {
   const [pending, setPending] = useState<PendingRequestItem[]>([]);
   const [sent, setSent] = useState<PendingRequestItem[]>([]);
   const [visitors, setVisitors] = useState<ProfileVisitorItem[]>([]);
+
+  useEffect(() => {
+    const t = typeof params.tab === 'string' ? params.tab : undefined;
+    if (t === 'pending' || t === 'sent' || t === 'visitors' || t === 'connections') {
+      setTab(t);
+    }
+  }, [params.tab]);
 
   const load = useCallback(async () => {
     setLoading(true);

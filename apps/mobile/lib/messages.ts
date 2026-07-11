@@ -1,6 +1,12 @@
 import { authFetch, authUpload } from '@/lib/api';
 import { emitRefresh } from '@/lib/refresh-events';
 
+/** How often the inbox list refreshes while the Messages tab is open. */
+export const MESSAGE_INBOX_POLL_MS = 2_000;
+/** How often an open chat thread refreshes for new replies. */
+export const MESSAGE_THREAD_POLL_MS = 2_000;
+export const MESSAGE_FETCH_LIMIT = 100;
+
 export interface MessageParticipant {
   userId: string;
   fullName: string | null;
@@ -69,9 +75,9 @@ export function fetchConversationWithUser(userId: string) {
   return authFetch<ConversationDetail>(`/messages/conversations/with/${userId}`);
 }
 
-export function fetchMessages(conversationId: string, page = 1) {
+export function fetchMessages(conversationId: string, page = 1, limit = 100) {
   return authFetch<Paginated<MessageItem>>(
-    `/messages/conversations/${conversationId}/messages?page=${page}`,
+    `/messages/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
   );
 }
 
@@ -104,4 +110,26 @@ export function truncateMessagePreview(body: string, max = 100) {
 
 export function notifyMessagesRefresh() {
   emitRefresh('moons:messages-refresh');
+  emitRefresh('moons:notifications-refresh');
+}
+
+export function conversationsChanged(
+  prev: ConversationPreview[],
+  next: ConversationPreview[],
+): boolean {
+  if (prev.length !== next.length) return true;
+
+  const orderChanged = prev.some((conv, index) => conv.id !== next[index]?.id);
+  if (orderChanged) return true;
+
+  const prevMap = new Map(prev.map((conv) => [conv.id, conv]));
+  return next.some((conv) => {
+    const old = prevMap.get(conv.id);
+    if (!old) return true;
+    if (old.updatedAt !== conv.updatedAt) return true;
+    if (old.unreadCount !== conv.unreadCount) return true;
+    if (old.lastMessage?.id !== conv.lastMessage?.id) return true;
+    if (old.lastMessage?.body !== conv.lastMessage?.body) return true;
+    return false;
+  });
 }

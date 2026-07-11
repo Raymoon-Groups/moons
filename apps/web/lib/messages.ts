@@ -62,9 +62,9 @@ export function fetchConversationWithUser(userId: string) {
   return authFetch<ConversationDetail>(`/messages/conversations/with/${userId}`);
 }
 
-export function fetchMessages(conversationId: string, page = 1) {
+export function fetchMessages(conversationId: string, page = 1, limit = 100) {
   return authFetch<Paginated<MessageItem>>(
-    `/messages/conversations/${conversationId}/messages?page=${page}`,
+    `/messages/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
   );
 }
 

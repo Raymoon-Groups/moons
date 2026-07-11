@@ -1,7 +1,8 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -12,8 +13,10 @@ import { AuthenticatedScreen } from '@/components/authenticated-screen';
 import { ConversationRow } from '@/components/messages/conversation-row';
 import { EmptyState, ScreenHeader } from '@/components/portal-ui';
 import {
+  conversationsChanged,
   fetchConversationWithUser,
   fetchConversations,
+  MESSAGE_INBOX_POLL_MS,
   type ConversationPreview,
 } from '@/lib/messages';
 import { subscribeRefresh } from '@/lib/refresh-events';
@@ -27,27 +30,79 @@ export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [openingUserId, setOpeningUserId] = useState<string | null>(null);
+  const silentRefreshRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
-  const load = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const data = await fetchConversations();
-      setItems(data.items);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  const applyConversations = useCallback((next: ConversationPreview[]) => {
+    setItems((prev) => (conversationsChanged(prev, next) ? next : prev));
   }, []);
+
+  const loadConversations = useCallback(
+    async (opts?: { silent?: boolean; pull?: boolean }) => {
+      const silent = opts?.silent ?? false;
+      const pull = opts?.pull ?? false;
+
+      if (silent) {
+        if (silentRefreshRef.current) return;
+        silentRefreshRef.current = true;
+      } else if (pull) {
+        setRefreshing(true);
+      } else if (!hasLoadedRef.current) {
+        setLoading(true);
+      }
+
+      try {
+        const data = await fetchConversations();
+        applyConversations(data.items);
+        hasLoadedRef.current = true;
+      } catch {
+        if (!silent && !hasLoadedRef.current) {
+          setItems([]);
+        }
+      } finally {
+        if (silent) {
+          silentRefreshRef.current = false;
+        } else if (pull) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [applyConversations],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      void load();
-      const unsub = subscribeRefresh('moons:messages-refresh', () => void load(true));
-      return unsub;
-    }, [load]),
+      void loadConversations();
+
+      const refreshInbox = () => {
+        void loadConversations({ silent: true });
+      };
+
+      refreshInbox();
+
+      const interval = setInterval(() => {
+        if (AppState.currentState === 'active') {
+          refreshInbox();
+        }
+      }, MESSAGE_INBOX_POLL_MS);
+
+      const unsubMessages = subscribeRefresh('moons:messages-refresh', refreshInbox);
+      const unsubNotifications = subscribeRefresh('moons:notifications-refresh', refreshInbox);
+      const appSub = AppState.addEventListener('change', (state) => {
+        if (state === 'active') {
+          refreshInbox();
+        }
+      });
+
+      return () => {
+        clearInterval(interval);
+        unsubMessages();
+        unsubNotifications();
+        appSub.remove();
+      };
+    }, [loadConversations]),
   );
 
   useFocusEffect(
@@ -80,13 +135,18 @@ export default function MessagesScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          extraData={items}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={colors.blue} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void loadConversations({ pull: true })}
+              tintColor={colors.blue}
+            />
           }
           ListHeaderComponent={
             <ScreenHeader
               eyebrow="Inbox"
-              title="Messaging"
+              title="Your conversations"
               subtitle="Stay in touch with your professional network."
             />
           }
@@ -126,4 +186,3 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
   },
 });
-

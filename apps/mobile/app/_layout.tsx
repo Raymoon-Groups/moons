@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
+import { IncomingMessageSoundListener } from '@/components/incoming-message-sound-listener';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
@@ -74,6 +75,7 @@ function AppRoot() {
   return (
     <GoogleAuthWrapper>
       <AuthProvider>
+        <IncomingMessageSoundListener />
         <RootStack />
       </AuthProvider>
     </GoogleAuthWrapper>

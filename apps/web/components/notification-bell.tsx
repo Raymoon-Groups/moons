@@ -29,6 +29,8 @@ function notificationIcon(type: NotificationType) {
       return '✓';
     case NotificationType.APPLICATION_VIEWED:
       return '👁';
+    case NotificationType.PROFILE_VIEW:
+      return '👤';
     default:
       return '•';
   }
@@ -46,6 +48,8 @@ function iconStyles(type: NotificationType) {
       return 'bg-green-100 text-green-700';
     case NotificationType.APPLICATION_VIEWED:
       return 'bg-sky-100 text-sky-700';
+    case NotificationType.PROFILE_VIEW:
+      return 'bg-violet-100 text-violet-700';
     default:
       return 'bg-surface text-moons-muted';
   }

@@ -1,79 +1,58 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppScreen } from '@/components/app-screen';
+import { CompanyDetailView } from '@/components/companies/company-detail-view';
 import { apiFetch } from '@/lib/api';
 import { fontStyle } from '@/lib/font-style';
-import { formatEmploymentType } from '@/lib/format';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
-
-interface PublicCompanyProfile {
-  recruiterId: string;
-  companyName: string | null;
-  companySummary: string | null;
-  industry: string | null;
-  companyLocation: string | null;
-  openJobsCount: number;
-  openJobs: Array<{
-    id: string;
-    title: string;
-    location: string;
-    employmentType: string;
-    salaryRange: string | null;
-  }>;
-}
+import type { PublicCompanyProfile } from '@/lib/types';
 
 export default function CompanyDetailScreen() {
   const { recruiterId } = useLocalSearchParams<{ recruiterId: string }>();
+  const navigation = useNavigation();
   const { colors } = useTheme();
   const [company, setCompany] = useState<PublicCompanyProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-        list: { padding: theme.spacing.md, paddingBottom: 32 },
-        header: { marginBottom: 12 },
-        title: { fontSize: 24, ...fontStyle('extrabold'), color: colors.heading },
-        meta: { marginTop: 8, fontSize: 14, color: colors.muted },
-        summary: { marginTop: 12, fontSize: 14, lineHeight: 22, color: colors.foreground },
-        section: { marginTop: 20, fontSize: 16, ...fontStyle('bold'), color: colors.heading },
-        jobCard: {
-          backgroundColor: colors.surfaceElevated,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: colors.border,
-          padding: 14,
-          marginBottom: 10,
-        },
-        jobTitle: { fontSize: 15, ...fontStyle('bold'), color: colors.heading },
-        jobMeta: { marginTop: 6, fontSize: 12, color: colors.muted },
-        empty: { color: colors.muted, textAlign: 'center', marginTop: 20 },
+        center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+        container: { padding: theme.spacing.md, paddingBottom: 40 },
+        error: { color: colors.error, textAlign: 'center', ...fontStyle('medium') },
+        loadingText: { marginTop: 12, color: colors.muted, ...fontStyle('medium') },
       }),
     [colors],
   );
 
   useEffect(() => {
     if (!recruiterId) return;
-    (async () => {
-      try {
-        const data = await apiFetch<PublicCompanyProfile>(`/profiles/companies/${recruiterId}`);
-        setCompany(data);
-      } catch {
+    setLoading(true);
+    setError('');
+    void apiFetch<PublicCompanyProfile>(`/profiles/companies/${recruiterId}`)
+      .then(setCompany)
+      .catch((err) => {
         setCompany(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
+        setError(err instanceof Error ? err.message : 'Company not found');
+      })
+      .finally(() => setLoading(false));
   }, [recruiterId]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: company?.companyName?.trim() || 'Company',
+    });
+  }, [navigation, company?.companyName]);
 
   if (loading) {
     return (
       <AppScreen>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.blue} />
+          <Text style={styles.loadingText}>Loading company…</Text>
         </View>
       </AppScreen>
     );
@@ -83,7 +62,7 @@ export default function CompanyDetailScreen() {
     return (
       <AppScreen>
         <View style={styles.center}>
-          <Text style={styles.empty}>Company not found.</Text>
+          <Text style={styles.error}>{error || 'Company not found'}</Text>
         </View>
       </AppScreen>
     );
@@ -91,34 +70,9 @@ export default function CompanyDetailScreen() {
 
   return (
     <AppScreen>
-      <FlatList
-        data={company.openJobs}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.title}>{company.companyName ?? 'Company'}</Text>
-            <Text style={styles.meta}>
-              {[company.industry, company.companyLocation, `${company.openJobsCount} open jobs`]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-            {company.companySummary ? (
-              <Text style={styles.summary}>{company.companySummary}</Text>
-            ) : null}
-            <Text style={styles.section}>Open positions</Text>
-          </View>
-        }
-        ListEmptyComponent={<Text style={styles.empty}>No open jobs right now.</Text>}
-        renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/job/${item.id}`)} style={styles.jobCard}>
-            <Text style={styles.jobTitle}>{item.title}</Text>
-            <Text style={styles.jobMeta}>
-              {[item.location, formatEmploymentType(item.employmentType)].filter(Boolean).join(' · ')}
-            </Text>
-          </Pressable>
-        )}
-      />
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <CompanyDetailView company={company} />
+      </ScrollView>
     </AppScreen>
   );
 }

@@ -380,10 +380,10 @@ export class MessagesService {
     const skip = (page - 1) * limit;
     const where = { conversationId };
 
-    const [items, total] = await Promise.all([
+    const [itemsDesc, total] = await Promise.all([
       this.prisma.message.findMany({
         where,
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
@@ -398,6 +398,8 @@ export class MessagesService {
       },
       data: { readAt: new Date() },
     });
+
+    const items = [...itemsDesc].reverse();
 
     return {
       items: items.map((m) => this.mapMessageItem(m, userId)),

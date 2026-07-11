@@ -33,6 +33,14 @@ export function formatConversationTime(iso: string) {
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+function getLocalDayKey(iso: string) {
+  const date = new Date(iso);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function formatDayLabel(iso: string) {
   const date = new Date(iso);
   const now = new Date();
@@ -61,17 +69,48 @@ export function formatDayLabel(iso: string) {
 
 export type MessageListRow =
   | { type: 'day'; id: string; label: string }
-  | { type: 'message'; id: string; item: MessageItem };
+  | {
+      type: 'message';
+      id: string;
+      item: MessageItem;
+      showAvatar: boolean;
+      isFirstInGroup: boolean;
+      isLastInGroup: boolean;
+    };
 
 export function buildMessageRows(messages: MessageItem[]): MessageListRow[] {
   const rows: MessageListRow[] = [];
-  for (const message of messages) {
+  let lastDayKey: string | null = null;
+
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index];
+    const dayKey = getLocalDayKey(message.createdAt);
     const label = formatDayLabel(message.createdAt);
-    const last = rows[rows.length - 1];
-    if (last?.type !== 'day' || last.label !== label) {
-      rows.push({ type: 'day', id: `day-${label}-${message.id}`, label });
+
+    if (dayKey !== lastDayKey) {
+      rows.push({ type: 'day', id: `day-${dayKey}`, label });
+      lastDayKey = dayKey;
     }
-    rows.push({ type: 'message', id: message.id, item: message });
+
+    const prev = messages[index - 1];
+    const next = messages[index + 1];
+    const sameDay = (other: MessageItem | undefined) =>
+      other ? getLocalDayKey(other.createdAt) === dayKey : false;
+
+    const continuesFromPrev =
+      !!prev && prev.isMine === message.isMine && sameDay(prev);
+    const continuesToNext =
+      !!next && next.isMine === message.isMine && sameDay(next);
+
+    rows.push({
+      type: 'message',
+      id: message.id,
+      item: message,
+      showAvatar: !message.isMine && !continuesFromPrev,
+      isFirstInGroup: !continuesFromPrev,
+      isLastInGroup: !continuesToNext,
+    });
   }
+
   return rows;
 }
