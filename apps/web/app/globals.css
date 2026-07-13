@@ -711,3 +711,12 @@ body {
     font-weight: 600;
   }
 }
+
+@keyframes invite-dismiss {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

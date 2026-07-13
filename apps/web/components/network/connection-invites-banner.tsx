@@ -314,17 +314,6 @@ export function ConnectionInvitesBanner() {
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes invite-dismiss {
-          from {
-            transform: scaleX(1);
-          }
-          to {
-            transform: scaleX(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }
