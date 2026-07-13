@@ -21,6 +21,8 @@ export const BELL_NOTIFICATION_TYPES: NotificationType[] = [
   NotificationType.APPLICATION_SHORTLISTED,
   NotificationType.APPLICATION_REJECTED,
   NotificationType.PROFILE_VIEW,
+  NotificationType.CONNECTION_REQUEST,
+  NotificationType.CONNECTION_ACCEPTED,
 ];
 
 export interface CreateNotificationInput {

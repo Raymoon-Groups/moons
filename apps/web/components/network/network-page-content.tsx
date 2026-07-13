@@ -26,7 +26,6 @@ const TABS = [
   { id: 'connections', label: 'My connections', short: 'Connections' },
   { id: 'pending', label: 'Pending requests', short: 'Pending' },
   { id: 'sent', label: 'Sent requests', short: 'Sent' },
-  { id: 'suggestions', label: 'People you may know', short: 'Suggestions' },
   { id: 'recent', label: 'Recently connected', short: 'Recent' },
 ] as const;
 
@@ -145,6 +144,8 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [suggestionsError, setSuggestionsError] = useState('');
 
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [connections, setConnections] = useState<ConnectionListItem[]>([]);
@@ -185,8 +186,6 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
               return { type: 'pending' as const, data: await fetchPendingReceived() };
             case 'sent':
               return { type: 'sent' as const, data: await fetchPendingSent() };
-            case 'suggestions':
-              return { type: 'suggestions' as const, data: await fetchSuggestions() };
             case 'recent':
               return { type: 'recent' as const, data: await fetchRecentConnections() };
           }
@@ -202,9 +201,6 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
           break;
         case 'sent':
           setSent(listResult.data.items);
-          break;
-        case 'suggestions':
-          setSuggestions(listResult.data.items);
           break;
         case 'recent':
           setRecent(listResult.data);
@@ -227,15 +223,40 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
     }
   }, [tab, router, refreshStats]);
 
+  const loadSuggestions = useCallback(async () => {
+    setSuggestionsLoading(true);
+    setSuggestionsError('');
+    try {
+      const data = await fetchSuggestions();
+      setSuggestions(data.items);
+    } catch (err) {
+      setSuggestionsError(getApiErrorMessage(err, 'Failed to load suggestions'));
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!ready) return;
     if (!user) {
-      setLoading(false);
+      queueMicrotask(() => {
+        setLoading(false);
+        setSuggestionsLoading(false);
+      });
       return;
     }
     if (searchActive) return;
-    void loadTab();
+    queueMicrotask(() => {
+      void loadTab();
+    });
   }, [ready, user, loadTab, searchActive]);
+
+  useEffect(() => {
+    if (!ready || !user) return;
+    queueMicrotask(() => {
+      void loadSuggestions();
+    });
+  }, [ready, user, loadSuggestions]);
 
   function handleTabChange(next: NetworkTabId) {
     setSearchActive(false);
@@ -505,17 +526,7 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
                                   />
                                 ) : null,
                               )
-                            : tab === 'suggestions'
-                              ? suggestions.map((person) => (
-                                  <PersonCard
-                                    key={person.userId}
-                                    variant="discovery"
-                                    person={person}
-                                    onConnectionChange={handleLocalConnectionChange}
-                                    onDismiss={() => handleDismissCard(person.userId)}
-                                  />
-                                ))
-                              : recent.map((item) => (
+                            : recent.map((item) => (
                                   <PersonCard
                                     key={item.connectionId}
                                     variant="network"
@@ -544,39 +555,71 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
                   <EmptyState
                     title="No connections yet"
                     message="Browse suggestions or search professionals to start building your network."
-                    action={{ href: '/network?tab=suggestions', label: 'Browse suggestions' }}
+                    action={{ href: '#people-you-may-know', label: 'Browse suggestions' }}
                   />
                 )}
                 {!loading && !searchActive && tab === 'pending' && pending.length === 0 && (
                   <EmptyState
                     title="No pending requests"
                     message="When someone sends you a connection invite, it will show up here."
-                    action={{ href: '/network?tab=suggestions', label: 'Browse suggestions' }}
+                    action={{ href: '#people-you-may-know', label: 'Browse suggestions' }}
                   />
                 )}
                 {!loading && !searchActive && tab === 'sent' && sent.length === 0 && (
                   <EmptyState
                     title="No sent requests"
                     message="Invites you send will appear here until they are accepted or declined."
-                    action={{ href: '/network?tab=suggestions', label: 'Find people to connect' }}
-                  />
-                )}
-                {!loading && !searchActive && tab === 'suggestions' && suggestions.length === 0 && (
-                  <EmptyState
-                    title="No suggestions yet"
-                    message="Add skills and experience to your profile for better recommendations."
-                    action={{ href: '/profile', label: 'Complete your profile' }}
+                    action={{ href: '#people-you-may-know', label: 'Find people to connect' }}
                   />
                 )}
                 {!loading && !searchActive && tab === 'recent' && recent.length === 0 && (
                   <EmptyState
                     title="No recent connections"
                     message="People you connect with will appear here."
-                    action={{ href: '/network?tab=suggestions', label: 'Browse suggestions' }}
+                    action={{ href: '#people-you-may-know', label: 'Browse suggestions' }}
                   />
                 )}
               </div>
             </div>
+
+            <section id="people-you-may-know" className={PANEL}>
+              <div className="border-b border-border/60 px-4 py-4 sm:px-5">
+                <h2 className="text-sm font-bold text-heading">People you may know</h2>
+                <p className="mt-0.5 text-xs text-moons-muted">
+                  Suggestions based on your profile, skills, and network.
+                </p>
+              </div>
+
+              <div className="p-4 sm:p-5">
+                {suggestionsError && (
+                  <p className="mb-4 rounded-lg border border-red-200/80 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                    {suggestionsError}
+                  </p>
+                )}
+
+                {suggestionsLoading ? (
+                  <LoadingGrid />
+                ) : suggestions.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {suggestions.map((person) => (
+                      <PersonCard
+                        key={person.userId}
+                        variant="discovery"
+                        person={person}
+                        onConnectionChange={handleLocalConnectionChange}
+                        onDismiss={() => handleDismissCard(person.userId)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="No suggestions yet"
+                    message="Add skills and experience to your profile for better recommendations."
+                    action={{ href: '/profile', label: 'Complete your profile' }}
+                  />
+                )}
+              </div>
+            </section>
           </div>
 
           <aside className="hidden space-y-4 lg:sticky lg:top-24 lg:block">

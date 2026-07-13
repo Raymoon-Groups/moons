@@ -19,10 +19,6 @@ export const metadata: Metadata = {
   title: 'MoonsJob — Jobs, Network & Career Growth',
   description:
     'Discover jobs, build your professional profile, and connect with recruiters on MoonsJob — your career platform.',
-  icons: {
-    icon: '/moonsjob_logo.png',
-    apple: '/moonsjob_logo.png',
-  },
 };
 
 export default function RootLayout({

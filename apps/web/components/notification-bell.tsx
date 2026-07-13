@@ -31,6 +31,10 @@ function notificationIcon(type: NotificationType) {
       return '👁';
     case NotificationType.PROFILE_VIEW:
       return '👤';
+    case NotificationType.CONNECTION_REQUEST:
+      return '⊕';
+    case NotificationType.CONNECTION_ACCEPTED:
+      return '🤝';
     default:
       return '•';
   }
@@ -50,6 +54,10 @@ function iconStyles(type: NotificationType) {
       return 'bg-sky-100 text-sky-700';
     case NotificationType.PROFILE_VIEW:
       return 'bg-violet-100 text-violet-700';
+    case NotificationType.CONNECTION_REQUEST:
+      return 'bg-indigo-100 text-indigo-700';
+    case NotificationType.CONNECTION_ACCEPTED:
+      return 'bg-teal-100 text-teal-700';
     default:
       return 'bg-surface text-moons-muted';
   }
@@ -275,7 +283,15 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
               ))}
           </div>
 
-          <div className="border-t border-border bg-surface px-4 py-2 text-center">
+          <div className="flex items-center justify-center gap-3 border-t border-border bg-surface px-4 py-2 text-center">
+            <Link
+              href="/network"
+              onClick={() => setOpen(false)}
+              className="text-xs font-medium text-moons-blue hover:underline"
+            >
+              View network
+            </Link>
+            <span className="text-border">·</span>
             <Link
               href={user.role === UserRole.RECRUITER ? '/recruiter/jobs' : '/applications'}
               onClick={() => setOpen(false)}

@@ -67,8 +67,10 @@ export function fetchPendingSent(page = 1) {
   );
 }
 
-export function fetchSuggestions(page = 1) {
-  return authFetch<Paginated<NetworkUserCard>>(`/network/suggestions?page=${page}`);
+export function fetchSuggestions(page = 1, limit = 12) {
+  return authFetch<Paginated<NetworkUserCard>>(
+    `/network/suggestions?page=${page}&limit=${limit}`,
+  );
 }
 
 export function fetchRecentConnections() {

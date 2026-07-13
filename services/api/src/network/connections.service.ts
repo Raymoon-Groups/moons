@@ -162,7 +162,7 @@ export class ConnectionsService {
       body: note
         ? `${senderName}: ${note.length > 100 ? `${note.slice(0, 100)}…` : note}`
         : `${senderName} wants to connect with you.`,
-      linkUrl: note ? `/messages?with=${fromUserId}` : '/profile?networkTab=pending',
+      linkUrl: note ? `/messages?with=${fromUserId}` : '/network?tab=pending',
       metadata: { connectionId: connection.id, fromUserId },
     });
 

@@ -62,6 +62,14 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
       router.push('/profile/network?tab=visitors' as never);
       return;
     }
+    if (item.linkUrl.includes('networkTab=pending') || item.linkUrl.includes('tab=pending')) {
+      router.push('/network?tab=pending' as never);
+      return;
+    }
+    if (item.linkUrl.startsWith('/network/')) {
+      router.push(item.linkUrl as never);
+      return;
+    }
     if (item.linkUrl.startsWith('/')) {
       router.push(item.linkUrl as never);
     }

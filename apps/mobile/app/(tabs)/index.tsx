@@ -6,6 +6,10 @@ import { UserRole } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { AuthenticatedScreen } from '@/components/authenticated-screen';
 import { JobCard } from '@/components/job-card';
+import {
+  DashboardPeopleYouMayKnow,
+  DashboardRecruiterCandidates,
+} from '@/components/dashboard/dashboard-sections';
 import { QuickLinkCard, StatCard } from '@/components/menu-row';
 import { ProfileRing } from '@/components/profile-ring';
 import { PrimaryBanner, SectionTitle } from '@/components/portal-ui';
@@ -147,6 +151,9 @@ export default function DashboardScreen() {
             <StatCard label="Viewed" value={String(candidateStats.viewed)} accent={colors.info} />
           </View>
         ) : null}
+
+        {isRecruiter ? <DashboardRecruiterCandidates /> : null}
+        <DashboardPeopleYouMayKnow />
 
         <SectionTitle>Quick links</SectionTitle>
         {isRecruiter ? (

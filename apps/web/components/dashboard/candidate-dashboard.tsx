@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatPostedAgo } from '@/lib/job-formatters';
 import type { JobListing } from '@/lib/jobs';
 import type { Profile } from '@/lib/types';
+import { PeopleYouMayKnowSection } from '@/components/dashboard/dashboard-discovery-sections';
 
 interface CandidateStats {
   applicationsCount: number;
@@ -364,6 +365,8 @@ export function CandidateDashboard() {
               </div>
             </div>
           )}
+
+          <PeopleYouMayKnowSection />
         </main>
 
         {/* Right sidebar */}

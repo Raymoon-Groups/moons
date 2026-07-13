@@ -8,7 +8,6 @@ const VALID_TABS = new Set<NetworkTabId>([
   'connections',
   'pending',
   'sent',
-  'suggestions',
   'recent',
 ]);
 
