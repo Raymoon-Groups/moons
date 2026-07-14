@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@moons/shared';
+import { ConfirmModal } from '@/components/confirm-modal';
 import { PostedByLine } from '@/components/job-company-header';
 import { JobTags } from '@/components/jobs/job-tags';
 import { authDelete, authFetch } from '@/lib/api-client';
@@ -182,6 +183,10 @@ export default function RecruiterJobsPage() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'close' | 'delete';
+    job: JobListing;
+  } | null>(null);
 
   const stats = useMemo(() => {
     const live = jobs.filter((j) => j.status === 'PUBLISHED').length;
@@ -205,8 +210,7 @@ export default function RecruiterJobsPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  async function handleClose(job: JobListing) {
-    if (!window.confirm(`Close "${job.title}"? It will no longer accept applications.`)) return;
+  async function executeClose(job: JobListing) {
     setClosingId(job.id);
     setError('');
     try {
@@ -214,6 +218,7 @@ export default function RecruiterJobsPage() {
       setJobs((prev) =>
         prev.map((j) => (j.id === job.id ? { ...j, status: 'CLOSED' } : j)),
       );
+      setConfirmAction(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to close job');
     } finally {
@@ -221,17 +226,13 @@ export default function RecruiterJobsPage() {
     }
   }
 
-  async function handleDelete(job: JobListing) {
-    const confirmed = window.confirm(
-      `Delete "${job.title}"?\n\nThis will remove the job and all applications for it. This cannot be undone.`,
-    );
-    if (!confirmed) return;
-
+  async function executeDelete(job: JobListing) {
     setDeletingId(job.id);
     setError('');
     try {
       await authDelete(`/jobs/${job.id}`);
       setJobs((prev) => prev.filter((j) => j.id !== job.id));
+      setConfirmAction(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete job');
     } finally {
@@ -240,6 +241,10 @@ export default function RecruiterJobsPage() {
   }
 
   const livePercent = stats.total > 0 ? Math.round((stats.live / stats.total) * 100) : 0;
+  const confirmBusy =
+    !!confirmAction &&
+    ((confirmAction.type === 'close' && closingId === confirmAction.job.id) ||
+      (confirmAction.type === 'delete' && deletingId === confirmAction.job.id));
 
   return (
     <div className="dash-page">
@@ -326,8 +331,8 @@ export default function RecruiterJobsPage() {
                     job={job}
                     closingId={closingId}
                     deletingId={deletingId}
-                    onClose={handleClose}
-                    onDelete={handleDelete}
+                    onClose={(job) => setConfirmAction({ type: 'close', job })}
+                    onDelete={(job) => setConfirmAction({ type: 'delete', job })}
                   />
                 ))}
               </div>
@@ -425,6 +430,35 @@ export default function RecruiterJobsPage() {
           </aside>
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!confirmAction}
+        tone={confirmAction?.type === 'delete' ? 'danger' : 'warning'}
+        title={
+          confirmAction?.type === 'delete'
+            ? 'Delete this job?'
+            : 'Close this job?'
+        }
+        description={
+          confirmAction?.type === 'delete'
+            ? `"${confirmAction.job.title}" and all applications for it will be permanently removed. This cannot be undone.`
+            : `"${confirmAction?.job.title ?? ''}" will stop accepting new applications. You can still review existing applicants.`
+        }
+        confirmLabel={confirmAction?.type === 'delete' ? 'Delete job' : 'Close job'}
+        cancelLabel="Keep it"
+        loading={confirmBusy}
+        onCancel={() => {
+          if (!confirmBusy) setConfirmAction(null);
+        }}
+        onConfirm={() => {
+          if (!confirmAction) return;
+          if (confirmAction.type === 'delete') {
+            void executeDelete(confirmAction.job);
+          } else {
+            void executeClose(confirmAction.job);
+          }
+        }}
+      />
     </div>
   );
 }

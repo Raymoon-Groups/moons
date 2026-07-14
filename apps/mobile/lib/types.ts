@@ -1,10 +1,18 @@
 import type {
   CertificationEntry,
   EducationEntry,
+  ScreeningAnswer,
+  ScreeningQuestion,
   WorkExperienceEntry,
 } from '@moons/shared';
 
-export type { CertificationEntry, EducationEntry, WorkExperienceEntry };
+export type {
+  CertificationEntry,
+  EducationEntry,
+  WorkExperienceEntry,
+  ScreeningAnswer,
+  ScreeningQuestion,
+};
 
 export interface JobListing {
   id: string;
@@ -18,6 +26,7 @@ export interface JobListing {
   salaryRange?: string | null;
   minExperienceYears?: number | null;
   maxExperienceYears?: number | null;
+  screeningQuestions?: ScreeningQuestion[];
   companyLogoUrl?: string | null;
   recruiterId?: string;
 }
@@ -75,6 +84,7 @@ export interface ApplicationWithJob {
   candidateId: string;
   status: string;
   coverNote: string | null;
+  screeningAnswers?: ScreeningAnswer[];
   createdAt: string;
   job: {
     id: string;
@@ -82,6 +92,7 @@ export interface ApplicationWithJob {
     companyName: string;
     location: string;
     employmentType: string;
+    screeningQuestions?: ScreeningQuestion[];
   };
 }
 
@@ -143,6 +154,7 @@ export interface ApplicantRow {
   id: string;
   status: string;
   coverNote: string | null;
+  screeningAnswers?: ScreeningAnswer[];
   createdAt: string;
   candidate: {
     id: string;

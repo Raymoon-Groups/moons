@@ -71,6 +71,7 @@ export default function EditJobPage() {
           employmentType: job.employmentType as EmploymentType,
           salaryRange: job.salaryRange ?? '',
           experienceBand: yearsToExperienceBand(job.minExperienceYears, job.maxExperienceYears),
+          screeningQuestions: job.screeningQuestions ?? [],
         });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load job'))
@@ -106,6 +107,7 @@ export default function EditJobPage() {
           salaryRange: values.salaryRange || null,
           minExperienceYears: exp.minExperienceYears ?? null,
           maxExperienceYears: exp.maxExperienceYears ?? null,
+          screeningQuestions: values.screeningQuestions,
         }),
       });
       router.push(`/recruiter/jobs/${jobId}`);

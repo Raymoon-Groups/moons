@@ -160,6 +160,7 @@ model Job {
   salaryRange          String?        @map("salary_range")
   minExperienceYears   Int?           @map("min_experience_years")
   maxExperienceYears   Int?           @map("max_experience_years")
+  screeningQuestions   Json           @default("[]") @map("screening_questions")
   status               JobStatus      @default(DRAFT)
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
@@ -176,6 +177,7 @@ model Application {
   candidateId String            @map("candidate_id")
   status      ApplicationStatus @default(SUBMITTED)
   coverNote   String?           @map("cover_note")
+  screeningAnswers Json         @default("[]") @map("screening_answers")
   createdAt   DateTime          @default(now()) @map("created_at")
   updatedAt   DateTime          @updatedAt @map("updated_at")
 

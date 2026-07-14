@@ -6,6 +6,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotificationType, UserRole } from '@moons/shared';
 import { useAuth } from '@/lib/auth-context';
 import {
+  acceptConnectionInvite,
+  ignoreConnectionInvite,
+} from '@/lib/connection-invites';
+import {
   fetchBellNotifications,
   formatNotificationTime,
   markBellNotificationsRead,
@@ -16,6 +20,8 @@ import {
 
 const POLL_MS = 10_000;
 const INITIAL_DELAY_MS = 1200;
+
+type InviteActionState = 'accepted' | 'ignored';
 
 function notificationIcon(type: NotificationType) {
   switch (type) {
@@ -63,6 +69,13 @@ function iconStyles(type: NotificationType) {
   }
 }
 
+function getConnectionId(item: NotificationItem): string | null {
+  const meta = item.metadata;
+  if (!meta || typeof meta !== 'object') return null;
+  const id = (meta as { connectionId?: unknown }).connectionId;
+  return typeof id === 'string' && id.trim() ? id : null;
+}
+
 function NotificationDot() {
   return (
     <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface-elevated bg-moons-blue" />
@@ -75,6 +88,8 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [actionById, setActionById] = useState<Record<string, InviteActionState>>({});
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(false);
 
@@ -168,23 +183,58 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [open]);
 
-  async function handleItemClick(item: NotificationItem) {
-    if (!item.readAt) {
-      try {
-        await markNotificationRead(item.id);
-        setItems((prev) =>
-          prev.map((n) =>
-            n.id === item.id ? { ...n, readAt: new Date().toISOString() } : n,
-          ),
-        );
-        notifyNotificationsRefresh();
-      } catch {
-        // continue navigation
-      }
+  async function markItemRead(item: NotificationItem) {
+    if (item.readAt) return;
+    try {
+      await markNotificationRead(item.id);
+      setItems((prev) =>
+        prev.map((n) =>
+          n.id === item.id ? { ...n, readAt: new Date().toISOString() } : n,
+        ),
+      );
+      notifyNotificationsRefresh();
+    } catch {
+      // ignore
     }
+  }
+
+  async function handleItemClick(item: NotificationItem) {
+    await markItemRead(item);
     setOpen(false);
     if (item.linkUrl) {
       router.push(item.linkUrl);
+    }
+  }
+
+  async function handleInviteAction(
+    item: NotificationItem,
+    action: 'accept' | 'ignore',
+  ) {
+    const connectionId = getConnectionId(item);
+    if (!connectionId || actionLoadingId) return;
+
+    setActionLoadingId(item.id);
+    try {
+      if (action === 'accept') {
+        await acceptConnectionInvite(connectionId);
+        setActionById((prev) => ({ ...prev, [item.id]: 'accepted' }));
+      } else {
+        await ignoreConnectionInvite(connectionId);
+        setActionById((prev) => ({ ...prev, [item.id]: 'ignored' }));
+      }
+      await markItemRead(item);
+      window.setTimeout(() => {
+        setItems((prev) => prev.filter((n) => n.id !== item.id));
+        setActionById((prev) => {
+          const next = { ...prev };
+          delete next[item.id];
+          return next;
+        });
+      }, 1800);
+    } catch {
+      // keep item; user can retry
+    } finally {
+      setActionLoadingId(null);
     }
   }
 
@@ -253,34 +303,116 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
               </p>
             )}
             {!loading &&
-              items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => void handleItemClick(item)}
-                  className={`flex w-full gap-3 border-b border-border px-4 py-3 text-left transition hover:bg-surface-hover ${
-                    item.readAt ? 'opacity-75' : 'bg-moons-blue/10'
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${iconStyles(item.type)}`}
+              items.map((item) => {
+                const isRequest = item.type === NotificationType.CONNECTION_REQUEST;
+                const connectionId = getConnectionId(item);
+                const inviteState = actionById[item.id];
+                const canAct = isRequest && !!connectionId && !inviteState;
+
+                if (isRequest) {
+                  return (
+                    <div
+                      key={item.id}
+                      className={`border-b border-border px-4 py-3 transition ${
+                        inviteState === 'accepted'
+                          ? 'bg-emerald-50/80 dark:bg-emerald-500/10'
+                          : inviteState === 'ignored'
+                            ? 'bg-red-50/80 dark:bg-red-500/10'
+                            : item.readAt
+                              ? 'opacity-90'
+                              : 'bg-moons-blue/10'
+                      }`}
+                    >
+                      <div className="flex gap-3">
+                        <span
+                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${iconStyles(item.type)}`}
+                        >
+                          {notificationIcon(item.type)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold text-heading">{item.title}</p>
+                            <span className="shrink-0 text-[10px] text-moons-muted">
+                              {formatNotificationTime(item.createdAt)}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 line-clamp-2 text-xs text-foreground">{item.body}</p>
+
+                          {inviteState === 'accepted' && (
+                            <p className="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                              Connection accepted
+                            </p>
+                          )}
+                          {inviteState === 'ignored' && (
+                            <p className="mt-2 text-xs font-semibold text-red-600 dark:text-red-300">
+                              Request ignored
+                            </p>
+                          )}
+
+                          {canAct && (
+                            <div className="mt-2.5 flex items-center gap-2">
+                              <button
+                                type="button"
+                                disabled={actionLoadingId === item.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleInviteAction(item, 'accept');
+                                }}
+                                className="inline-flex h-7 flex-1 items-center justify-center rounded-full bg-moons-blue px-3 text-[11px] font-bold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                              >
+                                {actionLoadingId === item.id ? '…' : 'Accept'}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actionLoadingId === item.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleInviteAction(item, 'ignore');
+                                }}
+                                className="inline-flex h-7 flex-1 items-center justify-center rounded-full border border-red-200 bg-white px-3 text-[11px] font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-60 dark:border-red-500/30 dark:bg-transparent dark:hover:bg-red-500/10"
+                              >
+                                Ignore
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {!item.readAt && !inviteState && (
+                          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-moons-blue" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => void handleItemClick(item)}
+                    className={`flex w-full gap-3 border-b border-border px-4 py-3 text-left transition hover:bg-surface-hover ${
+                      item.readAt ? 'opacity-75' : 'bg-moons-blue/10'
+                    }`}
                   >
-                    {notificationIcon(item.type)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-start justify-between gap-2">
-                      <span className="text-sm font-semibold text-heading">{item.title}</span>
-                      <span className="shrink-0 text-[10px] text-moons-muted">
-                        {formatNotificationTime(item.createdAt)}
-                      </span>
+                    <span
+                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${iconStyles(item.type)}`}
+                    >
+                      {notificationIcon(item.type)}
                     </span>
-                    <span className="mt-0.5 line-clamp-2 text-xs text-foreground">{item.body}</span>
-                  </span>
-                  {!item.readAt && (
-                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-moons-blue" />
-                  )}
-                </button>
-              ))}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-semibold text-heading">{item.title}</span>
+                        <span className="shrink-0 text-[10px] text-moons-muted">
+                          {formatNotificationTime(item.createdAt)}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 line-clamp-2 text-xs text-foreground">{item.body}</span>
+                    </span>
+                    {!item.readAt && (
+                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-moons-blue" />
+                    )}
+                  </button>
+                );
+              })}
           </div>
 
           <div className="flex items-center justify-center gap-3 border-t border-border bg-surface px-4 py-2 text-center">

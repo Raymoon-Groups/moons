@@ -44,6 +44,7 @@ export default function NewJobPage() {
     employmentType: EmploymentType.FULL_TIME,
     salaryRange: '',
     experienceBand: '',
+    screeningQuestions: [],
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -96,6 +97,7 @@ export default function NewJobPage() {
           employmentType: values.employmentType,
           salaryRange: values.salaryRange || undefined,
           ...exp,
+          screeningQuestions: values.screeningQuestions,
         }),
       });
       router.push(`/recruiter/jobs/${job.id}`);
@@ -127,7 +129,7 @@ export default function NewJobPage() {
             items={[
               'Use a specific job title so candidates can find your role in search.',
               'Company name is the hiring company on the listing — it can differ from your MoonsJob employer profile.',
-              'Add salary and experience details to attract the right applicants.',
+              'Add application questions (CV upload, Yes/No, text) so candidates answer when they apply.',
               'Your listing goes live immediately after you publish.',
             ]}
           />

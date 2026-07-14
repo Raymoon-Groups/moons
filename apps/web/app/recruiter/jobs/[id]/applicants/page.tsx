@@ -3,10 +3,14 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { ApplicationStatus, UserRole } from '@moons/shared';
+import { ApplicationStatus, UserRole, type ScreeningQuestion } from '@moons/shared';
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 import { getStoredUser } from '@/lib/auth';
+import {
+  CoverNoteBlock,
+  ScreeningAnswersList,
+} from '@/components/jobs/screening-answers-list';
 import { getResumeDisplayName } from '@/components/profile/profile-shared';
 import type { JobListing } from '@/lib/jobs';
 import type { ApplicantRow } from '@/lib/types';
@@ -77,10 +81,12 @@ function UsersIcon({ className }: { className?: string }) {
 
 function ApplicantCard({
   app,
+  questions,
   updatingId,
   onStatusChange,
 }: {
   app: ApplicantRow;
+  questions?: ScreeningQuestion[];
   updatingId: string | null;
   onStatusChange: (applicationId: string, status: ApplicationStatus) => void;
 }) {
@@ -178,12 +184,6 @@ function ApplicantCard({
                   {profile.summary}
                 </p>
               )}
-
-              {app.coverNote && (
-                <p className="mt-3 rounded-xl border border-border/70 bg-surface/60 px-3.5 py-2.5 text-sm text-foreground">
-                  <span className="font-semibold text-heading">Cover note:</span> {app.coverNote}
-                </p>
-              )}
             </div>
           </div>
 
@@ -237,6 +237,21 @@ function ApplicantCard({
             </label>
           </div>
         </div>
+
+        {(app.coverNote || (app.screeningAnswers && app.screeningAnswers.length > 0)) && (
+          <div className="mt-5 border-t border-border/60 pt-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-moons-muted">
+              Application materials
+            </p>
+            <div className="space-y-3">
+              {app.coverNote ? <CoverNoteBlock note={app.coverNote} /> : null}
+              <ScreeningAnswersList
+                questions={questions}
+                answers={app.screeningAnswers}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </article>
   );
@@ -419,6 +434,7 @@ export default function JobApplicantsPage() {
                   <ApplicantCard
                     key={app.id}
                     app={app}
+                    questions={job?.screeningQuestions}
                     updatingId={updatingId}
                     onStatusChange={updateStatus}
                   />

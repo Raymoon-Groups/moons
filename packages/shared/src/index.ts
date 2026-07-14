@@ -178,6 +178,28 @@ export interface AchievementEntry {
   year?: string;
 }
 
+export enum ScreeningQuestionType {
+  TEXT = 'TEXT',
+  YES_NO = 'YES_NO',
+  SINGLE_CHOICE = 'SINGLE_CHOICE',
+  RESUME = 'RESUME',
+}
+
+export interface ScreeningQuestion {
+  id: string;
+  prompt: string;
+  type: ScreeningQuestionType;
+  required: boolean;
+  options?: string[];
+  sortOrder: number;
+}
+
+export interface ScreeningAnswer {
+  questionId: string;
+  value: string;
+  fileName?: string | null;
+}
+
 export interface NetworkUserCard {
   userId: string;
   fullName: string | null;

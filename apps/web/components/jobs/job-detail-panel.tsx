@@ -2,17 +2,17 @@
 
 import { RichTextContent } from '@/components/rich-text-content';
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { UserRole } from '@moons/shared';
 import { CompanyProfileCard } from '@/components/company-profile-card';
 import { JobCompanyHeader, PostedByLine } from '@/components/job-company-header';
+import { ApplyJobModal } from '@/components/jobs/apply-job-modal';
 import { JobKeyDetailsList } from '@/components/jobs/job-key-details';
 import { JobTags } from '@/components/jobs/job-tags';
 import { apiFetch, authFetch } from '@/lib/api-client';
 import { getAccessToken, getStoredUser } from '@/lib/auth';
 import { formatPostedAgo } from '@/lib/job-formatters';
 import type { JobListing } from '@/lib/jobs';
-import { notifyNotificationsRefresh } from '@/lib/notifications';
 
 export function JobDetailPanel({
   jobId,
@@ -27,10 +27,7 @@ export function JobDetailPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [applied, setApplied] = useState(false);
-  const [coverNote, setCoverNote] = useState('');
-  const [applying, setApplying] = useState(false);
-  const [applyError, setApplyError] = useState('');
-  const [applySuccess, setApplySuccess] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
 
   const user = getStoredUser();
   const isCandidate = user?.role === UserRole.CANDIDATE;
@@ -57,14 +54,10 @@ export function JobDetailPanel({
         setError('');
       }
       setApplied(false);
-      setApplyError('');
-      setApplySuccess(false);
-      setCoverNote('');
+      setApplyOpen(false);
 
       try {
-        const data = hasPreview
-          ? initialJob!
-          : await apiFetch<JobListing>(`/jobs/${jobId}`);
+        const data = hasPreview ? initialJob! : await apiFetch<JobListing>(`/jobs/${jobId}`);
         if (cancelled) return;
         if (!hasPreview) setJob(data);
 
@@ -84,31 +77,11 @@ export function JobDetailPanel({
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
   }, [jobId, initialJob]);
-
-  async function handleApply(e: FormEvent) {
-    e.preventDefault();
-    if (!jobId) return;
-    setApplying(true);
-    setApplyError('');
-    try {
-      await authFetch('/applications', {
-        method: 'POST',
-        body: JSON.stringify({ jobId, coverNote: coverNote || undefined }),
-      });
-      setApplied(true);
-      setApplySuccess(true);
-      notifyNotificationsRefresh();
-    } catch (err) {
-      setApplyError(err instanceof Error ? err.message : 'Apply failed');
-    } finally {
-      setApplying(false);
-    }
-  }
 
   if (!jobId) {
     return (
@@ -151,6 +124,8 @@ export function JobDetailPanel({
     }
   }
 
+  const questionCount = job.screeningQuestions?.length ?? 0;
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="border-b border-border px-6 py-5">
@@ -186,7 +161,7 @@ export function JobDetailPanel({
 
           {isCandidate && applied && (
             <div className="w-full">
-              <p className="rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+              <p className="rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-800 dark:bg-green-500/10 dark:text-green-300">
                 ✓ You have applied to this job
               </p>
               <Link href="/applications" className="mt-2 inline-block text-sm text-moons-blue hover:underline">
@@ -202,32 +177,22 @@ export function JobDetailPanel({
           )}
 
           {isCandidate && !applied && job.status !== 'CLOSED' && (
-            <form onSubmit={handleApply} className="w-full space-y-3">
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  disabled={applying}
-                  className="inline-flex items-center gap-2 rounded-lg bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white hover:bg-moons-blue-dark disabled:opacity-60"
-                >
-                  {applying ? 'Applying…' : 'Apply now'}
-                  <ExternalIcon />
-                </button>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-moons-muted">
-                  Cover note (optional)
-                </label>
-                <textarea
-                  rows={3}
-                  value={coverNote}
-                  onChange={(e) => setCoverNote(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/15"
-                  placeholder="Why are you a good fit?"
-                />
-              </div>
-              {applyError && <p className="text-sm text-red-600">{applyError}</p>}
-              {applySuccess && <p className="text-sm text-green-700">Application submitted!</p>}
-            </form>
+            <div className="w-full space-y-2">
+              <button
+                type="button"
+                onClick={() => setApplyOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white hover:bg-moons-blue-dark"
+              >
+                Apply now
+                <ExternalIcon />
+              </button>
+              {questionCount > 0 && (
+                <p className="text-xs text-moons-muted">
+                  This employer asks {questionCount} screening question
+                  {questionCount === 1 ? '' : 's'} after you click Apply.
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -251,6 +216,15 @@ export function JobDetailPanel({
           </div>
         </section>
       </div>
+
+      {isCandidate && !applied && job.status !== 'CLOSED' && (
+        <ApplyJobModal
+          open={applyOpen}
+          job={job}
+          onClose={() => setApplyOpen(false)}
+          onSubmitted={() => setApplied(true)}
+        />
+      )}
     </div>
   );
 }

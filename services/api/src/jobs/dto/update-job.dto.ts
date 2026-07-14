@@ -1,6 +1,8 @@
 import { EmploymentType, JobStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEnum,
   IsInt,
   IsOptional,
@@ -9,7 +11,9 @@ import {
   Min,
   MinLength,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
+import { ScreeningQuestionDto } from './screening-question.dto';
 
 export class UpdateJobDto {
   @IsOptional()
@@ -58,4 +62,11 @@ export class UpdateJobDto {
   @IsOptional()
   @IsEnum(JobStatus)
   status?: JobStatus;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => ScreeningQuestionDto)
+  screeningQuestions?: ScreeningQuestionDto[];
 }

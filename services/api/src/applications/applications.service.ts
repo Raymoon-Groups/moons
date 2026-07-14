@@ -1,13 +1,20 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ApplicationStatus, JobStatus } from '@prisma/client';
+import { ApplicationStatus, JobStatus, Prisma } from '@prisma/client';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  ScreeningQuestionType,
+  type ScreeningAnswer,
+  type ScreeningAnswerDto,
+  type ScreeningQuestion,
+} from '../jobs/dto/screening-question.dto';
 import { CreateApplicationDto } from './dto/create-application.dto';
 
 const applicantProfileSelect = {
@@ -73,6 +80,13 @@ export class ApplicationsService {
       throw new ConflictException('You have already applied to this job');
     }
 
+    const questions = this.parseScreeningQuestions(job.screeningQuestions);
+    const screeningAnswers = await this.validateScreeningAnswers(
+      candidateId,
+      questions,
+      dto.screeningAnswers,
+    );
+
     const candidate = await this.prisma.user.findUnique({
       where: { id: candidateId },
       include: { profile: { select: { fullName: true } } },
@@ -83,6 +97,7 @@ export class ApplicationsService {
         jobId: dto.jobId,
         candidateId,
         coverNote: dto.coverNote,
+        screeningAnswers: screeningAnswers as unknown as Prisma.InputJsonValue,
       },
       include: {
         job: {
@@ -121,6 +136,108 @@ export class ApplicationsService {
     return application;
   }
 
+  private parseScreeningQuestions(raw: Prisma.JsonValue): ScreeningQuestion[] {
+    if (!Array.isArray(raw)) return [];
+    const result: ScreeningQuestion[] = [];
+    for (const item of raw) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const q = item as Record<string, unknown>;
+      if (
+        typeof q.id !== 'string' ||
+        typeof q.prompt !== 'string' ||
+        typeof q.type !== 'string'
+      ) {
+        continue;
+      }
+      result.push({
+        id: q.id,
+        prompt: q.prompt,
+        type: q.type as ScreeningQuestion['type'],
+        required: Boolean(q.required),
+        options: Array.isArray(q.options)
+          ? q.options.filter((o): o is string => typeof o === 'string')
+          : undefined,
+        sortOrder: typeof q.sortOrder === 'number' ? q.sortOrder : result.length,
+      });
+    }
+    return result;
+  }
+
+  private async validateScreeningAnswers(
+    candidateId: string,
+    questions: ScreeningQuestion[],
+    answers: ScreeningAnswerDto[] | undefined,
+  ): Promise<ScreeningAnswer[]> {
+    if (questions.length === 0) {
+      return [];
+    }
+
+    const answerMap = new Map((answers ?? []).map((a) => [a.questionId, a]));
+    const normalized: ScreeningAnswer[] = [];
+
+    for (const question of [...questions].sort((a, b) => a.sortOrder - b.sortOrder)) {
+      const answer = answerMap.get(question.id);
+      const rawValue = answer?.value?.trim() ?? '';
+
+      if (!rawValue) {
+        if (question.required) {
+          throw new BadRequestException(
+            `Please answer: ${question.prompt}`,
+          );
+        }
+        continue;
+      }
+
+      if (question.type === ScreeningQuestionType.YES_NO) {
+        const normalizedYesNo = rawValue.toLowerCase();
+        if (normalizedYesNo !== 'yes' && normalizedYesNo !== 'no') {
+          throw new BadRequestException(
+            `Answer for "${question.prompt}" must be Yes or No`,
+          );
+        }
+        normalized.push({ questionId: question.id, value: normalizedYesNo === 'yes' ? 'Yes' : 'No' });
+        continue;
+      }
+
+      if (question.type === ScreeningQuestionType.SINGLE_CHOICE) {
+        const options = question.options ?? [];
+        if (!options.includes(rawValue)) {
+          throw new BadRequestException(
+            `Answer for "${question.prompt}" must be one of the provided options`,
+          );
+        }
+        normalized.push({ questionId: question.id, value: rawValue });
+        continue;
+      }
+
+      if (question.type === ScreeningQuestionType.RESUME) {
+        const profile = await this.prisma.profile.findUnique({
+          where: { userId: candidateId },
+          select: { resumeUrl: true, resumeFileName: true },
+        });
+        const resumeUrl = profile?.resumeUrl?.trim() || rawValue;
+        if (!resumeUrl) {
+          throw new BadRequestException(
+            `Please upload your resume for: ${question.prompt}`,
+          );
+        }
+        normalized.push({
+          questionId: question.id,
+          value: resumeUrl,
+          fileName: answer?.fileName ?? profile?.resumeFileName ?? null,
+        });
+        continue;
+      }
+
+      normalized.push({
+        questionId: question.id,
+        value: rawValue.slice(0, 2000),
+      });
+    }
+
+    return normalized;
+  }
+
   async findByCandidate(candidateId: string) {
     return this.prisma.application.findMany({
       where: { candidateId },
@@ -133,6 +250,7 @@ export class ApplicationsService {
             location: true,
             employmentType: true,
             status: true,
+            screeningQuestions: true,
           },
         },
       },

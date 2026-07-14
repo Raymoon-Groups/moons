@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ListCompaniesDto } from './dto/list-companies.dto';
 import { ListJobsDto } from './dto/list-jobs.dto';
+import { normalizeScreeningQuestions } from './dto/screening-question.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 
 const recruiterProfileSelect = {
@@ -51,6 +52,10 @@ export class JobsService {
       profile?.currentCompany?.trim() ||
       'Company';
 
+    const screeningQuestions = normalizeScreeningQuestions(
+      dto.screeningQuestions,
+    ) as unknown as Prisma.InputJsonValue;
+
     const job = await this.prisma.job.create({
       data: {
         title: dto.title,
@@ -61,6 +66,7 @@ export class JobsService {
         salaryRange: dto.salaryRange?.trim() || null,
         minExperienceYears: dto.minExperienceYears ?? null,
         maxExperienceYears: dto.maxExperienceYears ?? null,
+        screeningQuestions,
         recruiterId,
         status: JobStatus.PUBLISHED,
       },
@@ -89,6 +95,11 @@ export class JobsService {
       data.maxExperienceYears = dto.maxExperienceYears;
     }
     if (dto.status !== undefined) data.status = dto.status;
+    if (dto.screeningQuestions !== undefined) {
+      data.screeningQuestions = normalizeScreeningQuestions(
+        dto.screeningQuestions,
+      ) as unknown as Prisma.InputJsonValue;
+    }
 
     const updated = await this.prisma.job.update({
       where: { id: job.id },
@@ -508,6 +519,9 @@ export class JobsService {
       salaryRange: job.salaryRange,
       minExperienceYears: job.minExperienceYears,
       maxExperienceYears: job.maxExperienceYears,
+      screeningQuestions: Array.isArray(job.screeningQuestions)
+        ? job.screeningQuestions
+        : [],
       status: job.status,
       createdAt: job.createdAt,
       companyLogoUrl: profile?.companyLogoUrl ?? null,

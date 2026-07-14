@@ -1,3 +1,5 @@
+import type { ScreeningQuestion } from '@moons/shared';
+
 export interface JobListing {
   id: string;
   recruiterId?: string;
@@ -12,6 +14,7 @@ export interface JobListing {
   salaryRange?: string | null;
   minExperienceYears?: number | null;
   maxExperienceYears?: number | null;
+  screeningQuestions?: ScreeningQuestion[];
   companyLogoUrl?: string | null;
   companyWebsite?: string | null;
   industry?: string | null;

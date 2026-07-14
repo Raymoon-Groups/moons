@@ -1,6 +1,8 @@
 import { EmploymentType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEnum,
   IsInt,
   IsOptional,
@@ -9,7 +11,9 @@ import {
   Min,
   MinLength,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
+import { ScreeningQuestionDto } from './screening-question.dto';
 
 export class CreateJobDto {
   @IsString()
@@ -49,4 +53,11 @@ export class CreateJobDto {
   @Min(0)
   @Max(50)
   maxExperienceYears?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => ScreeningQuestionDto)
+  screeningQuestions?: ScreeningQuestionDto[];
 }

@@ -12,6 +12,10 @@ export function markBellNotificationsRead() {
   return authFetch<{ success: boolean }>('/notifications/read-bell', { method: 'POST' });
 }
 
+export function markNotificationRead(id: string) {
+  return authFetch<NotificationItem>(`/notifications/${id}/read`, { method: 'PATCH' });
+}
+
 export function markNetworkNotificationsRead() {
   return authFetch<{ success: boolean }>('/notifications/read-network', { method: 'POST' });
 }

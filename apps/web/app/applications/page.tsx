@@ -14,10 +14,15 @@ import {
   DashSidebarPanel,
   DashTipsList,
 } from '@/components/dash/dash-page-shell';
+import { ConfirmModal } from '@/components/confirm-modal';
 import { authDelete, authFetch } from '@/lib/api-client';
 import { getStoredUser } from '@/lib/auth';
 import { formatEmploymentType } from '@/lib/job-formatters';
 import type { ApplicationWithJob } from '@/lib/types';
+import {
+  CoverNoteBlock,
+  ScreeningAnswersList,
+} from '@/components/jobs/screening-answers-list';
 
 function formatApplicationStatus(status: string) {
   switch (status) {
@@ -113,11 +118,13 @@ function ApplicationCard({
                 {formatEmploymentType(app.job.employmentType)}
               </p>
 
-              {app.coverNote && (
-                <p className="mt-3 line-clamp-2 rounded-xl border border-border/60 bg-gradient-to-br from-surface/80 to-surface-elevated px-3.5 py-2.5 text-sm text-foreground">
-                  <span className="font-semibold text-heading">Cover note:</span> {app.coverNote}
-                </p>
-              )}
+              {app.coverNote && <CoverNoteBlock note={app.coverNote} className="mt-3" />}
+
+              <ScreeningAnswersList
+                className="mt-3"
+                questions={app.job.screeningQuestions}
+                answers={app.screeningAnswers}
+              />
             </div>
           </div>
 
@@ -176,6 +183,7 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
+  const [withdrawTarget, setWithdrawTarget] = useState<ApplicationWithJob | null>(null);
 
   const stats = useMemo(() => {
     const countBy = (status: ApplicationStatus) =>
@@ -205,13 +213,13 @@ export default function ApplicationsPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  async function handleWithdraw(app: ApplicationWithJob) {
-    if (!window.confirm(`Withdraw your application for "${app.job.title}"?`)) return;
+  async function executeWithdraw(app: ApplicationWithJob) {
     setWithdrawingId(app.id);
     setError('');
     try {
       await authDelete(`/applications/${app.id}`);
       setApplications((prev) => prev.filter((a) => a.id !== app.id));
+      setWithdrawTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to withdraw');
     } finally {
@@ -302,11 +310,33 @@ export default function ApplicationsPage() {
               key={app.id}
               app={app}
               withdrawingId={withdrawingId}
-              onWithdraw={handleWithdraw}
+              onWithdraw={(application) => setWithdrawTarget(application)}
             />
           ))}
         </div>
       ) : null}
+
+      <ConfirmModal
+        open={!!withdrawTarget}
+        tone="warning"
+        title="Withdraw application?"
+        description={
+          withdrawTarget
+            ? `Your application for "${withdrawTarget.job.title}" at ${withdrawTarget.job.companyName} will be withdrawn. You can apply again later if the role is still open.`
+            : ''
+        }
+        confirmLabel="Withdraw"
+        cancelLabel="Keep application"
+        loading={!!withdrawTarget && withdrawingId === withdrawTarget.id}
+        onCancel={() => {
+          if (!(withdrawTarget && withdrawingId === withdrawTarget.id)) {
+            setWithdrawTarget(null);
+          }
+        }}
+        onConfirm={() => {
+          if (withdrawTarget) void executeWithdraw(withdrawTarget);
+        }}
+      />
     </DashPageLayout>
   );
 }
