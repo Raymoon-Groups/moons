@@ -5,10 +5,13 @@
  *   1. pnpm install
  *   2. Copy .env to services/api/.env and apps/web/.env.local
  *   3. docker compose up -d          # Postgres + Redis
- *   4. pnpm db:migrate
+ *   4. pnpm db:migrate               # also runs automatically when moons-api starts
  *   5. pnpm build
  *   6. pm2 start ecosystem.config.cjs
  *   7. pm2 save && pm2 startup
+ *
+ * After pulling schema changes:
+ *   git pull && pnpm install && pnpm db:migrate && pnpm build && pm2 restart ecosystem.config.cjs
  *
  * Useful commands:
  *   pm2 list
@@ -25,7 +28,9 @@ module.exports = {
     {
       name: 'moons-api',
       cwd: path.join(root, 'services/api'),
-      script: 'dist/main.js',
+      // Runs `prisma migrate deploy` then starts the API (see services/api package.json "start")
+      script: 'pnpm',
+      args: 'start',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
