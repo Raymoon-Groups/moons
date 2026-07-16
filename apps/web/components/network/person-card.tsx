@@ -13,12 +13,12 @@ import {
   formatRecommendationReason,
 } from '@/components/network/network-modals';
 import {
+  acceptConnectionInvite,
+  ignoreConnectionInvite,
   isStaleConnectionInviteError,
 } from '@/lib/connection-invites';
 import {
-  acceptConnection,
   cancelConnection,
-  rejectConnection,
   removeConnection,
 } from '@/lib/network';
 import type { NetworkUserCard } from '@moons/shared';
@@ -197,7 +197,7 @@ function ConnectActions({
             onClick={() =>
               run(
                 async () => {
-                  await acceptConnection(connectionId);
+                  await acceptConnectionInvite(connectionId);
                 },
                 {
                   update: {
@@ -218,7 +218,7 @@ function ConnectActions({
             onClick={() =>
               run(
                 async () => {
-                  await rejectConnection(connectionId);
+                  await ignoreConnectionInvite(connectionId);
                 },
                 {
                   refreshAll: true,
@@ -467,7 +467,7 @@ function StatusBadges({
 }
 
 const CARD_SHELL =
-  'group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-surface-elevated shadow-sm transition hover:border-moons-blue/30 hover:shadow-[0_8px_24px_rgba(74,127,212,0.1)]';
+  'group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-border bg-surface-elevated shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:shadow-[0_2px_8px_rgba(15,23,42,0.05)]';
 
 const FOOTER_SHELL = 'mt-auto border-t border-border/50 px-4 py-3';
 

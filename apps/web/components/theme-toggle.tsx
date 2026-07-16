@@ -27,7 +27,7 @@ function MoonIcon() {
   );
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ className = '' }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -41,7 +41,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface-elevated text-moons-muted transition hover:border-moons-blue/40 hover:text-moons-blue focus:outline-none focus:ring-2 focus:ring-moons-blue/30"
+      className={`header-float flex h-11 w-11 shrink-0 items-center justify-center text-moons-muted transition hover:text-moons-blue focus:outline-none focus:ring-2 focus:ring-moons-blue/20 sm:h-12 sm:w-12 ${className}`}
       aria-label={mounted ? (isDark ? 'Switch to light theme' : 'Switch to dark theme') : 'Toggle theme'}
       title={mounted ? (isDark ? 'Light mode' : 'Dark mode') : 'Toggle theme'}
     >

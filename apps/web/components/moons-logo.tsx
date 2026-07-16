@@ -12,10 +12,11 @@ const LOGO_DIMENSIONS = {
 
 /** Logo is wide; sizes set height — width follows via w-auto. */
 const SIZE_CLASS = {
+  xs: 'h-9',
   sm: 'h-10 sm:h-11',
   md: 'h-12 sm:h-14',
-  lg: 'h-14 sm:h-16',
-  xl: 'h-16 sm:h-20',
+  lg: 'h-11 sm:h-14 md:h-16',
+  xl: 'h-14 sm:h-16 md:h-20',
 } as const;
 
 interface MoonsLogoProps {

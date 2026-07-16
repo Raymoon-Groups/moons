@@ -8,14 +8,12 @@ import { ConnectInviteModal } from '@/components/network/connect-invite-modal';
 import { resolveAvatarUrl } from '@/lib/assets';
 import { fetchConversationWithUser } from '@/lib/messages';
 import {
-  acceptConnection,
-  cancelConnection,
-  rejectConnection,
-} from '@/lib/network';
-import {
+  acceptConnectionInvite,
+  ignoreConnectionInvite,
   isStaleConnectionInviteError,
   notifyConnectionsRefresh,
 } from '@/lib/connection-invites';
+import { cancelConnection } from '@/lib/network';
 import { OPEN_ON_MOONS_LABEL, showOpenOnMoonsToViewer } from '@/lib/open-on-moons';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -181,7 +179,7 @@ export function PersonCard({
               disabled={loading}
               onPress={() =>
                 void run(
-                  () => acceptConnection(local.connectionId!),
+                  () => acceptConnectionInvite(local.connectionId!),
                   { connectionId: local.connectionId!, connectionStatus: 'ACCEPTED', connectionDirection: null },
                 )
               }
@@ -193,7 +191,7 @@ export function PersonCard({
               disabled={loading}
               onPress={() =>
                 void run(
-                  () => rejectConnection(local.connectionId!),
+                  () => ignoreConnectionInvite(local.connectionId!),
                   { connectionId: '', connectionStatus: 'NONE', connectionDirection: null },
                 )
               }

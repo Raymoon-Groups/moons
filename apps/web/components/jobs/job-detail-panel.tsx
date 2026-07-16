@@ -85,7 +85,7 @@ export function JobDetailPanel({
 
   if (!jobId) {
     return (
-      <div className="flex h-full min-h-[420px] items-center justify-center p-8 text-center text-sm text-moons-muted">
+      <div className="flex h-full min-h-[280px] items-center justify-center p-6 text-center text-sm text-moons-muted lg:min-h-[420px] lg:p-8">
         Select a job from the list to view details
       </div>
     );
@@ -93,7 +93,7 @@ export function JobDetailPanel({
 
   if (loading) {
     return (
-      <div className="flex h-full min-h-[420px] items-center justify-center p-8 text-sm text-moons-muted">
+      <div className="flex h-full min-h-[280px] items-center justify-center p-6 text-sm text-moons-muted lg:min-h-[420px] lg:p-8">
         Loading job…
       </div>
     );

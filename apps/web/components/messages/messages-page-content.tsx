@@ -446,7 +446,7 @@ function MessagesPageInner() {
           subtitle="Connection notes and conversations with your network. Accept invites here to start chatting."
         />
 
-        <div className="mt-6 grid h-[calc(100vh-13.5rem)] min-h-[560px] gap-4 lg:grid-cols-[minmax(300px,360px)_1fr]">
+        <div className="mt-6 grid mobile-pane-messages gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
           {/* Inbox */}
           <div
             className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_4px_24px_rgba(26,39,68,0.06)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.28)] ${

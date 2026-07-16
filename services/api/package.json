@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nest build",
-    "dev": "nest start --watch",
+    "dev": "set PATH=%PATH%;C:\\Windows\\System32&& nest start --watch",
     "dev:stable": "nest start",
     "start": "prisma migrate deploy && node dist/main",
     "postinstall": "prisma generate",

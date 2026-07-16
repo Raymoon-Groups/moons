@@ -3,38 +3,30 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Light moon / space — soft silver, pale blue, lunar white */
-  --background: #f4f7fb;
-  --foreground: #334155;
-  --heading: #1a2744;
-  --surface: #eef2f7;
+  /* Premium SaaS — soft neutrals, whisper borders, barely-there shadows */
+  --background: #f8fafc;
+  --foreground: #475569;
+  --heading: #0f172a;
+  --surface: #f1f5f9;
   --surface-elevated: #ffffff;
-  --surface-hover: #e8edf5;
-  --border: #d4dce8;
-  --border-subtle: #e8edf5;
+  --surface-hover: #f8fafc;
+  --border: #e8ecf1;
+  --border-subtle: #f1f5f9;
 
   --moons-blue: #4a7fd4;
   --moons-blue-dark: #3568b8;
-  --moons-navy: #1a2744;
-  --moons-orange: #5b8fd9;
-  --moons-orange-dark: #3d6eb5;
-  --moons-muted: #6b7a8f;
+  --moons-navy: #0f172a;
+  --moons-orange: #4a7fd4;
+  --moons-orange-dark: #3568b8;
+  --moons-muted: #64748b;
   --moons-silver: #94a3b8;
 
-  /* Page canvas — white → light grey → light blue */
-  --page-gradient-base: #eef3f9;
-  --page-gradient: linear-gradient(
-    165deg,
-    #ffffff 0%,
-    #f7f9fc 18%,
-    #eef2f7 42%,
-    #e4ecf6 68%,
-    #d8e6f5 100%
-  );
-  --page-gradient-glow:
-    radial-gradient(ellipse 75% 55% at 95% 5%, rgba(186, 214, 248, 0.55), transparent 58%),
-    radial-gradient(ellipse 60% 50% at 5% 95%, rgba(226, 232, 240, 0.65), transparent 55%),
-    radial-gradient(ellipse 85% 45% at 50% -8%, rgba(219, 234, 254, 0.7), transparent 52%);
+  /* Flat canvas — no decorative page gradients */
+  --page-gradient-base: #f8fafc;
+  --page-gradient: none;
+  --page-gradient-glow: none;
+  --saas-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --saas-shadow-hover: 0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
 .dark {
@@ -95,9 +87,16 @@
 body {
   background-color: var(--page-gradient-base);
   background-image: var(--page-gradient-glow), var(--page-gradient);
-  background-attachment: fixed;
+  background-attachment: scroll;
   color: var(--foreground);
   font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+  overflow-x: clip;
+}
+
+@media (min-width: 1024px) {
+  body {
+    background-attachment: fixed;
+  }
 }
 
 .dark body {
@@ -403,41 +402,42 @@ body {
 
 @layer components {
   .dash-page {
-    min-height: 100vh;
+    min-height: 100dvh;
     background-color: transparent;
   }
 
   .app-canvas {
     background-color: var(--page-gradient-base);
-    background-image: var(--page-gradient-glow), var(--page-gradient);
-    background-attachment: fixed;
+    background-image: none;
+    overflow-x: clip;
   }
 
   .li-page-bg {
-    min-height: 100vh;
-    background-color: #f3f2ef;
+    min-height: 100dvh;
+    background-color: #f8fafc;
   }
 
   .dark .li-page-bg {
     background-color: var(--background);
-    background-image: var(--page-gradient-glow), var(--page-gradient);
-    background-attachment: fixed;
+    background-image: none;
   }
 
   .dash-card {
-    @apply rounded-2xl border border-border bg-surface-elevated shadow-sm;
+    @apply rounded-[18px] border border-border bg-surface-elevated;
+    box-shadow: var(--saas-shadow);
   }
 
   .space-card {
-    @apply rounded-lg border border-border bg-surface-elevated shadow-[0_4px_20px_rgba(26,39,68,0.06)];
+    @apply rounded-2xl border border-border bg-surface-elevated;
+    box-shadow: var(--saas-shadow);
   }
 
   .dark .space-card {
-    @apply shadow-[0_4px_20px_rgba(0,0,0,0.25)];
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .space-input {
-    @apply w-full rounded-md border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:ring-1 focus:ring-moons-blue/30;
+    @apply w-full rounded-xl border border-border bg-surface-elevated px-3.5 py-2.5 text-sm text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue/50 focus:ring-2 focus:ring-moons-blue/10;
   }
 
   .space-btn-primary {
@@ -449,7 +449,7 @@ body {
   }
 
   .picker-menu {
-    @apply overflow-hidden rounded-lg border border-border bg-surface-elevated py-1 shadow-[0_4px_24px_rgba(0,0,0,0.12)];
+    @apply overflow-hidden rounded-xl border border-border bg-surface-elevated py-1 shadow-[0_8px_24px_rgba(15,23,42,0.08)];
   }
 
   .dark .picker-menu {
@@ -465,113 +465,162 @@ body {
   }
 
   .promo-banner {
-    @apply overflow-hidden rounded-xl border border-moons-blue/20 bg-gradient-to-r from-moons-blue/10 via-surface-elevated to-moons-blue/5 shadow-sm;
+    @apply overflow-hidden rounded-2xl border border-border bg-surface-elevated;
+    box-shadow: var(--saas-shadow);
   }
 
   .dark .promo-banner {
-    @apply border-moons-blue/25 bg-gradient-to-r from-moons-blue/15 via-surface-elevated to-moons-navy/30;
+    @apply border-border;
   }
 
   .recruiter-filter-panel {
-    @apply sticky top-24 overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated/90 p-5 shadow-[0_4px_24px_rgba(26,39,68,0.06)] backdrop-blur-sm lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto;
+    @apply overflow-hidden rounded-[18px] border border-border bg-surface-elevated p-6 sm:p-7 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto;
+    box-shadow: var(--saas-shadow);
   }
 
   .dark .recruiter-filter-panel {
-    @apply shadow-[0_4px_24px_rgba(0,0,0,0.28)];
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .candidate-card {
-    @apply overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_4px_20px_rgba(26,39,68,0.05)] transition duration-300 hover:-translate-y-0.5 hover:border-moons-blue/25 hover:shadow-[0_12px_40px_rgba(74,127,212,0.12)];
+    @apply overflow-hidden rounded-[18px] border border-border bg-surface-elevated transition duration-200;
+    box-shadow: var(--saas-shadow);
+  }
+
+  .candidate-card:hover {
+    box-shadow: var(--saas-shadow-hover);
   }
 
   .dark .candidate-card {
-    @apply shadow-[0_4px_20px_rgba(0,0,0,0.22)] hover:shadow-[0_12px_40px_rgba(74,127,212,0.15)];
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .candidate-card-accent {
-    @apply h-1 bg-gradient-to-r from-moons-blue via-moons-blue/70 to-transparent;
+    @apply h-px bg-border;
   }
 
   .recruiter-jobs-hero,
   .dash-hero {
-    @apply relative overflow-hidden rounded-2xl border border-moons-blue/20 bg-gradient-to-br from-moons-blue/[0.08] via-surface-elevated to-moons-navy/[0.04] p-6 shadow-[0_8px_32px_rgba(74,127,212,0.08)] md:p-8;
+    @apply relative overflow-hidden rounded-[20px] border border-border bg-surface-elevated p-6 sm:p-7 md:p-8;
+    box-shadow: var(--saas-shadow);
   }
 
   .dark .recruiter-jobs-hero,
   .dark .dash-hero {
-    @apply border-moons-blue/25 bg-gradient-to-br from-moons-blue/15 via-surface-elevated to-moons-navy/40 shadow-[0_8px_32px_rgba(0,0,0,0.25)];
+    @apply border-border bg-surface-elevated;
   }
 
   .recruiter-sidebar-card,
   .dash-sidebar-card {
-    @apply overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated/95 p-5 shadow-[0_4px_24px_rgba(26,39,68,0.06)] backdrop-blur-sm;
+    @apply overflow-hidden rounded-[18px] border border-border bg-surface-elevated p-6;
+    box-shadow: var(--saas-shadow);
   }
 
   .dark .recruiter-sidebar-card,
   .dark .dash-sidebar-card {
-    @apply shadow-[0_4px_24px_rgba(0,0,0,0.28)];
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .recruiter-tips-card,
   .dash-tips-card {
-    @apply overflow-hidden rounded-2xl border border-moons-blue/15 bg-gradient-to-b from-moons-blue/[0.06] to-surface-elevated p-5;
+    @apply overflow-hidden rounded-[18px] border border-border bg-surface-elevated p-6;
+    box-shadow: var(--saas-shadow);
   }
 
   .dark .recruiter-tips-card,
   .dark .dash-tips-card {
-    @apply border-moons-blue/20 from-moons-blue/10;
+    @apply border-border;
   }
 
   .dash-content-card {
-    @apply overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated p-6 shadow-[0_4px_20px_rgba(26,39,68,0.05)];
+    @apply overflow-hidden rounded-[18px] border border-border bg-surface-elevated p-6 sm:p-7;
+    box-shadow: var(--saas-shadow);
   }
 
   .dark .dash-content-card {
-    @apply shadow-[0_4px_20px_rgba(0,0,0,0.22)];
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .recruiter-job-card {
-    @apply overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_4px_20px_rgba(26,39,68,0.05)] transition duration-300 hover:-translate-y-0.5 hover:border-moons-blue/25 hover:shadow-[0_12px_40px_rgba(74,127,212,0.12)];
+    @apply overflow-hidden rounded-[18px] border border-border bg-surface-elevated transition duration-200;
+    box-shadow: var(--saas-shadow);
+  }
+
+  .recruiter-job-card:hover {
+    box-shadow: var(--saas-shadow-hover);
   }
 
   .dark .recruiter-job-card {
-    @apply shadow-[0_4px_20px_rgba(0,0,0,0.22)] hover:shadow-[0_12px_40px_rgba(74,127,212,0.15)];
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .recruiter-stat-tile {
-    @apply rounded-xl border border-border/60 bg-surface p-4 text-center transition hover:border-moons-blue/30 hover:shadow-sm;
-  }
-
-  .recruiter-sidebar-card {
-    @apply overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated/95 p-5 shadow-[0_4px_24px_rgba(26,39,68,0.06)] backdrop-blur-sm;
-  }
-
-  .dark .recruiter-sidebar-card {
-    @apply shadow-[0_4px_24px_rgba(0,0,0,0.28)];
-  }
-
-  .recruiter-tips-card {
-    @apply overflow-hidden rounded-2xl border border-moons-blue/15 bg-gradient-to-b from-moons-blue/[0.06] to-surface-elevated p-5;
-  }
-
-  .dark .recruiter-tips-card {
-    @apply border-moons-blue/20 from-moons-blue/10;
+    @apply rounded-2xl bg-surface p-5 text-center;
   }
 
   .meta-pill {
-    @apply inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium text-foreground ring-1 ring-border/80;
+    @apply inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium text-moons-muted;
   }
 
   .skill-chip {
-    @apply inline-flex rounded-md bg-moons-blue/10 px-2 py-0.5 text-xs font-medium text-moons-blue ring-1 ring-moons-blue/15;
+    @apply inline-flex rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-foreground;
   }
 
   .filter-chip {
-    @apply rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-moons-muted transition hover:border-moons-blue/40 hover:text-moons-blue;
+    @apply rounded-full border border-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-moons-muted transition hover:text-heading;
   }
 
   .filter-chip-active {
-    @apply border-moons-blue/40 bg-moons-blue/10 text-moons-blue ring-1 ring-moons-blue/20;
+    @apply border-moons-blue/30 bg-moons-blue/10 text-moons-blue;
+  }
+
+  .saas-status-live {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700;
+  }
+
+  .saas-status-closed {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600;
+  }
+
+  .saas-status-draft {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-moons-blue/25 bg-transparent px-2.5 py-1 text-xs font-semibold text-moons-blue;
+  }
+
+  .saas-btn-ghost {
+    @apply rounded-xl px-4 py-2.5 text-sm font-semibold text-moons-muted transition hover:bg-surface hover:text-heading;
+  }
+
+  .saas-btn-danger {
+    @apply rounded-xl px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50;
+  }
+
+  .header-float {
+    @apply rounded-full border border-border bg-surface-elevated/98 backdrop-blur-xl;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 4px 16px rgba(15, 23, 42, 0.08),
+      0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  }
+
+  .header-scrolled .header-float {
+    box-shadow:
+      0 2px 4px rgba(15, 23, 42, 0.06),
+      0 8px 28px rgba(15, 23, 42, 0.12),
+      0 16px 40px rgba(15, 23, 42, 0.06),
+      0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+  }
+
+  .dark .header-float {
+    @apply bg-surface-elevated/95;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.25),
+      0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .dark .header-scrolled .header-float {
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.32),
+      0 12px 36px rgba(0, 0, 0, 0.28);
   }
 
   /* Google sign-in iframe — full width, no logo clipping */
@@ -709,6 +758,38 @@ body {
 
   .rich-text-content strong {
     font-weight: 600;
+  }
+
+  /* Shared mobile helpers */
+  .empty-state-pad {
+    @apply p-6 sm:p-10 lg:p-12;
+  }
+
+  .mobile-pane,
+  .mobile-pane-messages {
+    height: auto;
+    min-height: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-pane {
+      height: calc(100dvh - 22rem);
+      min-height: 520px;
+    }
+
+    .mobile-pane-messages {
+      height: calc(100dvh - 13.5rem);
+      min-height: 560px;
+    }
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 

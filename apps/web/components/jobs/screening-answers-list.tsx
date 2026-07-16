@@ -17,10 +17,10 @@ function YesNoBadge({ value }: { value: string }) {
   const isYes = normalized === 'yes' || normalized === 'true';
   return (
     <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${
+      className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${
         isYes
-          ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300'
-          : 'bg-red-500/10 text-red-700 ring-red-500/25 dark:text-red-300'
+          ? 'bg-emerald-50 text-emerald-700'
+          : 'bg-red-50 text-red-700'
       }`}
     >
       {isYes ? 'Yes' : 'No'}
@@ -98,9 +98,9 @@ export function ScreeningAnswersList({
           href={href ?? '#'}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-3 rounded-xl border border-moons-blue/20 bg-gradient-to-r from-moons-blue/[0.07] to-surface-elevated px-4 py-3 shadow-sm transition hover:border-moons-blue/40 hover:from-moons-blue/[0.12]"
+          className="group flex items-center gap-3 rounded-xl bg-surface px-4 py-3 transition hover:bg-surface-hover"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-moons-blue/15 text-moons-blue ring-1 ring-moons-blue/20">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-elevated text-moons-muted">
             <DocumentIcon className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1">
@@ -116,20 +116,20 @@ export function ScreeningAnswersList({
       ))}
 
       {questionItems.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-border/70 bg-surface-elevated shadow-sm">
-          <div className="flex items-center gap-2 border-b border-border/60 bg-surface/80 px-4 py-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-moons-blue/10 text-moons-blue">
+        <div className="overflow-hidden rounded-xl bg-surface">
+          <div className="flex items-center gap-2 border-b border-border/50 px-4 py-3">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-elevated text-moons-muted">
               <ChatIcon className="h-3.5 w-3.5" />
             </span>
             <div>
-              <p className="text-sm font-bold text-heading">Screening answers</p>
+              <p className="text-sm font-semibold text-heading">Screening answers</p>
               <p className="text-xs text-moons-muted">
                 {questionItems.length} response{questionItems.length === 1 ? '' : 's'}
               </p>
             </div>
           </div>
 
-          <ol className="divide-y divide-border/60">
+          <ol className="divide-y divide-border/40">
             {questionItems.map(({ answer, question, label }, index) => {
               const type = question?.type;
               const showYesNo =
@@ -146,7 +146,7 @@ export function ScreeningAnswersList({
 
               return (
                 <li key={answer.questionId} className="flex gap-3 px-4 py-3.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-moons-blue/10 text-[11px] font-bold tabular-nums text-moons-blue">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-[11px] font-semibold tabular-nums text-moons-muted">
                     {index + 1}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -155,7 +155,7 @@ export function ScreeningAnswersList({
                       {showYesNo ? (
                         <YesNoBadge value={answer.value} />
                       ) : showChoiceChip ? (
-                        <span className="inline-flex rounded-lg bg-moons-blue/10 px-2.5 py-1 text-sm font-semibold text-heading ring-1 ring-inset ring-moons-blue/15">
+                        <span className="inline-flex rounded-lg bg-surface-elevated px-2.5 py-1 text-sm font-semibold text-heading">
                           {answer.value}
                         </span>
                       ) : (
@@ -183,10 +183,8 @@ export function CoverNoteBlock({
   className?: string;
 }) {
   return (
-    <div
-      className={`rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.08] to-surface-elevated px-4 py-3.5 ${className}`}
-    >
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800/80 dark:text-amber-200/80">
+    <div className={`rounded-xl bg-surface px-4 py-3.5 ${className}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-moons-muted">
         Cover note
       </p>
       <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{note}</p>

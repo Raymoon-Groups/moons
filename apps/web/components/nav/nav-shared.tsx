@@ -34,7 +34,7 @@ export const recruiterNavLinks: NavLink[] = [
   { label: 'Jobs', href: '/recruiter/jobs', icon: 'jobs' },
   { label: 'Network', href: '/network', icon: 'network' },
   { label: 'Messaging', href: '/messages', icon: 'messaging', shortLabel: 'Messages' },
-  { label: 'Candidates', href: '/recruiter/candidates', icon: 'candidates' },
+  { label: 'Candidates', href: '/recruiter/candidates', icon: 'candidates', shortLabel: 'Candidates' },
 ];
 
 export function isNavActive(pathname: string, label: string) {

@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { NetworkUserCard } from '@moons/shared';
 import { ApplicationStatus } from '@moons/shared';
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
-import { PersonCard } from '@/components/network/person-card';
+import { PersonCard, type ConnectionUpdate } from '@/components/network/person-card';
 import { fetchSuggestions } from '@/lib/network';
 import {
   buildRecruiterCandidatesUrl,
@@ -46,12 +46,53 @@ export function PeopleYouMayKnowSection() {
   const [people, setPeople] = useState<NetworkUserCard[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSuggestions(1, 6)
-      .then((data) => setPeople(data.items))
-      .catch(() => setPeople([]))
-      .finally(() => setLoading(false));
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
+    try {
+      const data = await fetchSuggestions(1, 6);
+      setPeople(data.items);
+    } catch {
+      if (!opts?.silent) setPeople([]);
+    } finally {
+      if (!opts?.silent) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+    function onRefresh() {
+      void load({ silent: true });
+    }
+    window.addEventListener('moons:connections-refresh', onRefresh);
+    window.addEventListener('moons:notifications-refresh', onRefresh);
+    return () => {
+      window.removeEventListener('moons:connections-refresh', onRefresh);
+      window.removeEventListener('moons:notifications-refresh', onRefresh);
+    };
+  }, [load]);
+
+  function handleConnectionChange(userId: string, update: ConnectionUpdate) {
+    if (
+      update.connectionStatus === 'ACCEPTED' ||
+      update.connectionStatus === 'NONE' ||
+      update.connectionStatus === 'REJECTED'
+    ) {
+      setPeople((prev) => prev.filter((p) => p.userId !== userId));
+      return;
+    }
+    setPeople((prev) =>
+      prev.map((person) =>
+        person.userId === userId
+          ? {
+              ...person,
+              connectionStatus: update.connectionStatus,
+              connectionId: update.connectionId || null,
+              connectionDirection: update.connectionDirection,
+            }
+          : person,
+      ),
+    );
+  }
 
   return (
     <SectionShell
@@ -75,7 +116,14 @@ export function PeopleYouMayKnowSection() {
         >
           {people.map((person) => (
             <div key={person.userId} className="w-[240px] shrink-0">
-              <PersonCard person={person} variant="discovery" />
+              <PersonCard
+                person={person}
+                variant="discovery"
+                onConnectionChange={handleConnectionChange}
+                onDismiss={() =>
+                  setPeople((prev) => prev.filter((p) => p.userId !== person.userId))
+                }
+              />
             </div>
           ))}
         </div>

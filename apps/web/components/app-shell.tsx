@@ -13,19 +13,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isAuthPage = AUTH_PATHS.includes(pathname);
 
   if (isAuthPage) {
-    return (
-      <>
-        {children}
-        <SiteFooter />
-      </>
-    );
+    return <>{children}</>;
   }
 
   return (
     <>
       <SiteHeader />
       <ConnectionInvitesBanner />
-      <main className="flex-1 pb-28">{children}</main>
+      <main className="flex-1 pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-28">
+        {children}
+      </main>
       <SiteFooter />
       <SiteBottomNav />
     </>

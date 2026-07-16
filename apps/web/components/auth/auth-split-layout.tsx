@@ -15,8 +15,8 @@ interface AuthSplitLayoutProps {
 
 export function AuthSplitLayout({ title, subtitle, footer, children }: AuthSplitLayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
-      <div className="relative flex min-h-[280px] flex-1 flex-col justify-between overflow-hidden p-6 sm:p-8 lg:min-h-screen lg:p-10">
+    <div className="flex min-h-dvh flex-col lg:flex-row">
+      <div className="relative flex min-h-[200px] flex-1 flex-col justify-between overflow-hidden p-4 sm:min-h-[280px] sm:p-8 lg:min-h-dvh lg:p-10">
         <Image
           src={AUTH_BG_IMAGE}
           alt=""
@@ -34,20 +34,21 @@ export function AuthSplitLayout({ title, subtitle, footer, children }: AuthSplit
           aria-hidden
         />
 
-        <div className="relative z-10 flex items-center justify-between gap-4">
-          <MoonsLogo size="xl" priority variant="onWhite" />
-          <div className="flex items-center gap-3">
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <MoonsLogo size="lg" priority variant="onWhite" />
+          <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
             <Link
               href="/"
-              className="text-sm font-medium text-white/90 drop-shadow-sm transition hover:text-white"
+              className="text-xs font-medium text-white/90 drop-shadow-sm transition hover:text-white sm:text-sm"
             >
-              ← Back to Website
+              <span className="sm:hidden">← Home</span>
+              <span className="hidden sm:inline">← Back to Website</span>
             </Link>
           </div>
         </div>
 
-        <div className="relative z-10 mt-auto max-w-lg pb-4 lg:pb-8">
+        <div className="relative z-10 mt-auto hidden max-w-lg pb-4 sm:block lg:pb-8">
           <h2 className="text-2xl font-bold leading-snug text-white drop-shadow-lg sm:text-3xl lg:text-4xl">
             Find jobs faster. Apply smarter. Grow anywhere.
           </h2>
@@ -62,12 +63,12 @@ export function AuthSplitLayout({ title, subtitle, footer, children }: AuthSplit
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center bg-background p-6 sm:p-10 lg:min-h-screen lg:p-12">
-        <div className="w-full max-w-md rounded-3xl border border-border bg-surface-elevated p-8 shadow-[0_8px_40px_rgba(26,39,68,0.08)] sm:p-10">
-          <h1 className="text-2xl font-bold text-heading sm:text-3xl">{title}</h1>
+      <div className="flex flex-1 items-center justify-center bg-background p-4 sm:p-10 lg:min-h-dvh lg:p-12">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-surface-elevated p-5 shadow-[0_8px_40px_rgba(26,39,68,0.08)] sm:rounded-3xl sm:p-10">
+          <h1 className="text-xl font-bold text-heading sm:text-3xl">{title}</h1>
           <p className="mt-2 text-sm text-moons-muted sm:text-base">{subtitle}</p>
-          <div className="mt-8">{children}</div>
-          <div className="mt-8 text-center text-sm text-moons-muted">{footer}</div>
+          <div className="mt-6 sm:mt-8">{children}</div>
+          <div className="mt-6 text-center text-sm text-moons-muted sm:mt-8">{footer}</div>
         </div>
       </div>
     </div>

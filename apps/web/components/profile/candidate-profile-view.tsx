@@ -630,7 +630,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
                   <p className="text-sm text-moons-muted">No skills added yet.</p>
                 ) : (
                   skills.map((skill) => (
-                    <span key={skill} className="rounded-full border border-moons-blue/20 bg-gradient-to-r from-moons-blue/10 to-moons-navy/5 px-3.5 py-1 text-sm font-medium text-heading">
+                    <span key={skill} className="skill-chip">
                       {skill}
                     </span>
                   ))

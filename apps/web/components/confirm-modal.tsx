@@ -77,7 +77,7 @@ export function ConfirmModal({
         onClick={onCancel}
       />
 
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_24px_60px_-12px_rgba(26,39,68,0.35)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.65)]">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_24px_60px_-12px_rgba(26,39,68,0.35)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.65)] max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div
           className={`h-1 w-full ${
             tone === 'danger'
@@ -88,7 +88,7 @@ export function ConfirmModal({
           }`}
         />
 
-        <div className="px-6 pb-6 pt-5">
+        <div className="px-4 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5">
           <div className="flex items-start gap-4">
             <div
               className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-bold ring-1 ${styles.iconWrap}`}

@@ -88,27 +88,27 @@ export function SiteFooter() {
   }
 
   return (
-    <footer id="site-footer" className="relative overflow-hidden bg-surface px-5 py-14 pb-28 sm:px-8 md:py-20 md:pb-36 lg:px-10">
+    <footer id="site-footer" className="relative overflow-hidden bg-surface px-4 py-10 pb-28 sm:px-8 sm:py-14 md:py-20 md:pb-36 lg:px-10">
       <p
         aria-hidden
-        className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2 translate-y-[28%] select-none whitespace-nowrap text-[clamp(9rem,34vw,19rem)] font-extrabold leading-none tracking-tight text-border"
+        className="pointer-events-none absolute bottom-0 left-1/2 z-0 -translate-x-1/2 translate-y-[28%] select-none whitespace-nowrap text-[clamp(5rem,28vw,19rem)] font-extrabold leading-none tracking-tight text-border"
       >
         moons
       </p>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-[1440px] gap-4 md:gap-6 lg:grid-cols-[minmax(300px,2fr)_minmax(400px,3fr)]">
+      <div className="relative z-10 mx-auto grid w-full max-w-[1440px] gap-4 md:gap-6 lg:grid-cols-[minmax(280px,2fr)_minmax(0,3fr)]">
         {/* Left — brand card */}
-        <div className="flex min-h-[420px] flex-col justify-between rounded-[28px] border border-moons-blue/25 bg-gradient-to-br from-[#4a7fd4] via-moons-blue to-[#3568b8] p-8 shadow-[0_8px_32px_rgba(74,127,212,0.2)] md:p-10">
+        <div className="flex min-h-0 flex-col justify-between rounded-[22px] border border-moons-blue/25 bg-gradient-to-br from-[#4a7fd4] via-moons-blue to-[#3568b8] p-5 shadow-[0_8px_32px_rgba(74,127,212,0.2)] sm:rounded-[28px] sm:p-8 md:min-h-[420px] md:p-10">
           <div>
             <MoonsLogo variant="white" size="xl" />
-            <p className="mt-8 max-w-xs text-lg font-medium leading-snug text-white/95">
+            <p className="mt-5 max-w-xs text-base font-medium leading-snug text-white/95 sm:mt-8 sm:text-lg">
               India&apos;s job portal — find work, hire talent, grow your career.
             </p>
           </div>
 
-          <div className="mt-10">
-            <p className="font-script text-3xl text-white">Stay in touch!</p>
-            <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-8 sm:mt-10">
+            <p className="font-script text-2xl text-white sm:text-3xl">Stay in touch!</p>
+            <div className="mt-4 flex flex-wrap gap-3 sm:mt-5">
               {socialLinks.map((social) => (
                 <a
                   key={social.label}
@@ -126,15 +126,15 @@ export function SiteFooter() {
         </div>
 
         {/* Right — links & newsletter */}
-        <div className="relative min-h-[420px] rounded-[28px] border border-border bg-surface-elevated p-8 shadow-sm md:p-10">
+        <div className="relative min-h-0 rounded-[22px] border border-border bg-surface-elevated p-5 shadow-sm sm:rounded-[28px] sm:p-8 md:min-h-[420px] md:p-10">
           <div
             aria-hidden
-            className="absolute -right-3 -top-5 z-10 rotate-6 overflow-hidden rounded-2xl bg-surface-elevated p-2 shadow-[0_20px_40px_rgba(69,126,255,0.45)] md:-right-4 md:-top-6"
+            className="absolute -right-2 -top-4 z-10 rotate-6 overflow-hidden rounded-2xl bg-surface-elevated p-1.5 shadow-[0_20px_40px_rgba(69,126,255,0.45)] sm:-right-3 sm:-top-5 sm:p-2 md:-right-4 md:-top-6"
           >
             <MoonsLogo href="" variant="white" size="md" />
           </div>
 
-          <div className="grid gap-10 sm:grid-cols-2">
+          <div className="grid gap-8 sm:grid-cols-2 sm:gap-10">
             <div>
               <h3 className="font-script text-2xl text-moons-muted">Navigation</h3>
               <ul className="mt-4 space-y-3">
@@ -168,7 +168,7 @@ export function SiteFooter() {
             </div>
           </div>
 
-          <div className="mt-12 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mt-10 flex flex-col gap-6 sm:mt-12 sm:gap-8 lg:flex-row lg:items-end lg:justify-between">
             <p className="text-sm text-moons-muted">
               © {new Date().getFullYear()} Moons. All rights reserved.
             </p>
@@ -177,19 +177,19 @@ export function SiteFooter() {
               <p className="text-sm text-moons-muted">Jobs move fast.</p>
               <p className="text-lg font-bold text-heading">Stay ahead with Moons.</p>
 
-              <form onSubmit={handleSubscribe} className="relative mt-4">
+              <form onSubmit={handleSubscribe} className="mt-4 flex flex-col gap-2 sm:relative sm:block">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter email address"
                   required
-                  className="w-full rounded-full border border-border bg-surface-elevated py-3.5 pl-5 pr-32 text-sm text-heading outline-none ring-moons-blue/30 placeholder:text-moons-muted focus:ring-2"
+                  className="w-full rounded-full border border-border bg-surface-elevated py-3.5 pl-5 pr-5 text-sm text-heading outline-none ring-moons-blue/30 placeholder:text-moons-muted focus:ring-2 sm:pr-32"
                 />
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="absolute right-1.5 top-1.5 rounded-full bg-moons-navy px-5 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+                  className="rounded-full bg-moons-navy px-5 py-3 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60 sm:absolute sm:right-1.5 sm:top-1.5 sm:py-2"
                 >
                   {submitting ? '…' : 'Subscribe'}
                 </button>

@@ -34,6 +34,7 @@ import {
 } from '@/lib/network';
 import { fontStyle } from '@/lib/font-style';
 import { useNavIndicators } from '@/lib/nav-indicators';
+import { subscribeRefresh } from '@/lib/refresh-events';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -185,10 +186,24 @@ export default function NetworkScreen() {
     if (!searchActive) void loadTab();
   }, [tab, searchActive, loadTab]);
 
+  useEffect(() => {
+    const unsub = subscribeRefresh('moons:connections-refresh', () => {
+      void loadTab(true);
+    });
+    return unsub;
+  }, [loadTab]);
+
   function handleConnectionChange(userId: string, update: ConnectionUpdate) {
-    const patch = (list: NetworkUserCard[]) => applyConnectionUpdate(list, userId, update);
-    setSuggestions(patch);
-    setSearchResults(patch);
+    if (
+      update.connectionStatus === 'ACCEPTED' ||
+      update.connectionStatus === 'NONE' ||
+      update.connectionStatus === 'REJECTED'
+    ) {
+      setSuggestions((prev) => prev.filter((p) => p.userId !== userId));
+    } else {
+      setSuggestions((prev) => applyConnectionUpdate(prev, userId, update));
+    }
+    setSearchResults((prev) => applyConnectionUpdate(prev, userId, update));
     void refreshStats();
   }
 

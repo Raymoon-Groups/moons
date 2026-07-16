@@ -33,7 +33,7 @@ export type NetworkTabId = (typeof TABS)[number]['id'];
 
 const PAGE_BG = 'li-page-bg';
 const PANEL =
-  'overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_4px_24px_rgba(26,39,68,0.06)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.28)]';
+  'overflow-hidden rounded-[18px] border border-border bg-surface-elevated shadow-[0_1px_2px_rgba(15,23,42,0.03)]';
 
 function SearchIcon({ className }: { className?: string }) {
   return (
@@ -87,8 +87,8 @@ function FilterPill({
       onClick={onClick}
       className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
         active
-          ? 'bg-moons-blue text-white shadow-sm ring-1 ring-moons-blue/30'
-          : 'bg-surface text-moons-muted ring-1 ring-border/60 hover:bg-surface-hover hover:text-foreground'
+          ? 'bg-moons-blue text-white'
+          : 'bg-surface text-moons-muted hover:bg-surface-hover hover:text-foreground'
       }`}
     >
       {children}
@@ -113,7 +113,7 @@ function TabPill({
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${
         active
-          ? 'bg-moons-blue text-white shadow-sm'
+          ? 'bg-moons-blue text-white'
           : 'text-moons-muted hover:bg-surface hover:text-foreground'
       }`}
     >
@@ -256,7 +256,14 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
     queueMicrotask(() => {
       void loadSuggestions();
     });
-  }, [ready, user, loadSuggestions]);
+
+    function onRefresh() {
+      void loadSuggestions();
+      if (!searchActive) void loadTab();
+    }
+    window.addEventListener('moons:connections-refresh', onRefresh);
+    return () => window.removeEventListener('moons:connections-refresh', onRefresh);
+  }, [ready, user, loadSuggestions, loadTab, searchActive]);
 
   function handleTabChange(next: NetworkTabId) {
     setSearchActive(false);
@@ -265,7 +272,15 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
   }
 
   function handleLocalConnectionChange(userId: string, update: ConnectionUpdate) {
-    setSuggestions((prev) => applyConnectionUpdate(prev, userId, update));
+    if (
+      update.connectionStatus === 'ACCEPTED' ||
+      update.connectionStatus === 'NONE' ||
+      update.connectionStatus === 'REJECTED'
+    ) {
+      setSuggestions((prev) => prev.filter((p) => p.userId !== userId));
+    } else {
+      setSuggestions((prev) => applyConnectionUpdate(prev, userId, update));
+    }
     setSearchResults((prev) => applyConnectionUpdate(prev, userId, update));
     void refreshStats();
   }
@@ -369,7 +384,7 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
                   <button
                     type="button"
                     onClick={clearSearch}
-                    className="shrink-0 rounded-full border border-border/80 px-3 py-1 text-xs font-semibold text-moons-blue transition hover:border-moons-blue/30 hover:bg-moons-blue/5"
+                    className="shrink-0 rounded-full bg-surface px-3 py-1 text-xs font-semibold text-moons-muted transition hover:bg-surface-hover hover:text-moons-blue"
                   >
                     Clear
                   </button>
@@ -720,8 +735,8 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
 
 function StatChip({ label, value }: { label: string; value: number }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-moons-blue/20 bg-surface-elevated px-3.5 py-1.5 shadow-sm">
-      <span className="text-sm font-bold text-heading">{value}</span>
+    <div className="inline-flex items-center gap-2 rounded-full bg-surface px-3.5 py-1.5">
+      <span className="text-sm font-semibold text-heading">{value}</span>
       <span className="text-xs font-medium text-moons-muted">{label}</span>
     </div>
   );
@@ -733,9 +748,9 @@ function LoadingGrid() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse overflow-hidden rounded-xl border border-border/70 bg-surface-elevated shadow-sm"
+          className="animate-pulse overflow-hidden rounded-[18px] border border-border bg-surface-elevated"
         >
-          <div className="h-14 bg-gradient-to-r from-moons-blue/10 to-transparent" />
+          <div className="h-14 bg-surface" />
           <div className="flex flex-col items-center px-4 pb-5 pt-0">
             <div className="-mt-8 h-16 w-16 rounded-full bg-surface ring-4 ring-surface-elevated" />
             <div className="mt-4 h-3 w-28 rounded-full bg-surface" />

@@ -347,9 +347,9 @@ export function CompaniesBrowsePage() {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[272px_minmax(0,1fr)] lg:items-start">
-        <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm">
+      <div className="mx-auto grid max-w-7xl gap-4 px-3 py-4 sm:gap-6 sm:px-4 sm:py-6 lg:grid-cols-[272px_minmax(0,1fr)] lg:items-start">
+        <aside className="order-2 space-y-4 lg:order-1 lg:sticky lg:top-24">
+          <div className="rounded-2xl border border-border bg-surface-elevated p-4 shadow-sm sm:p-5">
             <h2 className="text-sm font-bold text-heading">All filters</h2>
 
             <div className="mt-5">
@@ -441,7 +441,7 @@ export function CompaniesBrowsePage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-moons-blue/20 bg-blue-50/50 p-5 shadow-sm">
+          <div className="rounded-2xl border border-moons-blue/20 bg-blue-50/50 p-4 shadow-sm sm:p-5">
             <h3 className="text-sm font-bold text-heading">Why explore companies?</h3>
             <ul className="mt-3 space-y-2 text-xs leading-relaxed text-moons-muted">
               <li>· Compare culture, size, and industry before you apply</li>
@@ -454,7 +454,7 @@ export function CompaniesBrowsePage() {
           </div>
         </aside>
 
-        <main>
+        <main className="order-1 min-w-0 lg:order-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-moons-muted">
               Showing <span className="font-semibold text-heading">{filtered.length}</span> companies

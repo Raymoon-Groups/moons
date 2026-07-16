@@ -185,9 +185,9 @@ export function CandidateDashboard() {
 
   return (
     <div className="dash-page">
-      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[248px_minmax(0,1fr)_272px] lg:items-start">
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 py-4 sm:px-4 sm:py-6 lg:grid-cols-[248px_minmax(0,1fr)_272px] lg:items-start">
         {/* Left sidebar */}
-        <aside className="space-y-4 lg:sticky lg:top-24">
+        <aside className="order-2 space-y-4 lg:order-1 lg:sticky lg:top-24">
           <div className="dash-card overflow-hidden">
             <div className="bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-5 pb-5 pt-6">
               <ProfileRing percent={completion} avatarUrl={avatarSrc} name={displayName} />
@@ -252,7 +252,7 @@ export function CandidateDashboard() {
         </aside>
 
         {/* Center column */}
-        <main className="min-w-0 space-y-5">
+        <main className="order-1 min-w-0 space-y-5 lg:order-2">
           <div className="relative dash-card overflow-hidden border-moons-blue/20">
             <div
               className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-moons-blue/10"
@@ -370,8 +370,8 @@ export function CandidateDashboard() {
         </main>
 
         {/* Right sidebar */}
-        <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="dash-card p-5">
+        <aside className="order-3 space-y-4 lg:sticky lg:top-24">
+          <div className="dash-card p-4 sm:p-5">
             <p className="font-script text-xl text-moons-blue">Your status</p>
             <h3 className="mt-0.5 text-sm font-bold text-heading">What are you focusing on?</h3>
             <div className="mt-4 space-y-2">

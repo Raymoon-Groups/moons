@@ -18,6 +18,7 @@ import { authFetch } from '@/lib/api';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { fetchSuggestions } from '@/lib/network';
+import { subscribeRefresh } from '@/lib/refresh-events';
 import {
   buildRecruiterCandidatesUrl,
   type RecruiterCandidateRow,
@@ -62,6 +63,8 @@ export function DashboardPeopleYouMayKnow() {
 
   useEffect(() => {
     void load();
+    const unsub = subscribeRefresh('moons:connections-refresh', load);
+    return unsub;
   }, [load]);
 
   if (loading) {

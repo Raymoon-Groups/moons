@@ -15,6 +15,7 @@ import {
   acceptConnectionInvite,
   ignoreConnectionInvite,
 } from '@/lib/connection-invites';
+import { fetchPendingReceived } from '@/lib/network';
 import {
   fetchBellNotifications,
   formatNotificationTime,
@@ -35,12 +36,28 @@ function getConnectionId(item: NotificationItem): string | null {
   return typeof id === 'string' && id.trim() ? id : null;
 }
 
+function isInviteStillActionable(
+  item: NotificationItem,
+  pendingIds: Set<string>,
+  items: NotificationItem[],
+) {
+  const connectionId = getConnectionId(item);
+  if (!connectionId) return false;
+  if (!pendingIds.has(connectionId)) return false;
+  return !items.some(
+    (n) =>
+      n.type === NotificationType.CONNECTION_ACCEPTED &&
+      getConnectionId(n) === connectionId,
+  );
+}
+
 export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; compact?: boolean }) {
   const { colors } = useTheme();
   const btnSize = compact ? 36 : 40;
   const iconSize = compact ? 18 : 20;
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [pendingInviteIds, setPendingInviteIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [actionById, setActionById] = useState<Record<string, InviteActionState>>({});
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -48,7 +65,12 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setItems(await fetchBellNotifications());
+      const [data, pending] = await Promise.all([
+        fetchBellNotifications(),
+        fetchPendingReceived(1).catch(() => ({ items: [] as { id: string }[] })),
+      ]);
+      setItems(data);
+      setPendingInviteIds(new Set(pending.items.map((p) => p.id)));
     } catch {
       setItems([]);
     } finally {
@@ -57,8 +79,12 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
   }, []);
 
   useEffect(() => {
-    const unsub = subscribeRefresh('moons:notifications-refresh', load);
-    return unsub;
+    const unsubNotif = subscribeRefresh('moons:notifications-refresh', load);
+    const unsubConn = subscribeRefresh('moons:connections-refresh', load);
+    return () => {
+      unsubNotif();
+      unsubConn();
+    };
   }, [load]);
 
   async function openPanel() {
@@ -103,6 +129,11 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
         await ignoreConnectionInvite(connectionId);
         setActionById((prev) => ({ ...prev, [item.id]: 'ignored' }));
       }
+      setPendingInviteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(connectionId);
+        return next;
+      });
       try {
         await markNotificationRead(item.id);
       } catch {
@@ -162,15 +193,26 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
             </View>
             {loading ? (
               <ActivityIndicator style={{ marginVertical: 24 }} color={colors.blue} />
-            ) : items.length === 0 ? (
-              <Text style={[styles.empty, { color: colors.muted }]}>No notifications yet</Text>
-            ) : (
+            ) : (() => {
+              const visibleItems = items.filter((item) => {
+                if (item.type !== NotificationType.CONNECTION_REQUEST) return true;
+                if (actionById[item.id]) return true;
+                return isInviteStillActionable(item, pendingInviteIds, items);
+              });
+              if (visibleItems.length === 0) {
+                return <Text style={[styles.empty, { color: colors.muted }]}>No notifications yet</Text>;
+              }
+              return (
               <ScrollView style={{ maxHeight: 420 }}>
-                {items.map((item) => {
+                {visibleItems.map((item) => {
                   const isRequest = item.type === NotificationType.CONNECTION_REQUEST;
                   const connectionId = getConnectionId(item);
                   const inviteState = actionById[item.id];
-                  const canAct = isRequest && !!connectionId && !inviteState;
+                  const canAct =
+                    isRequest &&
+                    !!connectionId &&
+                    !inviteState &&
+                    isInviteStillActionable(item, pendingInviteIds, items);
 
                   return (
                     <Pressable
@@ -232,7 +274,8 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
                   );
                 })}
               </ScrollView>
-            )}
+              );
+            })()}
           </Pressable>
         </Pressable>
       </Modal>

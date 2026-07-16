@@ -51,6 +51,20 @@ export class NotificationsService {
     });
   }
 
+  /** Remove stale connection-request notifications after accept / ignore / cancel. */
+  async dismissConnectionRequestNotifications(userId: string, connectionId: string) {
+    await this.prisma.notification.deleteMany({
+      where: {
+        userId,
+        type: NotificationType.CONNECTION_REQUEST,
+        metadata: {
+          path: ['connectionId'],
+          equals: connectionId,
+        },
+      },
+    });
+  }
+
   async listForUser(userId: string, limit = 30) {
     return this.prisma.notification.findMany({
       where: { userId },

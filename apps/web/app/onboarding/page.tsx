@@ -113,7 +113,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface px-4 py-10">
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-surface-elevated p-8 shadow-sm">
+      <div className="w-full max-w-lg rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm sm:p-8">
         <h1 className="text-2xl font-bold text-heading">Complete your profile</h1>
         <p className="mt-2 text-sm text-foreground">
           {isRecruiter

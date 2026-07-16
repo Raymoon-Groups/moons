@@ -28,8 +28,8 @@ export function getJobDetailItems(job: JobListing): JobDetailItem[] {
 
 function DetailRow({ label, value }: JobDetailItem) {
   return (
-    <div className="flex gap-2 text-sm">
-      <dt className="w-[9.5rem] shrink-0 font-medium text-moons-muted">{label}</dt>
+    <div className="flex flex-col gap-0.5 text-sm sm:flex-row sm:gap-2">
+      <dt className="shrink-0 font-medium text-moons-muted sm:w-[9.5rem]">{label}</dt>
       <dd className="min-w-0 text-foreground">{value}</dd>
     </div>
   );

@@ -21,6 +21,12 @@ export const metadata: Metadata = {
     'Discover jobs, build your professional profile, and connect with recruiters on MoonsJob — your career platform.',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover' as const,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

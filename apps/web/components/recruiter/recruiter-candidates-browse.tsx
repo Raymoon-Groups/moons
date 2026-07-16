@@ -563,8 +563,8 @@ export function RecruiterCandidatesBrowse() {
           />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
-          <aside className="recruiter-filter-panel">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
+          <aside className="order-2 recruiter-filter-panel lg:order-1">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-heading">Filters</h2>
@@ -705,7 +705,7 @@ export function RecruiterCandidatesBrowse() {
             </button>
           </aside>
 
-          <main className="min-w-0 space-y-5">
+          <main className="order-1 min-w-0 space-y-5 lg:order-2">
             {error && (
               <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}

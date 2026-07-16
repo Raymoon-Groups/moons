@@ -188,6 +188,11 @@ export class ConnectionsService {
       },
     });
 
+    await this.notifications.dismissConnectionRequestNotifications(
+      userId,
+      connectionId,
+    );
+
     const accepter = await this.prisma.profile.findUnique({
       where: { userId },
       include: { user: { select: { id: true, email: true, role: true, updatedAt: true } } },
@@ -225,13 +230,20 @@ export class ConnectionsService {
       throw new BadRequestException('This request is no longer pending');
     }
 
-    return this.prisma.connection.update({
+    const updated = await this.prisma.connection.update({
       where: { id: connectionId },
       data: {
         status: ConnectionStatus.REJECTED,
         respondedAt: new Date(),
       },
     });
+
+    await this.notifications.dismissConnectionRequestNotifications(
+      userId,
+      connectionId,
+    );
+
+    return updated;
   }
 
   async cancelRequest(userId: string, connectionId: string) {
@@ -245,10 +257,17 @@ export class ConnectionsService {
       throw new BadRequestException('Only pending requests can be cancelled');
     }
 
-    return this.prisma.connection.update({
+    const updated = await this.prisma.connection.update({
       where: { id: connectionId },
       data: { status: ConnectionStatus.CANCELLED },
     });
+
+    await this.notifications.dismissConnectionRequestNotifications(
+      connection.toUserId,
+      connectionId,
+    );
+
+    return updated;
   }
 
   async removeConnection(userId: string, otherUserId: string) {

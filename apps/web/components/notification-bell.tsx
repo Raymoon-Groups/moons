@@ -9,6 +9,7 @@ import {
   acceptConnectionInvite,
   ignoreConnectionInvite,
 } from '@/lib/connection-invites';
+import { fetchPendingReceived } from '@/lib/network';
 import {
   fetchBellNotifications,
   formatNotificationTime,
@@ -76,17 +77,43 @@ function getConnectionId(item: NotificationItem): string | null {
   return typeof id === 'string' && id.trim() ? id : null;
 }
 
+/** Only show Accept/Ignore while this invite is still pending for the current user. */
+function isInviteStillActionable(
+  item: NotificationItem,
+  pendingIds: Set<string>,
+  items: NotificationItem[],
+) {
+  const connectionId = getConnectionId(item);
+  if (!connectionId) return false;
+  if (!pendingIds.has(connectionId)) return false;
+
+  // Already resolved elsewhere — an accepted notification exists for the same invite.
+  const alreadyAccepted = items.some(
+    (n) =>
+      n.type === NotificationType.CONNECTION_ACCEPTED &&
+      getConnectionId(n) === connectionId,
+  );
+  return !alreadyAccepted;
+}
+
 function NotificationDot() {
   return (
     <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface-elevated bg-moons-blue" />
   );
 }
 
-export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean }) {
+export function NotificationBell({
+  hasUnread = false,
+  className = '',
+}: {
+  hasUnread?: boolean;
+  className?: string;
+}) {
   const router = useRouter();
   const { user, ready } = useAuth();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [pendingInviteIds, setPendingInviteIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [actionById, setActionById] = useState<Record<string, InviteActionState>>({});
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -95,6 +122,12 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
 
   const unreadInList = items.some((item) => !item.readAt);
   const showDot = hasUnread || unreadInList;
+
+  const visibleItems = items.filter((item) => {
+    if (item.type !== NotificationType.CONNECTION_REQUEST) return true;
+    if (actionById[item.id]) return true;
+    return isInviteStillActionable(item, pendingInviteIds, items);
+  });
 
   useEffect(() => {
     openRef.current = open;
@@ -105,8 +138,12 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
       if (!user) return;
       if (!opts?.silent) setLoading(true);
       try {
-        const data = await fetchBellNotifications();
+        const [data, pending] = await Promise.all([
+          fetchBellNotifications(),
+          fetchPendingReceived(1).catch(() => ({ items: [] as { id: string }[] })),
+        ]);
         setItems(data);
+        setPendingInviteIds(new Set(pending.items.map((p) => p.id)));
       } catch {
         if (!opts?.silent) setItems([]);
       } finally {
@@ -154,6 +191,7 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
     window.addEventListener('focus', onVisible);
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('moons:notifications-refresh', onManualRefresh);
+    window.addEventListener('moons:connections-refresh', onManualRefresh);
 
     return () => {
       window.clearTimeout(initialTimer);
@@ -162,6 +200,7 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
       window.removeEventListener('focus', onVisible);
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('moons:notifications-refresh', onManualRefresh);
+      window.removeEventListener('moons:connections-refresh', onManualRefresh);
     };
   }, [ready, user, loadNotifications, refreshLive]);
 
@@ -222,6 +261,11 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
         await ignoreConnectionInvite(connectionId);
         setActionById((prev) => ({ ...prev, [item.id]: 'ignored' }));
       }
+      setPendingInviteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(connectionId);
+        return next;
+      });
       await markItemRead(item);
       window.setTimeout(() => {
         setItems((prev) => prev.filter((n) => n.id !== item.id));
@@ -257,7 +301,7 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface-elevated text-heading shadow-sm transition hover:border-moons-blue/30 hover:bg-surface-hover hover:text-moons-blue"
+        className={`header-float relative flex h-11 w-11 shrink-0 items-center justify-center text-heading transition hover:text-moons-blue sm:h-12 sm:w-12 ${className}`}
         aria-label={`Notifications${showDot ? ', unread' : ''}`}
         aria-expanded={open}
       >
@@ -297,17 +341,21 @@ export function NotificationBell({ hasUnread = false }: { hasUnread?: boolean })
             {loading && (
               <p className="px-4 py-6 text-center text-sm text-moons-muted">Loading…</p>
             )}
-            {!loading && items.length === 0 && (
+            {!loading && visibleItems.length === 0 && (
               <p className="px-4 py-8 text-center text-sm text-moons-muted">
                 No notifications yet
               </p>
             )}
             {!loading &&
-              items.map((item) => {
+              visibleItems.map((item) => {
                 const isRequest = item.type === NotificationType.CONNECTION_REQUEST;
                 const connectionId = getConnectionId(item);
                 const inviteState = actionById[item.id];
-                const canAct = isRequest && !!connectionId && !inviteState;
+                const canAct =
+                  isRequest &&
+                  !!connectionId &&
+                  !inviteState &&
+                  isInviteStillActionable(item, pendingInviteIds, items);
 
                 if (isRequest) {
                   return (

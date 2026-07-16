@@ -70,7 +70,7 @@ function FilterSelect({
   options: { label: string; value: string }[];
 }) {
   return (
-    <div className="relative min-w-[130px]">
+    <div className="relative min-w-0 flex-1 sm:min-w-[130px]">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -492,7 +492,7 @@ export function JobsBrowsePage() {
         )}
 
         {!loading && !error && filteredJobs.length > 0 && (
-          <div className="grid h-[calc(100vh-22rem)] min-h-[520px] gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
+          <div className="grid mobile-pane gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
             {/* Job list */}
             <div
               className={`flex flex-col overflow-hidden rounded-xl border border-border bg-surface ${

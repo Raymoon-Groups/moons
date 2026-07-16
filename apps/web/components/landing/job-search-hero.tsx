@@ -12,7 +12,7 @@ export function JobPortalHero() {
   const router = useRouter();
 
   return (
-    <section className="relative min-h-[520px] overflow-x-clip overflow-y-visible px-4 pb-16 pt-16 sm:px-6 md:min-h-[600px] md:pb-28 md:pt-28 lg:px-8">
+    <section className="relative min-h-[420px] overflow-x-clip overflow-y-visible px-4 pb-12 pt-12 sm:min-h-[520px] sm:px-6 sm:pb-16 sm:pt-16 md:min-h-[600px] md:pb-28 md:pt-28 lg:px-8">
       <Image
         src={HOME_BANNER}
         alt=""

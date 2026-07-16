@@ -40,20 +40,7 @@ function formatApplicationStatus(status: string) {
 }
 
 function ApplicationStatusBadge({ status }: { status: string }) {
-  const styles =
-    status === ApplicationStatus.SHORTLISTED
-      ? 'border-emerald-200/80 bg-emerald-50 text-emerald-700'
-      : status === ApplicationStatus.REJECTED
-        ? 'border-red-200/80 bg-red-50 text-red-700'
-        : status === ApplicationStatus.VIEWED
-          ? 'border-sky-200/80 bg-sky-50 text-sky-700'
-          : 'border-amber-200/80 bg-amber-50 text-amber-800';
-
-  return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${styles}`}>
-      {formatApplicationStatus(status)}
-    </span>
-  );
+  return <span className="meta-pill">{formatApplicationStatus(status)}</span>;
 }
 
 function ApplicationCard({
@@ -68,23 +55,13 @@ function ApplicationCard({
   const canWithdraw =
     app.status === ApplicationStatus.SUBMITTED || app.status === ApplicationStatus.VIEWED;
 
-  const accentColor =
-    app.status === ApplicationStatus.SHORTLISTED
-      ? 'from-emerald-500 to-emerald-600'
-      : app.status === ApplicationStatus.REJECTED
-        ? 'from-red-500 to-red-600'
-        : app.status === ApplicationStatus.VIEWED
-          ? 'from-sky-500 to-sky-600'
-          : 'from-amber-400 to-amber-500';
-
   return (
-    <article className="group overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_4px_24px_rgba(26,39,68,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(26,39,68,0.1)]">
-      <div className={`h-1 bg-gradient-to-r ${accentColor}`} />
-      <div className="p-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <article className="recruiter-job-card group">
+      <div className="p-6 sm:p-7">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-gradient-to-br from-moons-blue/10 to-moons-navy/5 shadow-sm">
-              <span className="text-lg font-bold text-heading">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface">
+              <span className="text-lg font-semibold text-heading">
                 {app.job.companyName.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -92,21 +69,22 @@ function ApplicationCard({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <ApplicationStatusBadge status={app.status} />
+                <span className="meta-pill">{formatEmploymentType(app.job.employmentType)}</span>
               </div>
 
               <Link
                 href={`/jobs?job=${app.job.id}`}
-                className="mt-3 block text-lg font-bold tracking-tight text-heading transition group-hover:text-moons-blue"
+                className="mt-3 block text-xl font-semibold tracking-tight text-heading transition hover:text-moons-blue"
               >
                 {app.job.title}
               </Link>
 
-              <p className="mt-1.5 text-sm text-moons-muted">
-                <span className="font-semibold text-foreground">{app.job.companyName}</span>
+              <p className="mt-2 text-sm text-moons-muted">
+                <span className="font-medium text-foreground">{app.job.companyName}</span>
                 {app.job.location ? ` · ${app.job.location}` : ''}
               </p>
 
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-moons-muted">
+              <p className="mt-3 flex items-center gap-1.5 text-sm text-moons-muted">
                 <CalendarIcon />
                 Applied{' '}
                 {new Date(app.createdAt).toLocaleDateString('en-IN', {
@@ -114,24 +92,22 @@ function ApplicationCard({
                   month: 'short',
                   year: 'numeric',
                 })}
-                <span className="text-border">·</span>
-                {formatEmploymentType(app.job.employmentType)}
               </p>
 
-              {app.coverNote && <CoverNoteBlock note={app.coverNote} className="mt-3" />}
+              {app.coverNote && <CoverNoteBlock note={app.coverNote} className="mt-4" />}
 
               <ScreeningAnswersList
-                className="mt-3"
+                className="mt-4"
                 questions={app.job.screeningQuestions}
                 answers={app.screeningAnswers}
               />
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-2 sm:min-w-[180px]">
+          <div className="flex shrink-0 flex-col gap-1 sm:min-w-[180px]">
             <Link
               href={`/jobs?job=${app.job.id}`}
-              className="rounded-xl bg-moons-navy px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue"
+              className="rounded-xl bg-moons-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
             >
               View job
             </Link>
@@ -140,7 +116,7 @@ function ApplicationCard({
                 type="button"
                 onClick={() => onWithdraw(app)}
                 disabled={withdrawingId === app.id}
-                className="rounded-xl border border-red-200 bg-surface-elevated px-4 py-2.5 text-center text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                className="saas-btn-danger text-center disabled:opacity-60"
               >
                 {withdrawingId === app.id ? 'Withdrawing…' : 'Withdraw'}
               </button>

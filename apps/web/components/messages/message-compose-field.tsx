@@ -162,8 +162,9 @@ export function MessageComposeField({
           type="button"
           disabled={sending || !canSend}
           onClick={onSubmit}
+          aria-label="Send message"
           className={`shrink-0 rounded-full bg-moons-blue font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark disabled:opacity-40 ${
-            compact ? 'h-10 px-4 text-sm' : 'h-10 px-5 text-sm'
+            compact ? 'h-10 px-3 text-sm sm:px-4' : 'h-10 px-3 text-sm sm:px-5'
           }`}
         >
           {sending ? '…' : 'Send'}

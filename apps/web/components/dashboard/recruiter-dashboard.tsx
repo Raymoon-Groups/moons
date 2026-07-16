@@ -228,9 +228,9 @@ export function RecruiterDashboard() {
 
   return (
     <div className="dash-page">
-      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[248px_minmax(0,1fr)_272px] lg:items-start">
+      <div className="mx-auto grid max-w-7xl gap-5 px-3 py-4 sm:px-4 sm:py-6 lg:grid-cols-[248px_minmax(0,1fr)_272px] lg:items-start">
         {/* Left sidebar */}
-        <aside className="space-y-4 lg:sticky lg:top-24">
+        <aside className="order-2 space-y-4 lg:order-1 lg:sticky lg:top-24">
           <div className="dash-card overflow-hidden">
             <div className="bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-5 pb-5 pt-6">
               <ProfileRing
@@ -302,13 +302,13 @@ export function RecruiterDashboard() {
         </aside>
 
         {/* Center column */}
-        <main className="min-w-0 space-y-5">
+        <main className="order-1 min-w-0 space-y-5 lg:order-2">
           <div className="relative dash-card overflow-hidden border-moons-blue/20">
             <div
               className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-moons-blue/10"
               aria-hidden
             />
-            <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue to-moons-navy text-lg font-black text-white shadow-lg shadow-moons-blue/25">
                   ☽
@@ -322,14 +322,14 @@ export function RecruiterDashboard() {
                 Coming soon
               </span>
             </div>
-            <div className="border-t border-border bg-surface/50 px-6 py-3">
+            <div className="border-t border-border bg-surface/50 px-4 py-3 sm:px-6">
               <p className="text-xs text-moons-muted">
                 Featured listings · AI screening · Priority support
               </p>
             </div>
           </div>
 
-          <div className="dash-card p-5">
+          <div className="dash-card p-4 sm:p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-script text-xl text-moons-blue">For you</p>
@@ -340,7 +340,7 @@ export function RecruiterDashboard() {
               </Link>
             </div>
 
-            <div className="mt-4 inline-flex rounded-xl bg-surface p-1">
+            <div className="mt-4 inline-flex w-full max-w-full overflow-x-auto rounded-xl bg-surface p-1 hide-scrollbar">
               <button
                 type="button"
                 onClick={() => setActiveTab('active')}
@@ -430,8 +430,8 @@ export function RecruiterDashboard() {
         </main>
 
         {/* Right sidebar */}
-        <aside className="space-y-4 lg:sticky lg:top-24">
-          <div className="dash-card p-5">
+        <aside className="order-3 space-y-4 lg:sticky lg:top-24">
+          <div className="dash-card p-4 sm:p-5">
             <p className="font-script text-xl text-moons-blue">Your status</p>
             <h3 className="mt-0.5 text-sm font-bold text-heading">Where are you in hiring?</h3>
             <div className="mt-4 space-y-2">
