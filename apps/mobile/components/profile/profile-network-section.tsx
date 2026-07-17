@@ -12,6 +12,7 @@ import {
   type ProfileVisitorItem,
 } from '@/lib/network';
 import { ApiError } from '@/lib/api';
+import { subscribeRefresh } from '@/lib/refresh-events';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
@@ -78,6 +79,8 @@ export function ProfileNetworkSection() {
 
   useEffect(() => {
     void load();
+    const unsub = subscribeRefresh('moons:connections-refresh', load);
+    return unsub;
   }, [load]);
 
   return (
@@ -175,7 +178,10 @@ export function ProfileNetworkSection() {
             )
           )
         ) : visitors.length === 0 ? (
-          <Empty message="No profile visitors yet." colors={colors} />
+          <Empty
+            message="No profile visitors yet, or visitor tracking is disabled in privacy settings."
+            colors={colors}
+          />
         ) : (
           visitors.map((item, index) => (
             <View key={`${item.viewer.userId}-${index}`}>

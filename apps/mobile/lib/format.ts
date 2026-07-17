@@ -17,6 +17,21 @@ export function formatEmploymentType(type: string) {
   }
 }
 
+export function formatRecruiterApplicationStatus(status: string) {
+  switch (status) {
+    case ApplicationStatus.SUBMITTED:
+      return 'New';
+    case ApplicationStatus.VIEWED:
+      return 'Viewed';
+    case ApplicationStatus.SHORTLISTED:
+      return 'Shortlisted';
+    case ApplicationStatus.REJECTED:
+      return 'Rejected';
+    default:
+      return status.charAt(0) + status.slice(1).toLowerCase();
+  }
+}
+
 export function formatApplicationStatus(status: string) {
   switch (status) {
     case ApplicationStatus.SUBMITTED:

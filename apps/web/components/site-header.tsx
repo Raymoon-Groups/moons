@@ -238,6 +238,54 @@ function isRecruiterLink(role?: string) {
   return role === UserRole.RECRUITER;
 }
 
+function LandingPublicHeader() {
+  return (
+    <header className="landing-header sticky top-0 z-50 border-b border-border bg-surface-elevated/95 shadow-sm backdrop-blur-md">
+      <div className="border-b border-border-subtle bg-surface/80">
+        <div className="mx-auto flex h-8 max-w-7xl items-center justify-end gap-3 px-4 text-[11px] text-moons-muted">
+          <Link href="/login" className="hover:text-moons-blue">
+            Jobseeker Login
+          </Link>
+          <span className="text-border">|</span>
+          <Link href="/login?role=recruiter" className="hover:text-moons-blue">
+            Employer Login
+          </Link>
+          <span className="text-border">|</span>
+          <Link href="/register" className="font-semibold text-moons-blue hover:underline">
+            Register
+          </Link>
+        </div>
+      </div>
+
+      <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-3 px-4 md:h-20 md:gap-4">
+        <MoonsLogo size="lg" priority />
+
+        <NavUniversalSearch stretched className="hidden min-w-0 flex-1 md:block" />
+
+        <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
+          <ThemeToggle className="!h-10 !w-10 !border-border !bg-surface !shadow-none !backdrop-blur-none" />
+          <Link
+            href="/login"
+            className="text-sm font-medium text-foreground transition hover:text-moons-blue"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/register"
+            className="rounded-full bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+          >
+            Get Started
+          </Link>
+        </div>
+      </div>
+
+      <div className="border-t border-border-subtle px-4 py-2 md:hidden">
+        <NavUniversalSearch stretched className="min-w-0 w-full" />
+      </div>
+    </header>
+  );
+}
+
 function AuthenticatedHeader({
   pathname,
   onLogout,
@@ -299,6 +347,10 @@ export function SiteHeader() {
     router.push('/');
   }
 
+  if (pathname === '/' && (!ready || !user)) {
+    return <LandingPublicHeader />;
+  }
+
   if (isJobseeker || isRecruiter) {
     return (
       <header
@@ -339,34 +391,46 @@ export function SiteHeader() {
           </div>
         ) : null}
 
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 sm:px-4">
-          <HeaderFloat className="flex shrink-0 items-center px-2.5 py-1 sm:px-3 sm:py-1.5">
-            <MoonsLogo size="md" priority />
-          </HeaderFloat>
+        <div className="mx-auto max-w-7xl px-3 sm:px-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <HeaderFloat className="flex shrink-0 items-center px-2.5 py-1 sm:px-3 sm:py-1.5">
+              <MoonsLogo size="md" priority />
+            </HeaderFloat>
 
-          <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-            <ThemeToggle />
-            {ready && user ? (
-              <>
-                <NotificationBell hasUnread={indicators.bell} />
-                <ProfileMenuButton onLogout={handleLogout} pathname={pathname} />
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="header-float hidden px-5 py-3 text-[15px] font-medium text-foreground transition hover:text-moons-blue min-[400px]:inline-flex"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/register"
-                  className="header-float inline-flex items-center border-transparent bg-moons-blue px-5 py-3 text-sm font-semibold text-white transition hover:bg-moons-blue-dark sm:px-6 sm:text-[15px]"
-                >
-                  Get Started
-                </Link>
-              </>
-            )}
+            <NavUniversalSearch
+              floating
+              stretched
+              className="hidden min-w-0 flex-1 md:block"
+            />
+
+            <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
+              <ThemeToggle />
+              {ready && user ? (
+                <>
+                  <NotificationBell hasUnread={indicators.bell} />
+                  <ProfileMenuButton onLogout={handleLogout} pathname={pathname} />
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="header-float hidden px-5 py-3 text-[15px] font-medium text-foreground transition hover:text-moons-blue min-[400px]:inline-flex"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="header-float inline-flex items-center border-transparent bg-moons-blue px-5 py-3 text-sm font-semibold text-white transition hover:bg-moons-blue-dark sm:px-6 sm:text-[15px]"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-2.5 md:hidden">
+            <NavUniversalSearch floating stretched className="min-w-0 w-full" />
           </div>
         </div>
       </div>

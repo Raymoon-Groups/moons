@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { ApplicationStatus } from '@moons/shared';
+import { CoverNoteBlock, ScreeningAnswersList } from '@/components/jobs/screening-answers-list';
 import { SelectField } from '@/components/profile/select-field';
 import { EmptyState, FilterChips, ScreenHeader } from '@/components/portal-ui';
 import { SearchBar } from '@/components/search-bar';
@@ -158,12 +159,8 @@ function CandidateCard({
         </View>
       </View>
 
-      {row.coverNote ? (
-        <View style={styles.coverNote}>
-          <Text style={styles.coverNoteLabel}>Cover note</Text>
-          <Text style={styles.coverNoteText}>{row.coverNote}</Text>
-        </View>
-      ) : null}
+      {row.coverNote ? <CoverNoteBlock note={row.coverNote} style={{ marginTop: 10 }} /> : null}
+      <ScreeningAnswersList answers={row.screeningAnswers} style={{ marginTop: 10 }} />
 
       {skills.length > 0 ? (
         <View style={styles.skills}>

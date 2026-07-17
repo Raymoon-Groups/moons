@@ -63,8 +63,12 @@ export function DashboardPeopleYouMayKnow() {
 
   useEffect(() => {
     void load();
-    const unsub = subscribeRefresh('moons:connections-refresh', load);
-    return unsub;
+    const unsubConn = subscribeRefresh('moons:connections-refresh', load);
+    const unsubNotif = subscribeRefresh('moons:notifications-refresh', load);
+    return () => {
+      unsubConn();
+      unsubNotif();
+    };
   }, [load]);
 
   if (loading) {

@@ -13,6 +13,7 @@ import {
 import { ApplicationStatus } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { CompanyAvatar } from '@/components/company-avatar';
+import { CoverNoteBlock, ScreeningAnswersList } from '@/components/jobs/screening-answers-list';
 import { EmptyState, ScreenHeader } from '@/components/portal-ui';
 import { StatusBadge } from '@/components/status-badge';
 import { authFetch } from '@/lib/api';
@@ -54,14 +55,18 @@ export default function ApplicationsScreen() {
         jobTitle: { marginTop: 8, fontSize: 16, fontFamily: theme.fonts.bold, color: colors.heading },
         company: { marginTop: 2, fontSize: 14, fontFamily: theme.fonts.regular, color: colors.foreground },
         meta: { marginTop: 10, fontSize: 12, fontFamily: theme.fonts.medium, color: colors.muted },
-        coverNote: {
-          marginTop: 10,
-          padding: 10,
-          borderRadius: theme.radius.md,
+        statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: theme.spacing.md },
+        statChip: {
+          borderRadius: theme.radius.full,
+          borderWidth: 1,
+          borderColor: colors.border,
           backgroundColor: colors.surface,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
         },
-        coverNoteLabel: { fontSize: 11, fontFamily: theme.fonts.bold, color: colors.muted },
-        coverNoteText: { marginTop: 4, fontSize: 13, fontFamily: theme.fonts.regular, color: colors.foreground, lineHeight: 20 },
+        statLabel: { fontSize: 11, fontFamily: theme.fonts.medium, color: colors.muted },
+        statValue: { fontSize: 14, fontFamily: theme.fonts.bold, color: colors.heading, marginTop: 2 },
+        appliedMeta: { marginTop: 8, fontSize: 12, fontFamily: theme.fonts.medium, color: colors.muted },
         withdraw: { marginTop: 12, alignSelf: 'flex-start' },
         withdrawText: { color: colors.error, fontFamily: theme.fonts.bold, fontSize: 13 },
       }),
@@ -85,6 +90,18 @@ export default function ApplicationsScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const stats = useMemo(() => {
+    const countBy = (status: ApplicationStatus) =>
+      apps.filter((a) => a.status === status).length;
+    return {
+      total: apps.length,
+      submitted: countBy(ApplicationStatus.SUBMITTED),
+      viewed: countBy(ApplicationStatus.VIEWED),
+      shortlisted: countBy(ApplicationStatus.SHORTLISTED),
+      rejected: countBy(ApplicationStatus.REJECTED),
+    };
+  }, [apps]);
 
   async function withdraw(app: ApplicationWithJob) {
     Alert.alert('Withdraw application', `Withdraw from ${app.job.title}?`, [
@@ -124,11 +141,29 @@ export default function ApplicationsScreen() {
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />}
         ListHeaderComponent={
-          <ScreenHeader
-            eyebrow="Applications"
-            title="Your applications"
-            subtitle="Track status updates from recruiters"
-          />
+          <>
+            <ScreenHeader
+              eyebrow="Applications"
+              title="Your applications"
+              subtitle="Track status updates from recruiters"
+            />
+            {apps.length > 0 ? (
+              <View style={styles.statsRow}>
+                {[
+                  { label: 'Total', value: stats.total },
+                  { label: 'Submitted', value: stats.submitted },
+                  { label: 'Viewed', value: stats.viewed },
+                  { label: 'Shortlisted', value: stats.shortlisted },
+                  { label: 'Rejected', value: stats.rejected },
+                ].map((stat) => (
+                  <View key={stat.label} style={styles.statChip}>
+                    <Text style={styles.statLabel}>{stat.label}</Text>
+                    <Text style={styles.statValue}>{stat.value}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </>
         }
         ListEmptyComponent={
           <EmptyState
@@ -155,12 +190,20 @@ export default function ApplicationsScreen() {
                 <Text style={styles.meta}>
                   {[item.job.location, formatEmploymentType(item.job.employmentType)].filter(Boolean).join(' · ')}
                 </Text>
-                {item.coverNote ? (
-                  <View style={styles.coverNote}>
-                    <Text style={styles.coverNoteLabel}>Cover note</Text>
-                    <Text style={styles.coverNoteText}>{item.coverNote}</Text>
-                  </View>
-                ) : null}
+                <Text style={styles.appliedMeta}>
+                  Applied{' '}
+                  {new Date(item.createdAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </Text>
+                {item.coverNote ? <CoverNoteBlock note={item.coverNote} style={{ marginTop: 10 }} /> : null}
+                <ScreeningAnswersList
+                  questions={item.job.screeningQuestions}
+                  answers={item.screeningAnswers}
+                  style={{ marginTop: 10 }}
+                />
                 {canWithdraw ? (
                   <Pressable onPress={() => withdraw(item)} disabled={withdrawingId === item.id} style={styles.withdraw}>
                     <Text style={styles.withdrawText}>

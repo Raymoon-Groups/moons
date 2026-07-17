@@ -11,6 +11,11 @@ import {
   Text,
   View,
 } from 'react-native';
+import type {
+  CertificationEntry,
+  EducationEntry,
+  WorkExperienceEntry,
+} from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { ConnectInviteModal } from '@/components/network/connect-invite-modal';
 import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
@@ -107,6 +112,34 @@ export default function NetworkProfileScreen() {
           padding: theme.spacing.md,
         },
         sectionTitle: { fontSize: 16, marginBottom: 8 },
+        sectionSubtitle: { fontSize: 12, color: colors.muted, marginBottom: 10 },
+        timelineItem: { marginBottom: 14 },
+        timelineTitle: { fontSize: 14, color: colors.heading, ...fontStyle('semibold') },
+        timelineSubtitle: { fontSize: 13, color: colors.foreground, marginTop: 2 },
+        timelineMeta: { fontSize: 12, color: colors.muted, marginTop: 2 },
+        timelineDesc: { fontSize: 13, color: colors.muted, marginTop: 6, lineHeight: 20 },
+        mutualRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          paddingVertical: 8,
+        },
+        mutualAvatar: {
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          backgroundColor: colors.surface,
+        },
+        limitedBox: {
+          marginHorizontal: theme.spacing.md,
+          marginBottom: theme.spacing.md,
+          borderRadius: theme.radius.lg,
+          borderWidth: 1,
+          padding: theme.spacing.md,
+        },
         skills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
         skill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
         error: { color: colors.error, textAlign: 'center', padding: 12 },
@@ -170,6 +203,23 @@ export default function NetworkProfileScreen() {
   const headline = (profile.headline as string | null) ?? null;
   const avatar = resolveAvatarUrl(profile.avatarUrl as string | null);
   const skills = (profile.skills as string[] | undefined) ?? [];
+  const limited = Boolean(profile.limited);
+  const firstName = name.split(' ')[0] || name;
+  const preferredRoles = Array.isArray(profile.preferredRoles)
+    ? (profile.preferredRoles as string[])
+    : [];
+  const preferredLocations = Array.isArray(profile.preferredLocations)
+    ? (profile.preferredLocations as string[])
+    : [];
+  const workExperiences = Array.isArray(profile.workExperiences)
+    ? (profile.workExperiences as WorkExperienceEntry[])
+    : [];
+  const educations = Array.isArray(profile.educations)
+    ? (profile.educations as EducationEntry[])
+    : [];
+  const certifications = Array.isArray(profile.certifications)
+    ? (profile.certifications as CertificationEntry[])
+    : [];
   const isOwnProfile = user?.id === profile.userId;
   const showOpenBadge = showOpenOnMoonsToViewer(
     Boolean(profile.openToWork),
@@ -278,38 +328,170 @@ export default function NetworkProfileScreen() {
           ) : null}
         </View>
 
-        {profile.summary ? (
-          <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>About</Text>
-            <Text style={{ color: colors.muted, lineHeight: 22 }}>{String(profile.summary)}</Text>
+        {limited ? (
+          <View
+            style={[
+              styles.limitedBox,
+              { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+            ]}
+          >
+            <Text style={{ color: colors.muted, lineHeight: 22, fontSize: 14 }}>
+              This profile is private or only visible to connections. Connect with {firstName} to see
+              their full profile.
+            </Text>
           </View>
-        ) : null}
+        ) : (
+          <>
+            {(preferredRoles.length > 0 || preferredLocations.length > 0) && (
+              <View
+                style={[
+                  styles.section,
+                  { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>
+                  Open to opportunities
+                </Text>
+                {preferredRoles.length > 0 ? (
+                  <Text style={{ color: colors.heading, fontSize: 14, ...fontStyle('medium') }}>
+                    {preferredRoles.join(' · ')}
+                  </Text>
+                ) : null}
+                {preferredLocations.length > 0 ? (
+                  <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>
+                    {preferredLocations.join(' · ')}
+                  </Text>
+                ) : null}
+              </View>
+            )}
 
-        {data.sharedSkills.length > 0 ? (
-          <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>Shared skills</Text>
-            <View style={styles.skills}>
-              {data.sharedSkills.map((skill) => (
-                <View key={skill} style={[styles.skill, { backgroundColor: `${colors.blue}14` }]}>
-                  <Text style={{ color: colors.blue, fontSize: 12, ...fontStyle('medium') }}>{skill}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ) : null}
+            {profile.summary ? (
+              <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>About</Text>
+                <Text style={{ color: colors.muted, lineHeight: 22 }}>{String(profile.summary)}</Text>
+              </View>
+            ) : null}
 
-        {skills.length > 0 ? (
-          <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>Skills</Text>
-            <View style={styles.skills}>
-              {skills.map((skill) => (
-                <View key={skill} style={[styles.skill, { backgroundColor: `${colors.blue}14` }]}>
-                  <Text style={{ color: colors.blue, fontSize: 12, ...fontStyle('medium') }}>{skill}</Text>
+            {workExperiences.length > 0 ? (
+              <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>Experience</Text>
+                <Text style={styles.sectionSubtitle}>
+                  {workExperiences.length} position{workExperiences.length === 1 ? '' : 's'}
+                </Text>
+                {workExperiences.map((exp, index) => (
+                  <View key={index} style={styles.timelineItem}>
+                    <Text style={styles.timelineTitle}>{exp.designation || 'Role'}</Text>
+                    {exp.company ? <Text style={styles.timelineSubtitle}>{exp.company}</Text> : null}
+                    <Text style={styles.timelineMeta}>
+                      {exp.startDate} — {exp.isCurrent ? 'Present' : exp.endDate}
+                    </Text>
+                    {exp.description ? (
+                      <Text style={styles.timelineDesc}>{exp.description}</Text>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {educations.length > 0 ? (
+              <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>Education</Text>
+                {educations.map((edu, index) => (
+                  <View key={index} style={styles.timelineItem}>
+                    <Text style={styles.timelineTitle}>{edu.institute || 'Institution'}</Text>
+                    <Text style={styles.timelineSubtitle}>
+                      {[edu.degree, edu.fieldOfStudy].filter(Boolean).join(', ')}
+                    </Text>
+                    {edu.year ? <Text style={styles.timelineMeta}>{edu.year}</Text> : null}
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {data.sharedSkills.length > 0 ? (
+              <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>Shared skills</Text>
+                <View style={styles.skills}>
+                  {data.sharedSkills.map((skill) => (
+                    <View key={skill} style={[styles.skill, { backgroundColor: `${colors.blue}14` }]}>
+                      <Text style={{ color: colors.blue, fontSize: 12, ...fontStyle('medium') }}>{skill}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-          </View>
-        ) : null}
+              </View>
+            ) : null}
+
+            {skills.length > 0 ? (
+              <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>Skills</Text>
+                <View style={styles.skills}>
+                  {skills.map((skill) => (
+                    <View key={skill} style={[styles.skill, { backgroundColor: `${colors.blue}14` }]}>
+                      <Text style={{ color: colors.blue, fontSize: 12, ...fontStyle('medium') }}>{skill}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            {certifications.length > 0 ? (
+              <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>
+                  Licenses & certifications
+                </Text>
+                {certifications.map((cert, index) => (
+                  <View key={index} style={styles.timelineItem}>
+                    <Text style={styles.timelineTitle}>{cert.name || 'Certification'}</Text>
+                    {cert.issuer ? <Text style={styles.timelineSubtitle}>{cert.issuer}</Text> : null}
+                    {cert.year ? <Text style={styles.timelineMeta}>{cert.year}</Text> : null}
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {data.mutualConnections.items.length > 0 ? (
+              <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]}>
+                  Mutual connections
+                </Text>
+                <Text style={styles.sectionSubtitle}>
+                  {data.mutualConnections.count} mutual connection
+                  {data.mutualConnections.count === 1 ? '' : 's'}
+                </Text>
+                {data.mutualConnections.items.map((person) => {
+                  const mutualAvatar = resolveAvatarUrl(person.avatarUrl);
+                  return (
+                    <Pressable
+                      key={person.userId}
+                      onPress={() => router.push(`/network/${person.userId}` as never)}
+                      style={styles.mutualRow}
+                    >
+                      <View style={styles.mutualAvatar}>
+                        {mutualAvatar ? (
+                          <Image source={{ uri: mutualAvatar }} style={styles.avatarImg} contentFit="cover" />
+                        ) : (
+                          <Text style={{ color: colors.muted, ...fontStyle('semibold') }}>
+                            {(person.fullName ?? '?').charAt(0)}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text numberOfLines={1} style={styles.timelineTitle}>
+                          {person.fullName}
+                        </Text>
+                        {person.headline ? (
+                          <Text numberOfLines={1} style={styles.timelineMeta}>
+                            {person.headline}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
+          </>
+        )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </ScrollView>
