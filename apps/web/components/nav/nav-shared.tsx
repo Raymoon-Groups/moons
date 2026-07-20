@@ -5,7 +5,6 @@ export type NavIconName =
   | 'messaging'
   | 'companies'
   | 'candidates'
-  | 'services'
   | 'employers';
 
 export type NavLink = {
@@ -19,7 +18,6 @@ export const publicNavLinks: NavLink[] = [
   { label: 'Home', href: '/', icon: 'home' },
   { label: 'Jobs', href: '/jobs', icon: 'jobs' },
   { label: 'Companies', href: '/companies', icon: 'companies' },
-  { label: 'Services', href: '/register', icon: 'services' },
   { label: 'For Employers', href: '/register?role=recruiter', icon: 'employers', shortLabel: 'Employers' },
 ];
 
@@ -55,8 +53,6 @@ export function isNavActive(pathname: string, label: string) {
       return pathname.startsWith('/recruiter/candidates');
     case 'Companies':
       return pathname.startsWith('/companies');
-    case 'Services':
-      return pathname === '/register' || pathname === '/login';
     case 'For Employers':
       return pathname.startsWith('/recruiter');
     default:
@@ -113,12 +109,6 @@ export function NavIcon({ name, className }: { name: NavIconName; className?: st
         <svg className={base} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
           <circle cx="8.5" cy="6.5" r="2.25" />
           <path d="M3.5 16c0-2.5 2.25-4 5-4s5 1.5 5 4M14 8.5h3M15.5 7v3" strokeLinecap="round" />
-        </svg>
-      );
-    case 'services':
-      return (
-        <svg className={base} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-          <path d="M10 3.5l1.2 3.7h3.8l-3.1 2.2 1.2 3.7L10 10.9l-3.1 2.2 1.2-3.7-3.1-2.2h3.8L10 3.5z" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case 'employers':

@@ -1,4 +1,5 @@
-import { IsEmail, IsString, Length, MinLength } from 'class-validator';
+import { PASSWORD_MIN_LENGTH, PASSWORD_PATTERN, PASSWORD_REQUIREMENTS_MESSAGE } from '@moons/shared';
+import { IsEmail, IsString, Length, Matches, MinLength } from 'class-validator';
 
 export class ResetPasswordDto {
   @IsEmail()
@@ -9,10 +10,11 @@ export class ResetPasswordDto {
   otp!: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(PASSWORD_MIN_LENGTH, { message: PASSWORD_REQUIREMENTS_MESSAGE })
+  @Matches(PASSWORD_PATTERN, { message: PASSWORD_REQUIREMENTS_MESSAGE })
   password!: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(PASSWORD_MIN_LENGTH, { message: PASSWORD_REQUIREMENTS_MESSAGE })
   confirmPassword!: string;
 }

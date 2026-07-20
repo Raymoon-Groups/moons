@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-import { UserRole, isRecruiterCompanyEmail, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
+import { UserRole, getPasswordValidationError, isRecruiterCompanyEmail, PASSWORD_REQUIREMENTS_MESSAGE, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
 import { AuthLayout } from '@/components/auth-layout';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
 import { RolePicker } from '@/components/role-picker';
@@ -53,6 +53,11 @@ export default function RegisterScreen() {
     setInfo('');
     if (role === UserRole.RECRUITER && !isRecruiterCompanyEmail(email.trim())) {
       setError(RECRUITER_COMPANY_EMAIL_MESSAGE);
+      return;
+    }
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     setLoading(true);
@@ -143,8 +148,10 @@ export default function RegisterScreen() {
             placeholder="you@email.com"
           />
           <FieldLabel>Password</FieldLabel>
-          <PasswordInput value={password} onChangeText={setPassword} placeholder="At least 8 characters" />
-          {error ? <ErrorText>{error}</ErrorText> : null}
+          <PasswordInput value={password} onChangeText={setPassword} placeholder="e.g. Welcome@1" />
+          <Text style={[styles.otpHint, { marginTop: 6, marginBottom: 0 }]}>
+            {PASSWORD_REQUIREMENTS_MESSAGE}
+          </Text>          {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton label={loading ? 'Sending code…' : 'Continue'} onPress={handleSendOtp} loading={loading} />
           <Divider />

@@ -10,6 +10,14 @@ export {
   RECRUITER_COMPANY_EMAIL_MESSAGE,
 } from './recruiter-email';
 
+export {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_PATTERN,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+  getPasswordValidationError,
+  isValidPassword,
+} from './password';
+
 export enum JobStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',

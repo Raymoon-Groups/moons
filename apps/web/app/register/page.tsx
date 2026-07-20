@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole, type AuthResponse, isRecruiterCompanyEmail, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
+import { UserRole, type AuthResponse, getPasswordValidationError, isRecruiterCompanyEmail, PASSWORD_REQUIREMENTS_MESSAGE, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
 import { AuthDivider } from '@/components/auth/auth-divider';
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout';
 import { PasswordField } from '@/components/auth/password-field';
@@ -36,6 +36,11 @@ function RegisterForm() {
     setInfo('');
     if (role === UserRole.RECRUITER && !isRecruiterCompanyEmail(email)) {
       setError(RECRUITER_COMPANY_EMAIL_MESSAGE);
+      return;
+    }
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     setLoading(true);
@@ -161,9 +166,11 @@ function RegisterForm() {
             value={password}
             onChange={setPassword}
             minLength={8}
-            placeholder="Min 8 characters"
+            placeholder="e.g. Welcome@1"
           />
-
+          <p className="mt-2 text-xs leading-relaxed text-moons-muted">
+            {PASSWORD_REQUIREMENTS_MESSAGE}
+          </p>
           {error && (
             <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
           )}

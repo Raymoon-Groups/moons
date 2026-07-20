@@ -9,10 +9,6 @@ export interface LocationSuggestion {
 const INDIAN_CITIES: LocationSuggestion[] = [
   { name: 'Gurugram', state: 'Haryana' },
   { name: 'Gurgaon', state: 'Haryana' },
-  { name: 'Gurua', state: 'Odisha' },
-  { name: 'Gurudijhatia', state: 'Odisha' },
-  { name: 'Gurundia', state: 'Odisha' },
-  { name: 'Gurur', state: 'Karnataka' },
   { name: 'Bangalore', state: 'Karnataka' },
   { name: 'Bengaluru', state: 'Karnataka' },
   { name: 'Mumbai', state: 'Maharashtra' },
@@ -68,6 +64,11 @@ const INDIAN_CITIES: LocationSuggestion[] = [
   { name: 'Remote' },
   { name: 'Work from home' },
 ];
+
+/** Sorted city names for select dropdowns (onboarding, profile, etc.) */
+export const INDIAN_CITY_OPTIONS = Array.from(
+  new Set(INDIAN_CITIES.map((city) => city.name)),
+).sort((a, b) => a.localeCompare(b));
 
 function scoreCity(city: LocationSuggestion, q: string): number {
   const name = city.name.toLowerCase();

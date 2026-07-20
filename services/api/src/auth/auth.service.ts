@@ -436,11 +436,15 @@ export class AuthService {
       if (!dto.phone?.trim()) {
         throw new BadRequestException('Phone number is required');
       }
+      const phoneDigits = dto.phone.replace(/\D/g, '');
+      if (phoneDigits.length !== 10) {
+        throw new BadRequestException('Phone number must be exactly 10 digits');
+      }
       if (!dto.location?.trim()) {
         throw new BadRequestException('Location is required');
       }
       profileData.fullName = dto.fullName.trim();
-      profileData.phone = dto.phone.trim();
+      profileData.phone = phoneDigits;
       profileData.location = dto.location.trim();
       if (dto.headline?.trim()) {
         profileData.headline = dto.headline.trim();
@@ -458,10 +462,22 @@ export class AuthService {
       if (!dto.companySize?.trim()) {
         throw new BadRequestException('Company size is required');
       }
+      if (!dto.phone?.trim()) {
+        throw new BadRequestException('Phone number is required');
+      }
+      const phoneDigits = dto.phone.replace(/\D/g, '');
+      if (phoneDigits.length !== 10) {
+        throw new BadRequestException('Phone number must be exactly 10 digits');
+      }
+      if (!dto.location?.trim()) {
+        throw new BadRequestException('Location is required');
+      }
       profileData.currentCompany = dto.companyName.trim();
       profileData.designation = dto.designation.trim();
       profileData.companyWebsite = dto.companyWebsite.trim();
       profileData.companySize = dto.companySize.trim();
+      profileData.phone = phoneDigits;
+      profileData.location = dto.location.trim();
       profileData.fullName = dto.fullName?.trim() || dto.designation.trim();
       if (dto.industry?.trim()) {
         profileData.industry = dto.industry.trim();
@@ -474,8 +490,6 @@ export class AuthService {
         .replace(/[/\\]/g, '')
         .trim()
         .slice(0, 255) || 'resume.pdf';
-    } else if (user.role === UserRole.CANDIDATE && !resumeFile) {
-      throw new BadRequestException('Resume upload is required');
     }
 
     await this.usersService.updateOnboardingProfile(userId, profileData);
