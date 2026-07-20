@@ -6,7 +6,13 @@ export class RedisService implements OnModuleDestroy {
   private readonly client: Redis;
 
   constructor() {
-    this.client = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+    this.client = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+      connectTimeout: 5_000,
+      // Fail fast when Redis is down instead of hanging login for ~45s.
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+      retryStrategy: (times) => (times > 3 ? null : Math.min(times * 200, 1_000)),
+    });
   }
 
   getClient() {

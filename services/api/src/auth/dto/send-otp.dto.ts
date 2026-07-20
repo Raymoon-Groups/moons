@@ -1,6 +1,10 @@
-import { PASSWORD_MIN_LENGTH, PASSWORD_PATTERN, PASSWORD_REQUIREMENTS_MESSAGE } from '@moons/shared';
 import { UserRole } from '@prisma/client';
 import { IsEmail, IsEnum, IsString, Matches, MinLength } from 'class-validator';
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_PATTERN,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+} from '../password.rules';
 
 export class SendOtpDto {
   @IsEmail()

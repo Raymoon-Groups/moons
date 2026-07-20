@@ -1,12 +1,16 @@
 'use client';
 
-import { GoogleLogin } from '@react-oauth/google';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { UserRole, type AuthResponse } from '@moons/shared';
 import { apiFetch } from '@/lib/api-client';
 import { getPostAuthPath } from '@/lib/auth-redirect';
 import { useAuth } from '@/lib/auth-context';
+import {
+  ensureGoogleGsiInitialized,
+  renderGoogleSignInButton,
+  subscribeGoogleCredential,
+} from '@/lib/google-gsi';
 
 interface GoogleSignInButtonProps {
   role?: UserRole;
@@ -20,44 +24,69 @@ export function GoogleSignInButton({
   const router = useRouter();
   const { login } = useAuth();
   const [error, setError] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [btnWidth, setBtnWidth] = useState(320);
+  const [loading, setLoading] = useState(false);
+  const buttonHostRef = useRef<HTMLDivElement>(null);
+  const roleRef = useRef(role);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+  roleRef.current = role;
 
-    function measure() {
-      const w = el!.getBoundingClientRect().width;
-      if (w > 0) {
-        setBtnWidth(Math.min(Math.floor(w), 400));
+  const handleSuccess = useCallback(
+    async (idToken: string) => {
+      setError('');
+      setLoading(true);
+      try {
+        const data = await apiFetch<AuthResponse>('/auth/google', {
+          method: 'POST',
+          body: JSON.stringify({ idToken, role: roleRef.current }),
+        });
+        login(data);
+        router.push(getPostAuthPath(data.user));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Google sign-in failed');
+      } finally {
+        setLoading(false);
       }
-    }
+    },
+    [login, router],
+  );
 
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  useEffect(() => subscribeGoogleCredential(handleSuccess), [handleSuccess]);
 
-  async function handleSuccess(idToken: string | undefined) {
-    if (!idToken) {
-      setError('Google sign-in failed — no token received');
-      return;
-    }
-    setError('');
-    try {
-      const data = await apiFetch<AuthResponse>('/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({ idToken, role }),
-      });
-      login(data);
-      router.push(getPostAuthPath(data.user));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google sign-in failed');
-    }
-  }
+  useLayoutEffect(() => {
+    if (!clientId || !buttonHostRef.current) return;
+
+    const host = buttonHostRef.current;
+    const width =
+      Math.min(Math.floor(host.getBoundingClientRect().width), 400) || 400;
+    const isAuth = variant === 'auth';
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        await ensureGoogleGsiInitialized(clientId);
+        if (cancelled) return;
+
+        await renderGoogleSignInButton(host, {
+          text: 'continue_with',
+          shape: isAuth ? 'pill' : 'rectangular',
+          theme: 'outline',
+          size: 'large',
+          logo_alignment: 'left',
+          width,
+        });
+      } catch {
+        if (!cancelled) {
+          setError('Failed to load Google Sign-In. Please refresh and try again.');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      host.replaceChildren();
+    };
+  }, [clientId, variant]);
 
   if (!clientId) {
     return (
@@ -72,24 +101,16 @@ export function GoogleSignInButton({
   return (
     <div className="space-y-3">
       <div
-        ref={containerRef}
+        ref={buttonHostRef}
         className={
           isAuth
             ? 'google-sign-in-auth w-full min-h-[44px]'
-            : 'flex w-full justify-center'
+            : 'flex w-full justify-center min-h-[44px]'
         }
-      >
-        <GoogleLogin
-          text="continue_with"
-          shape={isAuth ? 'pill' : 'rectangular'}
-          theme="outline"
-          size="large"
-          logo_alignment="left"
-          width={btnWidth}
-          onSuccess={(res) => handleSuccess(res.credential)}
-          onError={() => setError('Google sign-in was cancelled or failed')}
-        />
-      </div>
+      />
+      {loading && (
+        <p className="text-center text-sm text-moons-muted">Signing in with Google…</p>
+      )}
       {error && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
       )}

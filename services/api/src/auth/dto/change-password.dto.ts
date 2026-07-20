@@ -1,5 +1,9 @@
-import { PASSWORD_MIN_LENGTH, PASSWORD_PATTERN, PASSWORD_REQUIREMENTS_MESSAGE } from '@moons/shared';
 import { IsString, Matches, MinLength } from 'class-validator';
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_PATTERN,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+} from '../password.rules';
 
 export class ChangePasswordDto {
   @IsString()
