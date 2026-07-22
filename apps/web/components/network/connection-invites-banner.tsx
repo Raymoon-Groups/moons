@@ -164,7 +164,7 @@ export function ConnectionInvitesBanner() {
 
   return (
     <div
-      className={`pointer-events-none fixed right-4 top-[4.75rem] z-40 w-[min(100vw-2rem,24rem)] transition-all duration-500 ease-out ${
+      className={`pointer-events-none fixed right-3 top-[5.75rem] z-40 w-[min(100vw-1.5rem,22rem)] transition-all duration-500 ease-out sm:right-4 sm:top-24 lg:right-[max(1rem,calc((100vw-80rem)/2+1rem))] ${
         entered && !dismissing ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0'
       }`}
       role="status"
@@ -179,16 +179,6 @@ export function ConnectionInvitesBanner() {
               : 'border-border/70 bg-gradient-to-br from-white via-surface-elevated to-moons-blue/[0.06] dark:from-surface-elevated dark:via-surface-elevated dark:to-moons-blue/10'
         }`}
       >
-        <div
-          className={`h-1 w-full ${
-            isAccepted
-              ? 'bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600'
-              : isIgnored
-                ? 'bg-gradient-to-r from-red-400 via-red-500 to-red-600'
-                : 'bg-gradient-to-r from-moons-blue via-sky-400 to-moons-blue'
-          }`}
-        />
-
         <div className="p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-moons-blue/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-moons-blue">

@@ -12,24 +12,39 @@ export function isValidPassword(password: string): boolean {
   return PASSWORD_PATTERN.test(password);
 }
 
-export function getPasswordValidationError(password: string): string | null {
+/** Returns every failed password rule so the UI can show them together. */
+export function getPasswordValidationErrors(password: string): string[] {
+  const errors: string[] = [];
+
   if (!password) {
-    return PASSWORD_REQUIREMENTS_MESSAGE;
+    return [
+      'Password must start with a capital letter',
+      `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`,
+      'Password must include at least one number',
+      'Password must include at least one special character',
+    ];
   }
+
   if (!/^[A-Z]/.test(password)) {
-    return 'Password must start with a capital letter';
+    errors.push('Password must start with a capital letter');
   }
   if (password.length < PASSWORD_MIN_LENGTH) {
-    return 'Password must be at least 8 characters long';
+    errors.push(`Password must be at least ${PASSWORD_MIN_LENGTH} characters long`);
   }
   if (!/\d/.test(password)) {
-    return 'Password must include at least one number';
+    errors.push('Password must include at least one number');
   }
   if (!/[^A-Za-z0-9]/.test(password)) {
-    return 'Password must include at least one special character';
+    errors.push('Password must include at least one special character');
   }
   if (/\s/.test(password)) {
-    return 'Password must not contain spaces';
+    errors.push('Password must not contain spaces');
   }
-  return null;
+
+  return errors;
+}
+
+export function getPasswordValidationError(password: string): string | null {
+  const errors = getPasswordValidationErrors(password);
+  return errors.length > 0 ? errors.join('\n') : null;
 }

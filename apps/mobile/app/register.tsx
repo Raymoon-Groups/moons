@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-import { UserRole, getPasswordValidationError, isRecruiterCompanyEmail, PASSWORD_REQUIREMENTS_MESSAGE, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
+import { UserRole, getPasswordValidationErrors, isRecruiterCompanyEmail, PASSWORD_REQUIREMENTS_MESSAGE, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
 import { AuthLayout } from '@/components/auth-layout';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
 import { RolePicker } from '@/components/role-picker';
@@ -35,6 +35,7 @@ export default function RegisterScreen() {
   const [otp, setOtp] = useState('');
   const [role, setRole] = useState(defaultRole);
   const [error, setError] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -50,14 +51,15 @@ export default function RegisterScreen() {
 
   async function handleSendOtp() {
     setError('');
+    setPasswordErrors([]);
     setInfo('');
     if (role === UserRole.RECRUITER && !isRecruiterCompanyEmail(email.trim())) {
       setError(RECRUITER_COMPANY_EMAIL_MESSAGE);
       return;
     }
-    const passwordError = getPasswordValidationError(password);
-    if (passwordError) {
-      setError(passwordError);
+    const nextPasswordErrors = getPasswordValidationErrors(password);
+    if (nextPasswordErrors.length > 0) {
+      setPasswordErrors(nextPasswordErrors);
       return;
     }
     setLoading(true);
@@ -151,7 +153,11 @@ export default function RegisterScreen() {
           <PasswordInput value={password} onChangeText={setPassword} placeholder="e.g. Welcome@1" />
           <Text style={[styles.otpHint, { marginTop: 6, marginBottom: 0 }]}>
             {PASSWORD_REQUIREMENTS_MESSAGE}
-          </Text>          {error ? <ErrorText>{error}</ErrorText> : null}
+          </Text>
+          {passwordErrors.length > 0 ? (
+            <ErrorText>{passwordErrors.map((item) => `• ${item}`).join('\n')}</ErrorText>
+          ) : null}
+          {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton label={loading ? 'Sending code…' : 'Continue'} onPress={handleSendOtp} loading={loading} />
           <Divider />

@@ -15,6 +15,7 @@ export {
   PASSWORD_PATTERN,
   PASSWORD_REQUIREMENTS_MESSAGE,
   getPasswordValidationError,
+  getPasswordValidationErrors,
   isValidPassword,
 } from './password';
 

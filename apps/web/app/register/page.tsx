@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole, type AuthResponse, getPasswordValidationError, isRecruiterCompanyEmail, PASSWORD_REQUIREMENTS_MESSAGE, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
+import { UserRole, type AuthResponse, getPasswordValidationErrors, isRecruiterCompanyEmail, PASSWORD_REQUIREMENTS_MESSAGE, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
 import { AuthDivider } from '@/components/auth/auth-divider';
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout';
 import { PasswordField } from '@/components/auth/password-field';
@@ -27,20 +27,22 @@ function RegisterForm() {
   const [otp, setOtp] = useState('');
   const [role, setRole] = useState<UserRole>(defaultRole);
   const [error, setError] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSendOtp(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setPasswordErrors([]);
     setInfo('');
     if (role === UserRole.RECRUITER && !isRecruiterCompanyEmail(email)) {
       setError(RECRUITER_COMPANY_EMAIL_MESSAGE);
       return;
     }
-    const passwordError = getPasswordValidationError(password);
-    if (passwordError) {
-      setError(passwordError);
+    const nextPasswordErrors = getPasswordValidationErrors(password);
+    if (nextPasswordErrors.length > 0) {
+      setPasswordErrors(nextPasswordErrors);
       return;
     }
     setLoading(true);
@@ -171,6 +173,15 @@ function RegisterForm() {
           <p className="mt-2 text-xs leading-relaxed text-moons-muted">
             {PASSWORD_REQUIREMENTS_MESSAGE}
           </p>
+          {passwordErrors.length > 0 && (
+            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              <ul className="list-disc space-y-1 pl-4">
+                {passwordErrors.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {error && (
             <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
           )}
@@ -237,6 +248,7 @@ function RegisterForm() {
               setStep('credentials');
               setOtp('');
               setError('');
+              setPasswordErrors([]);
             }}
             className="w-full text-sm text-moons-muted hover:text-heading"
           >
