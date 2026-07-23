@@ -23,14 +23,22 @@
       "softwareKeyboardLayoutMode": "resize",
       "usesCleartextTraffic": true
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-font"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font"
+    ],
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/moonsjob_logo.png"
     },
     "extra": {
-      "apiUrl": "http://localhost:3001/api/v1"
+      "apiUrl": "http://localhost:3001/api/v1",
+      "router": {},
+      "eas": {
+        "projectId": "cacd7334-1862-4a9b-9080-30d896d81371"
+      }
     }
   }
 }

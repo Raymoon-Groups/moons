@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "version": ">= 21.1.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.moonsjob.com/api/v1",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "900368374913-pek10lel7fsk1tcmknrfna6j532o6goh.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "900368374913-m28euk6t4v6jebsj0kpvr68e1vjaerc0.apps.googleusercontent.com"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.moonsjob.com/api/v1",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "900368374913-pek10lel7fsk1tcmknrfna6j532o6goh.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "900368374913-m28euk6t4v6jebsj0kpvr68e1vjaerc0.apps.googleusercontent.com"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
