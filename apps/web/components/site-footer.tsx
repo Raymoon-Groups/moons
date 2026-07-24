@@ -18,6 +18,7 @@ const companyLinks = [
   { label: 'Contact us', href: '/contact' },
   { label: 'Terms & conditions', href: '/terms' },
   { label: 'Privacy policy', href: '/privacy' },
+  { label: 'Delete account', href: '/delete-account' },
   { label: 'Fraud alert', href: '/fraud-alert' },
 ] as const;
 
