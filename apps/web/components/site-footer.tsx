@@ -60,6 +60,11 @@ const socialLinks = [
   },
 ] as const;
 
+const PLAY_STORE_URL =
+  process.env.NEXT_PUBLIC_PLAY_STORE_URL ??
+  'https://play.google.com/store/apps/details?id=com.moonsjob.app';
+const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL ?? '';
+
 export function SiteFooter() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -134,7 +139,7 @@ export function SiteFooter() {
             <MoonsLogo href="" variant="white" size="md" />
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 sm:gap-10">
+          <div className="grid gap-8 sm:grid-cols-2 sm:gap-10 lg:grid-cols-3 lg:gap-8">
             <div>
               <h3 className="font-script text-2xl text-moons-muted">Navigation</h3>
               <ul className="mt-4 space-y-3">
@@ -151,7 +156,7 @@ export function SiteFooter() {
               </ul>
             </div>
 
-            <div>
+            <div className="lg:justify-self-center">
               <h3 className="font-script text-2xl text-moons-muted">Company</h3>
               <ul className="mt-4 space-y-3">
                 {companyLinks.map((link) => (
@@ -165,6 +170,54 @@ export function SiteFooter() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-1">
+              <h3 className="font-script text-2xl text-moons-muted">Available on</h3>
+              <div className="mt-4 flex flex-row flex-wrap items-center gap-2.5">
+                <a
+                  href={PLAY_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Get MoonsJob on Google Play"
+                  className="inline-flex h-10 w-[135px] shrink-0 items-center justify-center transition hover:opacity-90 sm:h-11 sm:w-[148px]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/badge-google-play.png"
+                    alt="Get it on Google Play"
+                    className="h-full w-full object-contain"
+                  />
+                </a>
+                {APP_STORE_URL ? (
+                  <a
+                    href={APP_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Download MoonsJob on the App Store"
+                    className="inline-flex h-10 w-[135px] shrink-0 items-center justify-center transition hover:opacity-90 sm:h-11 sm:w-[148px]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/badge-app-store.png"
+                      alt="Download on the App Store"
+                      className="h-full w-full object-contain"
+                    />
+                  </a>
+                ) : (
+                  <span
+                    className="inline-flex h-10 w-[135px] shrink-0 cursor-default items-center justify-center opacity-80 sm:h-11 sm:w-[148px]"
+                    title="Coming soon on the App Store"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/badge-app-store.png"
+                      alt="Download on the App Store (coming soon)"
+                      className="h-full w-full object-contain"
+                    />
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

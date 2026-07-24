@@ -7,9 +7,11 @@
     "scheme": "moonsjob",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a2744"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
@@ -17,7 +19,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1a2744"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
       },
       "package": "com.moonsjob.app",
       "softwareKeyboardLayoutMode": "resize",
@@ -31,7 +34,7 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/moonsjob_logo.png"
+      "favicon": "./assets/icon.png"
     },
     "extra": {
       "apiUrl": "http://localhost:3001/api/v1",

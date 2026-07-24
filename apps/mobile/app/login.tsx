@@ -105,8 +105,9 @@ export default function LoginScreen() {
             API server is not reachable at {API_URL}
           </Text>
           <Text style={styles.apiBannerHint}>
-            Run pnpm api (or pnpm mobile, which starts the API) in your project folder, then reload this app.
-            Phone and PC must be on the same Wi‑Fi.
+            {__DEV__
+              ? 'Run pnpm api (or pnpm mobile) on your computer, then reload. Phone and PC must be on the same Wi‑Fi.'
+              : 'Check your internet connection, then try again. If this keeps happening, the production API may be down.'}
           </Text>
         </View>
       ) : null}
