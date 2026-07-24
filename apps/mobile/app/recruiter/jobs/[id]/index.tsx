@@ -6,6 +6,7 @@ import { LoadingScreen } from '@/components/loading-screen';
 import { authFetch } from '@/lib/api';
 import { fontStyle } from '@/lib/font-style';
 import { formatEmploymentType } from '@/lib/format';
+import { stripHtml } from '@/lib/html-text';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { JobListing } from '@/lib/types';
@@ -79,7 +80,7 @@ export default function RecruiterJobDetailScreen() {
             .join(' · ')}
         </Text>
         {job.salaryRange ? <Text style={styles.salary}>{job.salaryRange}</Text> : null}
-        <Text style={styles.description}>{job.description}</Text>
+        <Text style={styles.description}>{stripHtml(job.description)}</Text>
 
         <Pressable style={styles.button} onPress={() => router.push(`/recruiter/jobs/${id}/applicants`)}>
           <Text style={styles.buttonText}>View applicants</Text>

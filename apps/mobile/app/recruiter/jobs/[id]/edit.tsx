@@ -6,6 +6,7 @@ import { LoadingScreen } from '@/components/loading-screen';
 import { Card, ErrorText, FieldLabel, Input, PrimaryButton, Screen } from '@/components/ui';
 import { ApiError, authFetch } from '@/lib/api';
 import { formatEmploymentType } from '@/lib/format';
+import { stripHtml } from '@/lib/html-text';
 import type { JobListing } from '@/lib/types';
 
 const EMPLOYMENT_OPTIONS = [
@@ -34,7 +35,7 @@ export default function EditJobScreen() {
       .then((job) => {
         setTitle(job.title);
         setCompanyName(job.companyName);
-        setDescription(job.description);
+        setDescription(stripHtml(job.description));
         setLocation(job.location);
         setSalaryRange(job.salaryRange ?? '');
         setEmploymentType(job.employmentType as EmploymentType);

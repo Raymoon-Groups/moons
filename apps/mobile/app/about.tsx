@@ -15,7 +15,7 @@ export default function AboutScreen() {
     >
       <StaticSection heading="Our mission">
         <StaticParagraph>
-          We believe finding a job or hiring great people shouldn&apos;t be complicated. MoonsJob
+          We believe finding a job or hiring great people shouldn't be complicated. MoonsJob
           brings jobs, professional profiles, and direct messaging together in one modern platform
           so opportunities move as fast as you do.
         </StaticParagraph>
@@ -34,7 +34,7 @@ export default function AboutScreen() {
 
       <StaticSection heading="Why MoonsJob">
         <StaticParagraph>
-          Whether you&apos;re taking the next step in your career or building your team, we&apos;re
+          Whether you're taking the next step in your career or building your team, we're
           committed to a safe, transparent, and efficient hiring experience for everyone.
         </StaticParagraph>
       </StaticSection>

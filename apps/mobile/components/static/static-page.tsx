@@ -46,7 +46,7 @@ export function StaticPageScreen({
       <View style={[styles.cta, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
         <Text style={[styles.ctaTitle, { color: colors.heading }, fontStyle('bold')]}>Ready to take the next step?</Text>
         <Text style={[styles.ctaSubtitle, { color: colors.muted }, fontStyle('regular')]}>
-          Explore opportunities or reach out to our team — we&apos;re here to help.
+          Explore opportunities or reach out to our team — we're here to help.
         </Text>
         <View style={styles.ctaActions}>
           <Pressable

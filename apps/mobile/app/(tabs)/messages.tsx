@@ -25,7 +25,7 @@ import { theme } from '@/lib/theme';
 
 export default function MessagesScreen() {
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{ with?: string }>();
+  const params = useLocalSearchParams<{ with?: string; conversation?: string }>();
   const [items, setItems] = useState<ConversationPreview[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -107,6 +107,13 @@ export default function MessagesScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      const conversationId =
+        typeof params.conversation === 'string' ? params.conversation : undefined;
+      if (conversationId) {
+        router.replace(`/messages/${conversationId}` as never);
+        return;
+      }
+
       const userId = typeof params.with === 'string' ? params.with : undefined;
       if (!userId || openingUserId === userId) return;
 
@@ -119,7 +126,7 @@ export default function MessagesScreen() {
           setOpeningUserId(null);
         }
       })();
-    }, [params.with, openingUserId]),
+    }, [params.with, params.conversation, openingUserId]),
   );
 
   return (

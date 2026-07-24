@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EmploymentType } from '@moons/shared';
 import { CompanyAvatar } from './company-avatar';
 import { formatEmploymentType, formatPostedAgo } from '@/lib/format';
+import { stripHtml } from '@/lib/html-text';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
@@ -139,7 +140,8 @@ export function JobCard({
         ? 'Fresher'
         : `${job.minExperienceYears}+ yrs exp`
       : null;
-  const snippet = job.description?.replace(/\s+/g, ' ').trim().slice(0, 100);
+  const plainDescription = stripHtml(job.description);
+  const snippet = plainDescription.replace(/\s+/g, ' ').trim().slice(0, 100);
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
@@ -203,7 +205,7 @@ export function JobCard({
         {snippet ? (
           <Text style={styles.snippet} numberOfLines={2}>
             {snippet}
-            {job.description.length > 100 ? '…' : ''}
+            {plainDescription.length > 100 ? '…' : ''}
           </Text>
         ) : null}
 

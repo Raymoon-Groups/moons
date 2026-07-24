@@ -25,6 +25,7 @@ import { apiFetch, authFetch, authUpload } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
 import { formatEmploymentType, formatPostedAgo } from '@/lib/format';
+import { stripHtml } from '@/lib/html-text';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { JobListing, Profile } from '@/lib/types';
@@ -358,7 +359,7 @@ export default function JobDetailScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About the role</Text>
-          <Text style={styles.description}>{job.description}</Text>
+          <Text style={styles.description}>{stripHtml(job.description)}</Text>
         </View>
 
         {canApply ? (

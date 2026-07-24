@@ -1,5 +1,5 @@
 import { UserRole, type NetworkStats, type NetworkUserCard } from '@moons/shared';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -93,8 +93,21 @@ export default function NetworkScreen() {
   const { colors } = useTheme();
   const { acknowledgeNetworkBadge } = useNavIndicators();
   const isRecruiter = user?.role === UserRole.RECRUITER;
+  const params = useLocalSearchParams<{ tab?: string }>();
 
-  const [tab, setTab] = useState<NetworkTabId>('connections');
+  const initialTab = useMemo<NetworkTabId>(() => {
+    const raw = typeof params.tab === 'string' ? params.tab : '';
+    if (raw === 'pending' || raw === 'sent' || raw === 'recent' || raw === 'suggestions' || raw === 'connections') {
+      return raw;
+    }
+    return 'connections';
+  }, [params.tab]);
+
+  const [tab, setTab] = useState<NetworkTabId>(initialTab);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');

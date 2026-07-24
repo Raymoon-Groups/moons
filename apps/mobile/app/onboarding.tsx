@@ -174,7 +174,7 @@ export default function OnboardingScreen() {
               <ActivityIndicator color={colors.blue} />
             </View>
           ) : (
-            <Text style={styles.parseHint}>We&apos;ll auto-fill your name, phone, location, and headline when possible.</Text>
+            <Text style={styles.parseHint}>We'll auto-fill your name, phone, location, and headline when possible.</Text>
           )}
         </>
       )}

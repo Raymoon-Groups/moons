@@ -48,7 +48,7 @@ export default function TermsScreen() {
 
       <StaticSection heading="5. Limitation of liability">
         <StaticParagraph>
-          MoonsJob is provided on an &quot;as is&quot; basis. We do not guarantee employment,
+          MoonsJob is provided on an "as is" basis. We do not guarantee employment,
           hiring outcomes, or the accuracy of listings posted by third parties.
         </StaticParagraph>
       </StaticSection>

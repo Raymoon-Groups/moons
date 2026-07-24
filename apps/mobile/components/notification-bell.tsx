@@ -105,11 +105,16 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
       return;
     }
     if (item.linkUrl.includes('networkTab=pending') || item.linkUrl.includes('tab=pending')) {
-      router.push('/network?tab=pending' as never);
+      router.push('/(tabs)/network?tab=pending' as never);
       return;
     }
     if (item.linkUrl.startsWith('/network/')) {
       router.push(item.linkUrl as never);
+      return;
+    }
+    const conversationMatch = item.linkUrl.match(/[?&]conversation=([^&]+)/);
+    if (item.linkUrl.startsWith('/messages') && conversationMatch?.[1]) {
+      router.push(`/messages/${decodeURIComponent(conversationMatch[1])}` as never);
       return;
     }
     if (item.linkUrl.startsWith('/')) {

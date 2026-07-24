@@ -49,7 +49,10 @@ async function parseError(response: Response): Promise<ApiError> {
 
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = await getRefreshToken();
-  if (!refreshToken) return null;
+  if (!refreshToken) {
+    await clearAuthSession();
+    return null;
+  }
 
   try {
     const response = await fetch(`${API_URL}/auth/refresh`, {
@@ -57,7 +60,10 @@ async function refreshAccessToken(): Promise<string | null> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      await clearAuthSession();
+      return null;
+    }
     const data = (await response.json()) as AuthResponse;
     await setAuthSession({
       accessToken: data.accessToken,
@@ -66,6 +72,7 @@ async function refreshAccessToken(): Promise<string | null> {
     });
     return data.accessToken;
   } catch {
+    await clearAuthSession();
     return null;
   }
 }
