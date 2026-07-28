@@ -64,14 +64,6 @@ function HamburgerIcon({ className }: { className?: string }) {
   );
 }
 
-function DashboardIcon() {
-  return (
-    <svg className="h-4 w-4 text-moons-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-    </svg>
-  );
-}
-
 function HeaderFloat({
   children,
   className = '',
@@ -173,17 +165,6 @@ function ProfileMenuButton({
               <p className="truncate text-xs text-moons-muted">{user.email}</p>
             )}
           </div>
-          <Link
-            href="/dashboard"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-            className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium transition hover:bg-surface ${
-              pathname === '/dashboard' ? 'text-moons-blue' : 'text-foreground'
-            }`}
-          >
-            <DashboardIcon />
-            Dashboard
-          </Link>
           <Link
             href="/profile"
             role="menuitem"

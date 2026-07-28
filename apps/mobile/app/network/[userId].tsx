@@ -35,6 +35,7 @@ import {
 } from '@/lib/connection-invites';
 import { fontStyle } from '@/lib/font-style';
 import { OPEN_ON_MOONS_TAGLINE, showOpenOnMoonsToViewer } from '@/lib/open-on-moons';
+import { ProfilePostsSection } from '@/components/feed/profile-posts-section';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -268,13 +269,6 @@ export default function NetworkProfileScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Pressable
-            onPress={() => void shareProfile(name, headline)}
-            style={[styles.btnSecondary, { borderColor: colors.border }]}
-          >
-            <Text style={{ color: colors.heading, ...fontStyle('semibold') }}>Share</Text>
-          </Pressable>
-
           {data.connectionStatus === 'ACCEPTED' ? (
             <>
               <Pressable
@@ -283,17 +277,50 @@ export default function NetworkProfileScreen() {
               >
                 <Text style={{ color: '#fff', ...fontStyle('semibold') }}>Message</Text>
               </Pressable>
+              <Pressable
+                onPress={() => void shareProfile(name, headline)}
+                style={[styles.btnSecondary, { borderColor: colors.border }]}
+              >
+                <Text style={{ color: colors.heading, ...fontStyle('semibold') }}>Share</Text>
+              </Pressable>
               {!isOwnProfile ? (
                 <Pressable
                   disabled={actionLoading}
-                  onPress={() => void runAction(() => removeConnection(userId!))}
-                  style={[styles.btnSecondary, { borderColor: colors.border }]}
+                  onPress={() => {
+                    Alert.alert(
+                      'Remove connection',
+                      `Remove ${name} from your connections?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Remove',
+                          style: 'destructive',
+                          onPress: () => void runAction(() => removeConnection(userId!)),
+                        },
+                      ],
+                    );
+                  }}
+                  style={[
+                    styles.btnSecondary,
+                    { borderColor: colors.border, opacity: actionLoading ? 0.6 : 1 },
+                  ]}
                 >
-                  <Text style={{ color: colors.heading, ...fontStyle('semibold') }}>Remove connection</Text>
+                  <Text style={{ color: colors.heading, ...fontStyle('semibold') }}>
+                    Remove connection
+                  </Text>
                 </Pressable>
               ) : null}
             </>
-          ) : data.connectionStatus === 'PENDING' && data.connectionDirection === 'received' && data.connectionId ? (
+          ) : (
+            <>
+              <Pressable
+                onPress={() => void shareProfile(name, headline)}
+                style={[styles.btnSecondary, { borderColor: colors.border }]}
+              >
+                <Text style={{ color: colors.heading, ...fontStyle('semibold') }}>Share</Text>
+              </Pressable>
+
+              {data.connectionStatus === 'PENDING' && data.connectionDirection === 'received' && data.connectionId ? (
             <>
               <Pressable
                 disabled={actionLoading}
@@ -326,6 +353,8 @@ export default function NetworkProfileScreen() {
               <Text style={{ color: '#fff', ...fontStyle('semibold') }}>Connect</Text>
             </Pressable>
           ) : null}
+            </>
+          )}
         </View>
 
         {limited ? (
@@ -371,6 +400,15 @@ export default function NetworkProfileScreen() {
                 <Text style={{ color: colors.muted, lineHeight: 22 }}>{String(profile.summary)}</Text>
               </View>
             ) : null}
+
+            <ProfilePostsSection
+              userId={profile.userId}
+              emptyMessage={
+                user?.id === profile.userId
+                  ? 'You have not posted anything yet. Share an update from your feed.'
+                  : `${(profile.fullName as string | null)?.split(' ')[0] || 'This member'} has not posted anything yet.`
+              }
+            />
 
             {workExperiences.length > 0 ? (
               <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>

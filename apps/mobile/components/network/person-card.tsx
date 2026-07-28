@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NetworkUserCard } from '@moons/shared';
 import { ConnectInviteModal } from '@/components/network/connect-invite-modal';
 import { resolveAvatarUrl } from '@/lib/assets';
@@ -13,7 +13,7 @@ import {
   isStaleConnectionInviteError,
   notifyConnectionsRefresh,
 } from '@/lib/connection-invites';
-import { cancelConnection } from '@/lib/network';
+import { cancelConnection, removeConnection } from '@/lib/network';
 import { OPEN_ON_MOONS_LABEL, showOpenOnMoonsToViewer } from '@/lib/open-on-moons';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -156,23 +156,52 @@ export function PersonCard({
 
       <View style={[styles.actions, { borderTopColor: colors.border }]}>
         {local.connectionStatus === 'ACCEPTED' ? (
-          <>
+          <View style={{ flex: 1, gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Pressable
+                onPress={() => void openMessage()}
+                style={[styles.btnPrimary, { backgroundColor: colors.blue, flex: 1 }]}
+              >
+                <Ionicons name="chatbubble-outline" size={15} color="#fff" />
+                <Text style={[styles.btnPrimaryText, fontStyle('semibold')]}>Message</Text>
+              </Pressable>
+              <Pressable
+                onPress={openProfile}
+                style={[styles.btnSecondary, { borderColor: colors.border, flex: 1 }]}
+              >
+                <Text style={[styles.btnSecondaryText, { color: colors.heading }, fontStyle('semibold')]}>
+                  View profile
+                </Text>
+              </Pressable>
+            </View>
             <Pressable
-              onPress={() => void openMessage()}
-              style={[styles.btnPrimary, { backgroundColor: colors.blue, flex: 1 }]}
-            >
-              <Ionicons name="chatbubble-outline" size={15} color="#fff" />
-              <Text style={[styles.btnPrimaryText, fontStyle('semibold')]}>Message</Text>
-            </Pressable>
-            <Pressable
-              onPress={openProfile}
-              style={[styles.btnSecondary, { borderColor: colors.border, flex: 1 }]}
+              disabled={loading}
+              onPress={() => {
+                Alert.alert(
+                  'Remove connection',
+                  `Remove ${name} from your connections?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Remove',
+                      style: 'destructive',
+                      onPress: () =>
+                        void run(() => removeConnection(local.userId), {
+                          connectionId: '',
+                          connectionStatus: 'NONE',
+                          connectionDirection: null,
+                        }),
+                    },
+                  ],
+                );
+              }}
+              style={[styles.btnSecondary, { borderColor: colors.border, opacity: loading ? 0.6 : 1 }]}
             >
               <Text style={[styles.btnSecondaryText, { color: colors.heading }, fontStyle('semibold')]}>
-                View profile
+                Remove connection
               </Text>
             </Pressable>
-          </>
+          </View>
         ) : local.connectionStatus === 'PENDING' && local.connectionDirection === 'received' && local.connectionId ? (
           <>
             <Pressable

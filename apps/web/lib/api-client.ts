@@ -1,6 +1,11 @@
 import type { AuthResponse } from '@moons/shared';
 import { cachedFetch } from './api-cache';
-import { clearAuthSession, getAccessToken, setAuthSession } from './auth';
+import {
+  clearAuthSession,
+  getAccessToken,
+  getRefreshToken,
+  setAuthSession,
+} from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -46,14 +51,36 @@ export function getApiErrorMessage(err: unknown, fallback = 'Request failed'): s
   return fallback;
 }
 
-async function refreshAccessToken(): Promise<string | null> {
-  try {
-    const data = await apiFetchRaw<AuthResponse>('/auth/refresh', { method: 'POST' });
-    setAuthSession(data);
-    return data.accessToken;
-  } catch {
-    return null;
-  }
+type RefreshResult =
+  | { ok: true; accessToken: string }
+  | { ok: false; reason: 'auth' | 'network' };
+
+/** Single-flight refresh — concurrent 401s share one refresh call. */
+let refreshInFlight: Promise<RefreshResult> | null = null;
+
+async function refreshAccessToken(): Promise<RefreshResult> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async (): Promise<RefreshResult> => {
+    try {
+      const bodyRefresh = getRefreshToken();
+      const data = await apiFetchRaw<AuthResponse>('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify(bodyRefresh ? { refreshToken: bodyRefresh } : {}),
+      });
+      setAuthSession(data);
+      return { ok: true, accessToken: data.accessToken };
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        return { ok: false, reason: 'auth' };
+      }
+      return { ok: false, reason: 'network' };
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
 }
 
 type ApiFetchOptions = Omit<RequestInit, 'cache'> & {
@@ -68,15 +95,20 @@ async function apiFetchRaw<T>(
 ): Promise<T> {
   const { token, headers, ...rest } = options;
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...rest,
-    credentials: 'include',
-    headers: {
-      ...(rest.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...rest,
+      credentials: 'include',
+      headers: {
+        ...(rest.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+    });
+  } catch {
+    throw new ApiError('Network error. Please check your connection.', 0, 'NETWORK_ERROR');
+  }
 
   if (!response.ok) {
     let message = 'Request failed';
@@ -126,12 +158,23 @@ async function withAuthRetry<T>(
     return await request(token);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        return request(newToken);
+      const result = await refreshAccessToken();
+      if (result.ok) {
+        return request(result.accessToken);
       }
-      clearAuthSession();
-      throw new ApiError('Your session has expired. Please sign in again.', 401, 'SESSION_EXPIRED');
+      if (result.reason === 'auth') {
+        clearAuthSession();
+        throw new ApiError(
+          'Your session has expired. Please sign in again.',
+          401,
+          'SESSION_EXPIRED',
+        );
+      }
+      throw new ApiError(
+        'Could not refresh your session. Check your connection and try again.',
+        503,
+        'REFRESH_NETWORK_ERROR',
+      );
     }
     throw err;
   }

@@ -9,6 +9,7 @@ import { MessagesModule } from './messages/messages.module';
 import { NetworkModule } from './network/network.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { RedisModule } from './redis/redis.module';
@@ -31,6 +32,7 @@ import { UsersModule } from './users/users.module';
     NetworkModule,
     MessagesModule,
     NewsletterModule,
+    PostsModule,
   ],
   controllers: [HealthController],
 })

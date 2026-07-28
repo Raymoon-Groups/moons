@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch, authFetch } from '@/lib/api-client';
 import { resolveAssetUrl, resolveAvatarUrl } from '@/lib/assets';
@@ -10,6 +10,7 @@ import { formatPostedAgo } from '@/lib/job-formatters';
 import type { JobListing } from '@/lib/jobs';
 import type { Profile } from '@/lib/types';
 import { PeopleYouMayKnowSection } from '@/components/dashboard/dashboard-discovery-sections';
+import { DashboardFeed } from '@/components/feed/feed-page-client';
 
 interface CandidateStats {
   applicationsCount: number;
@@ -147,6 +148,8 @@ function JobScrollRow({ jobs }: { jobs: JobListing[] }) {
 
 export function CandidateDashboard() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const highlightPostId = searchParams.get('post') ?? undefined;
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<CandidateStats | null>(null);
@@ -278,6 +281,8 @@ export function CandidateDashboard() {
               </p>
             </div>
           </div>
+
+          <DashboardFeed highlightPostId={highlightPostId} />
 
           <div className="dash-card p-5">
             <div className="flex items-center justify-between">

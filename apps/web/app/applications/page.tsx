@@ -54,60 +54,62 @@ function ApplicationCard({
 }) {
   const canWithdraw =
     app.status === ApplicationStatus.SUBMITTED || app.status === ApplicationStatus.VIEWED;
+  const appliedDate = new Date(app.createdAt).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 
   return (
-    <article className="recruiter-job-card group">
-      <div className="p-6 sm:p-7">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+    <article className="group overflow-hidden rounded-[28px] border border-border/60 bg-white/90 shadow-[0_20px_60px_-38px_rgba(15,23,42,0.4)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-[0_26px_70px_-36px_rgba(15,23,42,0.45)]">
+      <div className="border-b border-border/50 bg-gradient-to-r from-moons-blue/[0.08] via-sky-50/60 to-white px-6 py-5 sm:px-7">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="flex min-w-0 gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
               <span className="text-lg font-semibold text-heading">
                 {app.job.companyName.charAt(0).toUpperCase()}
               </span>
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <ApplicationStatusBadge status={app.status} />
-                <span className="meta-pill">{formatEmploymentType(app.job.employmentType)}</span>
+                <span className="meta-pill bg-white/80">{formatEmploymentType(app.job.employmentType)}</span>
+                {app.job.location ? (
+                  <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-3 py-1 text-xs font-medium text-moons-muted">
+                    {app.job.location}
+                  </span>
+                ) : null}
               </div>
 
               <Link
                 href={`/jobs?job=${app.job.id}`}
-                className="mt-3 block text-xl font-semibold tracking-tight text-heading transition hover:text-moons-blue"
+                className="mt-3 block text-[1.4rem] font-semibold tracking-tight text-heading transition hover:text-moons-blue sm:text-[1.55rem]"
               >
                 {app.job.title}
               </Link>
 
               <p className="mt-2 text-sm text-moons-muted">
-                <span className="font-medium text-foreground">{app.job.companyName}</span>
-                {app.job.location ? ` · ${app.job.location}` : ''}
+                <span className="font-semibold text-foreground">{app.job.companyName}</span>
               </p>
 
-              <p className="mt-3 flex items-center gap-1.5 text-sm text-moons-muted">
-                <CalendarIcon />
-                Applied{' '}
-                {new Date(app.createdAt).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </p>
-
-              {app.coverNote && <CoverNoteBlock note={app.coverNote} className="mt-4" />}
-
-              <ScreeningAnswersList
-                className="mt-4"
-                questions={app.job.screeningQuestions}
-                answers={app.screeningAnswers}
-              />
+              <div className="mt-4 flex flex-wrap gap-3">
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/80 px-3.5 py-2 text-sm text-moons-muted shadow-sm">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-moons-blue/10 text-moons-blue">
+                    <CalendarIcon />
+                  </span>
+                  <span>
+                    Applied on <span className="font-semibold text-heading">{appliedDate}</span>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-1 sm:min-w-[180px]">
+          <div className="flex shrink-0 flex-col gap-2 sm:min-w-[190px]">
             <Link
               href={`/jobs?job=${app.job.id}`}
-              className="rounded-xl bg-moons-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+              className="rounded-2xl bg-moons-blue px-5 py-3 text-center text-sm font-semibold text-white shadow-[0_14px_28px_-20px_rgba(59,130,246,0.95)] transition hover:bg-moons-blue-dark"
             >
               View job
             </Link>
@@ -116,7 +118,7 @@ function ApplicationCard({
                 type="button"
                 onClick={() => onWithdraw(app)}
                 disabled={withdrawingId === app.id}
-                className="saas-btn-danger text-center disabled:opacity-60"
+                className="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-center text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-60"
               >
                 {withdrawingId === app.id ? 'Withdrawing…' : 'Withdraw'}
               </button>
@@ -124,13 +126,22 @@ function ApplicationCard({
           </div>
         </div>
       </div>
+
+      <div className="grid gap-4 p-6 sm:p-7">
+        {app.coverNote && <CoverNoteBlock note={app.coverNote} />}
+
+        <ScreeningAnswersList
+          questions={app.job.screeningQuestions}
+          answers={app.screeningAnswers}
+        />
+      </div>
     </article>
   );
 }
 
 function CalendarIcon() {
   return (
-    <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   );

@@ -22,6 +22,7 @@ export const publicNavLinks: NavLink[] = [
 ];
 
 export const jobseekerNavLinks: NavLink[] = [
+  { label: 'Home', href: '/dashboard', icon: 'home' },
   { label: 'Jobs', href: '/jobs', icon: 'jobs' },
   { label: 'Network', href: '/network', icon: 'network' },
   { label: 'Messaging', href: '/messages', icon: 'messaging', shortLabel: 'Messages' },
@@ -29,15 +30,20 @@ export const jobseekerNavLinks: NavLink[] = [
 ];
 
 export const recruiterNavLinks: NavLink[] = [
+  { label: 'Home', href: '/dashboard', icon: 'home' },
   { label: 'Jobs', href: '/recruiter/jobs', icon: 'jobs' },
   { label: 'Network', href: '/network', icon: 'network' },
   { label: 'Messaging', href: '/messages', icon: 'messaging', shortLabel: 'Messages' },
   { label: 'Candidates', href: '/recruiter/candidates', icon: 'candidates', shortLabel: 'Candidates' },
 ];
 
-export function isNavActive(pathname: string, label: string) {
+export function isNavActive(pathname: string, label: string, href?: string) {
   switch (label) {
     case 'Home':
+      // Auth Home is /dashboard; public Home is /. Don't treat landing as active for auth nav.
+      if (href === '/dashboard' || href?.startsWith('/dashboard')) {
+        return pathname === '/dashboard' || pathname.startsWith('/dashboard/');
+      }
       return pathname === '/';
     case 'Jobs':
       return (

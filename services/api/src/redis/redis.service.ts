@@ -27,6 +27,16 @@ export class RedisService implements OnModuleDestroy {
     return this.client.get(key);
   }
 
+  /** Atomically get and delete. Works on Redis versions without GETDEL. */
+  async getdel(key: string) {
+    const result = await this.client.eval(
+      "local v = redis.call('GET', KEYS[1]); if v then redis.call('DEL', KEYS[1]) end; return v",
+      1,
+      key,
+    );
+    return typeof result === 'string' ? result : null;
+  }
+
   async del(key: string) {
     await this.client.del(key);
   }

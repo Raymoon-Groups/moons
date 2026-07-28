@@ -29,6 +29,8 @@ import { SetPasswordDto } from './dto/set-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
+/** Keep a rotated refresh token reusable briefly so concurrent refreshes don't log users out. */
+const REFRESH_GRACE_SECONDS = 60;
 const OTP_TTL_SECONDS = 10 * 60;
 const RESET_OTP_TTL_SECONDS = 15 * 60;
 const OTP_REDIS_PREFIX = 'register-otp:';
@@ -503,35 +505,60 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     try {
-      const payload = await this.jwtService.verifyAsync(refreshToken, {
+      const payload = await this.jwtService.verifyAsync<{
+        sub: string;
+        email: string;
+        role: string;
+        jti: string;
+      }>(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET,
       });
 
-      const stored = await this.redisService.get(
-        `refresh:${payload.sub}:${payload.jti}`,
-      );
-      if (!stored || stored !== refreshToken) {
-        throw new UnauthorizedException('Invalid refresh token');
+      const key = `refresh:${payload.sub}:${payload.jti}`;
+      const rotatedKey = `refresh-rotated:${payload.sub}:${payload.jti}`;
+
+      // Atomic claim — only one concurrent refresh wins the rotation.
+      const claimed = await this.redisService.getdel(key);
+      if (claimed && claimed === refreshToken) {
+        const withProfile = await this.usersService.findByIdWithProfile(
+          payload.sub,
+        );
+        if (!withProfile) {
+          throw new UnauthorizedException('User not found');
+        }
+
+        const tokens = await this.issueTokens(
+          withProfile.id,
+          withProfile.email,
+          withProfile.role,
+        );
+
+        const session = {
+          user: this.usersService.toPublic(withProfile, withProfile.profile),
+          ...tokens,
+        };
+
+        await this.redisService.set(
+          rotatedKey,
+          JSON.stringify(session),
+          REFRESH_GRACE_SECONDS,
+        );
+
+        return session;
       }
 
-      const withProfile = await this.usersService.findByIdWithProfile(
-        payload.sub,
-      );
-      if (!withProfile) {
-        throw new UnauthorizedException('User not found');
+      // Lost the race or token was already rotated — reuse the winner's session.
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const rotated = await this.redisService.get(rotatedKey);
+        if (rotated) {
+          return JSON.parse(rotated);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 40));
       }
 
-      await this.redisService.del(`refresh:${payload.sub}:${payload.jti}`);
-      const tokens = await this.issueTokens(
-        withProfile.id,
-        withProfile.email,
-        withProfile.role,
-      );
-      return {
-        user: this.usersService.toPublic(withProfile, withProfile.profile),
-        ...tokens,
-      };
-    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -678,7 +705,7 @@ export class AuthService {
     const jti = randomUUID();
     const payload = { sub: userId, email, role };
 
-    const accessExpires = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
+    const accessExpires = process.env.JWT_ACCESS_EXPIRES_IN ?? '60m';
     const refreshExpires = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
 
     const [accessToken, refreshToken] = await Promise.all([

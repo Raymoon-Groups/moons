@@ -17,10 +17,10 @@ function YesNoBadge({ value }: { value: string }) {
   const isYes = normalized === 'yes' || normalized === 'true';
   return (
     <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold shadow-sm ${
         isYes
-          ? 'bg-emerald-50 text-emerald-700'
-          : 'bg-red-50 text-red-700'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          : 'border-red-200 bg-red-50 text-red-700'
       }`}
     >
       {isYes ? 'Yes' : 'No'}
@@ -98,9 +98,9 @@ export function ScreeningAnswersList({
           href={href ?? '#'}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-3 rounded-xl bg-surface px-4 py-3 transition hover:bg-surface-hover"
+          className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-white/80 px-4 py-3.5 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5 hover:border-moons-blue/25 hover:bg-white"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-elevated text-moons-muted">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue/10 to-sky-100 text-moons-blue">
             <DocumentIcon className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1">
@@ -111,14 +111,14 @@ export function ScreeningAnswersList({
               {answer.fileName || 'View resume'}
             </span>
           </span>
-          <span className="shrink-0 text-xs font-semibold text-moons-blue">Open →</span>
+          <span className="shrink-0 text-xs font-semibold text-moons-blue">Open</span>
         </a>
       ))}
 
       {questionItems.length > 0 && (
-        <div className="overflow-hidden rounded-xl bg-surface">
-          <div className="flex items-center gap-2 border-b border-border/50 px-4 py-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-elevated text-moons-muted">
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-white/85 shadow-[0_10px_30px_-22px_rgba(15,23,42,0.35)] backdrop-blur-sm">
+          <div className="flex items-center gap-3 border-b border-border/50 bg-gradient-to-r from-slate-50 to-white px-4 py-3.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-moons-blue/10 text-moons-blue">
               <ChatIcon className="h-3.5 w-3.5" />
             </span>
             <div>
@@ -145,8 +145,8 @@ export function ScreeningAnswersList({
                   !showYesNo);
 
               return (
-                <li key={answer.questionId} className="flex gap-3 px-4 py-3.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-[11px] font-semibold tabular-nums text-moons-muted">
+                <li key={answer.questionId} className="flex gap-3 px-4 py-4">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold tabular-nums text-slate-500">
                     {index + 1}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -155,11 +155,11 @@ export function ScreeningAnswersList({
                       {showYesNo ? (
                         <YesNoBadge value={answer.value} />
                       ) : showChoiceChip ? (
-                        <span className="inline-flex rounded-lg bg-surface-elevated px-2.5 py-1 text-sm font-semibold text-heading">
+                        <span className="inline-flex rounded-full border border-border/70 bg-slate-50 px-3 py-1 text-sm font-semibold text-heading">
                           {answer.value}
                         </span>
                       ) : (
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                        <p className="whitespace-pre-wrap rounded-2xl bg-slate-50/80 px-3.5 py-3 text-sm leading-relaxed text-foreground">
                           {answer.value}
                         </p>
                       )}
@@ -183,11 +183,13 @@ export function CoverNoteBlock({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl bg-surface px-4 py-3.5 ${className}`}>
+    <div
+      className={`rounded-2xl border border-border/60 bg-gradient-to-br from-slate-50 to-white px-4 py-4 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.25)] ${className}`}
+    >
       <p className="text-[11px] font-semibold uppercase tracking-wide text-moons-muted">
         Cover note
       </p>
-      <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{note}</p>
+      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{note}</p>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { ApiError, authFetch } from './api-client';
 import {
   clearAuthSession,
   getAccessToken,
+  getRefreshToken,
   getStoredUser,
   setAuthSession,
   updateStoredUser,
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await authFetch<Profile>('/profiles/me');
       syncUserFromProfile(profile);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+      if (err instanceof ApiError && err.code === 'SESSION_EXPIRED') {
         clearAuthSession();
         setUser(null);
       }
@@ -97,7 +98,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await authFetch('/auth/logout', { method: 'POST' });
+      const refreshToken = getRefreshToken();
+      await authFetch('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+      });
     } catch {
       // clear local session even if API call fails
     }

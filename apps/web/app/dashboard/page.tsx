@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { UserRole } from '@moons/shared';
@@ -7,7 +8,7 @@ import { CandidateDashboard } from '@/components/dashboard/candidate-dashboard';
 import { RecruiterDashboard } from '@/components/dashboard/recruiter-dashboard';
 import { useAuth } from '@/lib/auth-context';
 
-export default function DashboardPage() {
+function DashboardBody() {
   const router = useRouter();
   const { user, ready } = useAuth();
 
@@ -32,4 +33,12 @@ export default function DashboardPage() {
   }
 
   return <CandidateDashboard />;
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-moons-muted">Loading…</div>}>
+      <DashboardBody />
+    </Suspense>
+  );
 }

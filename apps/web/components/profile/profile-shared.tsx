@@ -2,7 +2,9 @@
 
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { DashBackLink } from '@/components/dash/dash-page-shell';
+import { ProfilePostsSection } from '@/components/feed/profile-posts-section';
 import { ProfileNetworkSection } from '@/components/profile/profile-network-section';
+import { useAuth } from '@/lib/auth-context';
 import { ImageLightbox } from '@/components/image-lightbox';
 import { resolveAssetUrl } from '@/lib/assets';
 import type { Profile } from '@/lib/types';
@@ -828,6 +830,8 @@ export function ProfilePageShell({
   completionItems: CompletionItem[];
   children: ReactNode;
 }) {
+  const { user } = useAuth();
+
   return (
     <div className="dash-page">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -836,6 +840,12 @@ export function ProfilePageShell({
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
           <div className="space-y-5">
             {children}
+            {user?.id ? (
+              <ProfilePostsSection
+                userId={user.id}
+                emptyMessage="You have not posted anything yet. Share an update from your feed."
+              />
+            ) : null}
             <ProfileNetworkSection />
           </div>
           <aside className="lg:sticky lg:top-24">

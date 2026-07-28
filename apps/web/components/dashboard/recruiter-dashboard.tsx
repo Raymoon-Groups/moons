@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl, resolveAvatarUrl } from '@/lib/assets';
@@ -13,6 +13,7 @@ import {
   PeopleYouMayKnowSection,
   RecruiterCandidatesSection,
 } from '@/components/dashboard/dashboard-discovery-sections';
+import { DashboardFeed } from '@/components/feed/feed-page-client';
 
 interface RecruiterStats {
   jobsCount: number;
@@ -189,6 +190,8 @@ async function loadRecentApplicants(jobs: JobListing[]): Promise<RecentApplicant
 
 export function RecruiterDashboard() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const highlightPostId = searchParams.get('post') ?? undefined;
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<RecruiterStats | null>(null);
@@ -214,6 +217,7 @@ export function RecruiterDashboard() {
     user?.fullName?.trim() ||
     user?.email?.split('@')[0] ||
     'Company';
+  const recruiterName = user?.fullName?.trim() || user?.email?.split('@')[0] || 'Recruiter';
   const completion = profile?.completionPercent ?? 0;
   const logoSrc = resolveAssetUrl(profile?.companyLogoUrl);
   const avatarSrc = resolveAvatarUrl(user?.avatarUrl ?? profile?.avatarUrl, user?.avatarVersion);
@@ -240,8 +244,33 @@ export function RecruiterDashboard() {
                 name={companyName}
               />
               <h2 className="mt-4 text-center text-base font-bold text-heading">{companyName}</h2>
-              <p className="mt-1 text-center text-xs text-moons-muted">{industryLine}</p>
-              <p className="mt-0.5 text-center text-xs text-moons-muted">{locationLine}</p>
+              <p className="mt-1 text-center text-xs text-moons-muted">
+                {[industryLine, locationLine].filter(Boolean).join(' · ')}
+              </p>
+              <div className="mt-3 -mx-5 border-t border-moons-blue/15 bg-moons-blue/10 px-5 py-2.5">
+                <div className="flex items-center gap-2.5">
+                  {avatarSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarSrc}
+                      alt=""
+                      className="h-7 w-7 shrink-0 rounded-md object-cover ring-1 ring-white/80"
+                    />
+                  ) : (
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-moons-blue text-[11px] font-bold text-white">
+                      {recruiterName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-moons-blue">
+                      Recruiter
+                    </p>
+                    <p className="truncate text-sm font-bold leading-tight text-heading">
+                      {recruiterName}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="border-t border-border px-5 py-4">
               <div className="flex items-center justify-between gap-3">
@@ -328,6 +357,8 @@ export function RecruiterDashboard() {
               </p>
             </div>
           </div>
+
+          <DashboardFeed highlightPostId={highlightPostId} />
 
           <div className="dash-card p-4 sm:p-5">
             <div className="flex items-center justify-between">

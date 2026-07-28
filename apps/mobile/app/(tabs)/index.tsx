@@ -1,205 +1,188 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { UserRole } from '@moons/shared';
+import * as ImagePicker from 'expo-image-picker';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import type { FeedPost } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { AuthenticatedScreen } from '@/components/authenticated-screen';
-import { JobCard } from '@/components/job-card';
-import {
-  DashboardPeopleYouMayKnow,
-  DashboardRecruiterCandidates,
-} from '@/components/dashboard/dashboard-sections';
-import { QuickLinkCard, StatCard } from '@/components/menu-row';
-import { ProfileRing } from '@/components/profile-ring';
-import { PrimaryBanner, SectionTitle } from '@/components/portal-ui';
-import { authFetch } from '@/lib/api';
-import { useAuth } from '@/lib/auth-context';
+import { PostCard } from '@/components/feed/post-card';
 import { fontStyle } from '@/lib/font-style';
-import { useProfile } from '@/lib/use-profile';
+import { createPost, fetchFeed, type LocalMediaFile } from '@/lib/posts';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
-import type { ApplicationWithJob, CandidateStats, JobListing, RecruiterStats } from '@/lib/types';
 
-export default function DashboardScreen() {
-  const { user } = useAuth();
-  const { colors, isDark } = useTheme();
-  const { width } = useWindowDimensions();
-  const compact = width < 380;
-  const isRecruiter = user?.role === UserRole.RECRUITER;
-  const { profile, loading: profileLoading, name, avatarUrl, logoUrl } = useProfile();
+export default function FeedScreen() {
+  const { colors } = useTheme();
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [body, setBody] = useState('');
+  const [files, setFiles] = useState<LocalMediaFile[]>([]);
+  const [posting, setPosting] = useState(false);
 
-  const [candidateStats, setCandidateStats] = useState<CandidateStats | null>(null);
-  const [recruiterStats, setRecruiterStats] = useState<RecruiterStats | null>(null);
-  const [recentJobs, setRecentJobs] = useState<JobListing[]>([]);
-  const [statsLoading, setStatsLoading] = useState(true);
-
-  const loadStats = useCallback(async () => {
-    setStatsLoading(true);
+  const load = useCallback(async (nextPage = 1, append = false) => {
+    if (nextPage === 1) setLoading(true);
     try {
-      if (isRecruiter) {
-        const [stats, jobs] = await Promise.all([
-          authFetch<RecruiterStats>('/jobs/mine/stats'),
-          authFetch<JobListing[]>('/jobs/mine'),
-        ]);
-        setRecruiterStats(stats);
-        setRecentJobs(jobs.slice(0, 3));
-      } else {
-        const [stats, apps] = await Promise.all([
-          authFetch<{ applicationsCount: number }>('/applications/mine/stats'),
-          authFetch<ApplicationWithJob[]>('/applications/mine'),
-        ]);
-        setCandidateStats({
-          total: stats.applicationsCount,
-          submitted: apps.filter((a) => a.status === 'SUBMITTED').length,
-          viewed: apps.filter((a) => a.status === 'VIEWED').length,
-          shortlisted: apps.filter((a) => a.status === 'SHORTLISTED').length,
-          rejected: apps.filter((a) => a.status === 'REJECTED').length,
+      const data = await fetchFeed(nextPage, 20);
+      setPosts((prev) => {
+        const merged = append ? [...prev, ...data.items] : data.items;
+        const seenIds = new Set<string>();
+        const seenRoots = new Set<string>();
+        return merged.filter((p) => {
+          if (seenIds.has(p.id)) return false;
+          seenIds.add(p.id);
+          const rootId =
+            p.originalPost && !('unavailable' in p.originalPost)
+              ? p.originalPost.id
+              : p.originalPost && 'unavailable' in p.originalPost
+                ? p.originalPost.id
+                : p.id;
+          if (seenRoots.has(rootId)) return false;
+          seenRoots.add(rootId);
+          return true;
         });
-      }
-    } catch {
-      // dashboard still renders
+      });
+      setPage(data.page);
+      setHasMore(data.hasMore);
+    } catch (err) {
+      Alert.alert('Feed', err instanceof Error ? err.message : 'Could not load feed');
     } finally {
-      setStatsLoading(false);
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, [isRecruiter]);
+  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadStats();
-    }, [loadStats]),
-  );
+  useEffect(() => {
+    void load(1, false);
+  }, [load]);
 
-  const loading = profileLoading || statsLoading;
-
-  const heroColors = isDark
-    ? (['rgba(74, 127, 212, 0.22)', 'rgba(26, 39, 68, 0.55)'] as const)
-    : (['rgba(74, 127, 212, 0.14)', 'rgba(238, 242, 247, 0.95)'] as const);
-
-  if (loading) {
-    return (
-      <AppScreen>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.blue} />
-        </View>
-      </AppScreen>
+  async function pickMedia() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: true,
+      quality: 0.85,
+      selectionLimit: 10,
+    });
+    if (result.canceled) return;
+    setFiles(
+      result.assets.map((asset, index) => ({
+        uri: asset.uri,
+        name: asset.fileName || `media-${index}.${asset.type === 'video' ? 'mp4' : 'jpg'}`,
+        mimeType: asset.mimeType || (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+      })),
     );
   }
 
-  const displayName = name || 'there';
-  const completion = profile?.completionPercent ?? 0;
+  async function submitPost() {
+    if (!body.trim() && files.length === 0) return;
+    setPosting(true);
+    try {
+      const created = await createPost(body, files);
+      setPosts((prev) => [created, ...prev]);
+      setBody('');
+      setFiles([]);
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Could not create post');
+    } finally {
+      setPosting(false);
+    }
+  }
 
   return (
     <AppScreen>
       <AuthenticatedScreen>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={heroColors} style={[styles.hero, { borderColor: colors.border }]}>
-          <View style={styles.heroRow}>
-            <View style={styles.heroCopy}>
-              <Text style={[styles.eyebrow, { color: colors.blue }, fontStyle('bold')]}>MOONSJOB</Text>
-              <Text
-                numberOfLines={2}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-                style={[styles.greeting, { color: colors.heading, fontSize: compact ? 21 : 24 }, fontStyle('extrabold')]}
-              >
-                Hello, {displayName.split(' ')[0]}
-              </Text>
-              <Text
-                numberOfLines={2}
-                style={[styles.subtitle, { color: colors.muted }, fontStyle('regular')]}
-              >
-                {isRecruiter ? 'Your hiring command center' : 'Your job search dashboard'}
-              </Text>
-            </View>
-            <ProfileRing
-              percent={completion}
-              name={displayName}
-              avatarUrl={avatarUrl}
-              logoUrl={isRecruiter ? logoUrl : null}
-              size={compact ? 68 : 76}
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                void load(1, false);
+              }}
+              tintColor={colors.blue}
             />
-          </View>
-          {profile ? (
-            <Text style={[styles.completion, { color: colors.blue }, fontStyle('bold')]}>
-              Profile {completion}% complete
-            </Text>
-          ) : null}
-        </LinearGradient>
-
-        {!isRecruiter && completion < 100 ? (
-          <PrimaryBanner
-            title="Complete your profile"
-            subtitle="Profiles above 80% get more recruiter views and faster callbacks."
-            ctaLabel="Edit profile"
-            onPress={() => router.push('/profile/edit')}
-          />
-        ) : null}
-
-        {isRecruiter && recruiterStats ? (
-          <View style={styles.statsRow}>
-            <StatCard label="Live jobs" value={String(recruiterStats.liveJobs)} accent={colors.success} />
-            <StatCard label="Applicants" value={String(recruiterStats.totalApplicants)} />
-            <StatCard label="New" value={String(recruiterStats.newApplicants)} accent={colors.blue} />
-          </View>
-        ) : null}
-
-        {!isRecruiter && candidateStats ? (
-          <View style={styles.statsRow}>
-            <StatCard label="Applied" value={String(candidateStats.total)} />
-            <StatCard label="Shortlisted" value={String(candidateStats.shortlisted)} accent={colors.success} />
-            <StatCard label="Viewed" value={String(candidateStats.viewed)} accent={colors.info} />
-          </View>
-        ) : null}
-
-        {isRecruiter ? <DashboardRecruiterCandidates /> : null}
-        <DashboardPeopleYouMayKnow />
-
-        <SectionTitle>Quick links</SectionTitle>
-        {isRecruiter ? (
-          <>
-            <QuickLinkCard title="My jobs" subtitle="Manage postings" icon="folder-open" onPress={() => router.push('/(tabs)/my-jobs')} />
-            <QuickLinkCard title="Network" subtitle="Grow connections" icon="people" onPress={() => router.push('/(tabs)/network')} />
-            <QuickLinkCard title="Messages" subtitle="Your inbox" icon="chatbubble" onPress={() => router.push('/(tabs)/messages')} />
-            <QuickLinkCard title="Candidates" subtitle="Browse applicants" icon="person-add" onPress={() => router.push('/(tabs)/candidates')} />
-          </>
-        ) : (
-          <>
-            <QuickLinkCard title="Browse jobs" subtitle="Find your next role" icon="briefcase" onPress={() => router.push('/(tabs)/jobs')} />
-            <QuickLinkCard title="Network" subtitle="Grow connections" icon="people" onPress={() => router.push('/(tabs)/network')} />
-            <QuickLinkCard title="Messages" subtitle="Your inbox" icon="chatbubble" onPress={() => router.push('/(tabs)/messages')} />
-            <QuickLinkCard title="Applications" subtitle="Track your status" icon="document-text" onPress={() => router.push('/(tabs)/applications')} />
-          </>
-        )}
-
-        {isRecruiter && recentJobs.length > 0 ? (
-          <>
-            <SectionTitle>Recent postings</SectionTitle>
-            {recentJobs.map((job) => (
-              <JobCard key={job.id} job={job} onPress={() => router.push(`/recruiter/jobs/${job.id}`)} />
-            ))}
-          </>
-        ) : null}
-      </ScrollView>
+          }
+          ListHeaderComponent={
+            <View
+              style={{
+                backgroundColor: colors.surfaceElevated,
+                borderRadius: theme.radius.lg,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: 14,
+                marginBottom: 14,
+              }}
+            >
+              <Text style={{ color: colors.heading, ...fontStyle('bold'), fontSize: 20 }}>Feed</Text>
+              <Text style={{ color: colors.muted, marginTop: 4, marginBottom: 12 }}>
+                Share updates with your network
+              </Text>
+              <TextInput
+                value={body}
+                onChangeText={setBody}
+                placeholder="What's on your mind?"
+                placeholderTextColor={colors.muted}
+                multiline
+                style={{
+                  minHeight: 80,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 12,
+                  padding: 12,
+                  color: colors.heading,
+                  backgroundColor: colors.surface,
+                  textAlignVertical: 'top',
+                }}
+              />
+              {files.length > 0 ? (
+                <Text style={{ color: colors.muted, marginTop: 8 }}>{files.length} media selected</Text>
+              ) : null}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
+                <Pressable onPress={() => void pickMedia()}>
+                  <Text style={{ color: colors.blue, ...fontStyle('semibold') }}>Add photo/video</Text>
+                </Pressable>
+                <Pressable onPress={() => void submitPost()} disabled={posting}>
+                  <Text style={{ color: colors.blue, ...fontStyle('bold') }}>
+                    {posting ? 'Posting…' : 'Post'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <PostCard
+              post={item}
+              onChange={(next) => setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))}
+              onRemove={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+            />
+          )}
+          ListEmptyComponent={
+            loading ? (
+              <ActivityIndicator color={colors.blue} style={{ marginTop: 40 }} />
+            ) : (
+              <Text style={{ textAlign: 'center', color: colors.muted, marginTop: 24 }}>
+                No posts yet. Share the first update.
+              </Text>
+            )
+          }
+          onEndReached={() => {
+            if (hasMore && !loading) void load(page + 1, true);
+          }}
+        />
       </AuthenticatedScreen>
     </AppScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { padding: theme.spacing.md, paddingBottom: theme.spacing.md },
-  hero: {
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-  },
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  heroCopy: { flex: 1, minWidth: 0 },
-  eyebrow: { fontSize: 10, letterSpacing: 1.4, marginBottom: 4 },
-  greeting: { fontSize: 24, lineHeight: 30 },
-  subtitle: { marginTop: 6, fontSize: 14, lineHeight: 21 },
-  completion: { marginTop: 12, fontSize: 13 },
-  statsRow: { flexDirection: 'row', gap: 8, marginBottom: theme.spacing.md },
-});

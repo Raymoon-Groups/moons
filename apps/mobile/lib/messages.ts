@@ -102,6 +102,23 @@ export function sendMessage(
   });
 }
 
+export function sendMessageToUser(userId: string, body: string, attachment?: MessageAttachment) {
+  if (attachment) {
+    const formData = new FormData();
+    formData.append('body', body);
+    formData.append('attachment', {
+      uri: attachment.uri,
+      name: attachment.name,
+      type: attachment.mimeType ?? 'application/octet-stream',
+    } as unknown as Blob);
+    return authUpload<MessageItem>(`/messages/with/${userId}`, formData);
+  }
+  return authFetch<MessageItem>(`/messages/with/${userId}`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+}
+
 export function truncateMessagePreview(body: string, max = 100) {
   const trimmed = body.trim();
   if (trimmed.length <= max) return trimmed;

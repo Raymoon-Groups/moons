@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   '/onboarding',
   '/settings',
   '/network',
+  '/feed',
 ];
 
 const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
@@ -53,6 +54,8 @@ export const config = {
     '/onboarding/:path*',
     '/settings/:path*',
     '/network/:path*',
+    '/feed',
+    '/feed/:path*',
     '/login',
     '/register',
     '/forgot-password',

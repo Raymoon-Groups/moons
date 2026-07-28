@@ -20,6 +20,7 @@ type PillItem = {
 function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessagesDot: boolean): PillItem[] {
   if (isRecruiter) {
     return [
+      { routeName: 'index', label: 'Feed', shortLabel: 'Feed', icon: 'home-outline' },
       { routeName: 'my-jobs', label: 'Jobs', shortLabel: 'Jobs', icon: 'briefcase-outline' },
       { routeName: 'network', label: 'Network', shortLabel: 'Network', icon: 'people-outline', showDot: showNetworkDot },
       { routeName: 'messages', label: 'Messages', shortLabel: 'Messages', icon: 'chatbubble-outline', showDot: showMessagesDot },
@@ -27,6 +28,7 @@ function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessage
     ];
   }
   return [
+    { routeName: 'index', label: 'Feed', shortLabel: 'Feed', icon: 'home-outline' },
     { routeName: 'jobs', label: 'Jobs', shortLabel: 'Jobs', icon: 'briefcase-outline' },
     { routeName: 'network', label: 'Network', shortLabel: 'Network', icon: 'people-outline', showDot: showNetworkDot },
     { routeName: 'messages', label: 'Messages', shortLabel: 'Messages', icon: 'chatbubble-outline', showDot: showMessagesDot },

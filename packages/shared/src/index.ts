@@ -51,6 +51,72 @@ export enum NotificationType {
   PROFILE_VIEW = 'PROFILE_VIEW',
   NETWORK_SUGGESTION = 'NETWORK_SUGGESTION',
   MESSAGE_RECEIVED = 'MESSAGE_RECEIVED',
+  POST_LIKE = 'POST_LIKE',
+  POST_COMMENT = 'POST_COMMENT',
+  POST_SHARE = 'POST_SHARE',
+}
+
+export enum PostMediaType {
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+}
+
+export interface PostAuthor {
+  userId: string;
+  role: UserRole | string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+  headline: string | null;
+}
+
+export interface PostMediaItem {
+  id: string;
+  type: PostMediaType | string;
+  url: string;
+  fileName: string | null;
+  mimeType: string | null;
+  sortOrder: number;
+}
+
+export interface FeedPost {
+  id: string;
+  body: string;
+  likeCount: number;
+  commentCount: number;
+  shareCount: number;
+  createdAt: string;
+  updatedAt: string;
+  likedByMe: boolean;
+  author: PostAuthor;
+  media: PostMediaItem[];
+  /** Recent people who liked the root post (newest first). */
+  recentLikers?: PostAuthor[];
+  /** Recent comments on the root post (oldest first for display). */
+  recentComments?: PostCommentItem[];
+  originalPost:
+    | {
+        id: string;
+        body: string;
+        createdAt: string;
+        author: PostAuthor;
+        media: PostMediaItem[];
+      }
+    | { id: string; unavailable: true }
+    | null;
+  connectionStatus?: ConnectionStatus | 'NONE' | 'SELF' | string;
+  connectionId?: string | null;
+  connectionDirection?: 'sent' | 'received' | null;
+}
+
+export interface PostCommentItem {
+  id: string;
+  body: string;
+  createdAt: string;
+  author: PostAuthor;
+  isMine: boolean;
+  attachmentUrl?: string | null;
+  attachmentFileName?: string | null;
+  attachmentMimeType?: string | null;
 }
 
 export enum ConnectionStatus {

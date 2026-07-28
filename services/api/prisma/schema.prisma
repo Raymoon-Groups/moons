@@ -44,6 +44,14 @@ enum NotificationType {
   PROFILE_VIEW
   NETWORK_SUGGESTION
   MESSAGE_RECEIVED
+  POST_LIKE
+  POST_COMMENT
+  POST_SHARE
+}
+
+enum PostMediaType {
+  IMAGE
+  VIDEO
 }
 
 enum ConnectionStatus {
@@ -89,6 +97,9 @@ model User {
   conversationsAsA    Conversation[] @relation("ConversationsAsA")
   conversationsAsB    Conversation[] @relation("ConversationsAsB")
   messagesSent        Message[]      @relation("MessagesSent")
+  posts               Post[]         @relation("PostsAuthored")
+  postLikes           PostLike[]
+  postComments        PostComment[]  @relation("PostCommentsAuthored")
 
   @@map("users")
 }
@@ -290,4 +301,79 @@ model Message {
   @@index([conversationId, createdAt])
   @@index([senderId])
   @@map("messages")
+}
+
+model Post {
+  id             String    @id @default(uuid())
+  authorId       String    @map("author_id")
+  body           String    @default("")
+  originalPostId String?   @map("original_post_id")
+  likeCount      Int       @default(0) @map("like_count")
+  commentCount   Int       @default(0) @map("comment_count")
+  shareCount     Int       @default(0) @map("share_count")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  author       User          @relation("PostsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+  originalPost Post?         @relation("PostReposts", fields: [originalPostId], references: [id], onDelete: SetNull)
+  reposts      Post[]        @relation("PostReposts")
+  media        PostMedia[]
+  likes        PostLike[]
+  comments     PostComment[]
+
+  @@index([authorId, createdAt])
+  @@index([createdAt])
+  @@index([originalPostId])
+  @@map("posts")
+}
+
+model PostMedia {
+  id        String        @id @default(uuid())
+  postId    String        @map("post_id")
+  type      PostMediaType
+  url       String
+  fileName  String?       @map("file_name")
+  mimeType  String?       @map("mime_type")
+  sortOrder Int           @default(0) @map("sort_order")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, sortOrder])
+  @@map("post_media")
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, createdAt])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id                   String    @id @default(uuid())
+  postId               String    @map("post_id")
+  authorId             String    @map("author_id")
+  body                 String    @default("")
+  attachmentUrl        String?   @map("attachment_url")
+  attachmentFileName   String?   @map("attachment_file_name")
+  attachmentMimeType   String?   @map("attachment_mime_type")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation("PostCommentsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+  @@map("post_comments")
 }

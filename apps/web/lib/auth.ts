@@ -1,11 +1,17 @@
 import type { AuthResponse, AuthUser } from '@moons/shared';
 
 const TOKEN_KEY = 'moons_access_token';
+const REFRESH_KEY = 'moons_refresh_token';
 const USER_KEY = 'moons_user';
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(REFRESH_KEY);
 }
 
 export function getStoredUser(): AuthUser | null {
@@ -35,6 +41,9 @@ function clearSessionCookies() {
 
 export function setAuthSession(data: AuthResponse) {
   localStorage.setItem(TOKEN_KEY, data.accessToken);
+  if (data.refreshToken) {
+    localStorage.setItem(REFRESH_KEY, data.refreshToken);
+  }
   localStorage.setItem(USER_KEY, JSON.stringify(data.user));
   setSessionCookie(!!data.user.onboardingCompleted);
 }
@@ -46,6 +55,7 @@ export function updateStoredUser(user: AuthUser) {
 
 export function clearAuthSession() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
   clearSessionCookies();
 }

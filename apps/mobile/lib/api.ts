@@ -47,33 +47,80 @@ async function parseError(response: Response): Promise<ApiError> {
   return new ApiError(message, response.status, code);
 }
 
-async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = await getRefreshToken();
-  if (!refreshToken) {
-    await clearAuthSession();
-    return null;
+type RefreshResult =
+  | { ok: true; accessToken: string }
+  | { ok: false; reason: 'auth' | 'network' };
+
+/** Single-flight refresh — concurrent 401s share one refresh call. */
+let refreshInFlight: Promise<RefreshResult> | null = null;
+
+async function refreshAccessToken(): Promise<RefreshResult> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async (): Promise<RefreshResult> => {
+    const refreshToken = await getRefreshToken();
+    if (!refreshToken) {
+      return { ok: false, reason: 'auth' };
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          return { ok: false, reason: 'auth' };
+        }
+        return { ok: false, reason: 'network' };
+      }
+      const data = (await response.json()) as AuthResponse;
+      await setAuthSession({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        user: data.user,
+      });
+      return { ok: true, accessToken: data.accessToken };
+    } catch {
+      return { ok: false, reason: 'network' };
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
+
+async function withAuthRetry<T>(
+  request: (token: string) => Promise<T>,
+): Promise<T> {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new ApiError('Please log in to continue', 401);
   }
 
   try {
-    const response = await fetch(`${API_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (!response.ok) {
-      await clearAuthSession();
-      return null;
+    return await request(token);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      const result = await refreshAccessToken();
+      if (result.ok) {
+        return request(result.accessToken);
+      }
+      if (result.reason === 'auth') {
+        await clearAuthSession();
+        throw new ApiError(
+          'Your session has expired. Please sign in again.',
+          401,
+          'SESSION_EXPIRED',
+        );
+      }
+      throw new NetworkError(
+        'Could not refresh your session. Check your connection and try again.',
+      );
     }
-    const data = (await response.json()) as AuthResponse;
-    await setAuthSession({
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-      user: data.user,
-    });
-    return data.accessToken;
-  } catch {
-    await clearAuthSession();
-    return null;
+    throw err;
   }
 }
 
@@ -117,60 +164,22 @@ export async function authFetch<T>(
   path: string,
   options: Omit<FetchOptions, 'token'> = {},
 ): Promise<T> {
-  let token = await getAccessToken();
-  if (!token) {
-    throw new ApiError('Please log in to continue', 401);
+  if (options.skipAuthRetry) {
+    const token = await getAccessToken();
+    if (!token) throw new ApiError('Please log in to continue', 401);
+    return apiFetchRaw<T>(path, { ...options, token });
   }
-
-  try {
-    return await apiFetchRaw<T>(path, { ...options, token });
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401 && !options.skipAuthRetry) {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        return apiFetchRaw<T>(path, { ...options, token: newToken });
-      }
-    }
-    throw err;
-  }
+  return withAuthRetry((token) => apiFetchRaw<T>(path, { ...options, token }));
 }
 
 export async function authUpload<T>(path: string, formData: FormData): Promise<T> {
-  let token = await getAccessToken();
-  if (!token) {
-    throw new ApiError('Please log in to continue', 401);
-  }
-
-  try {
-    return await apiFetchRaw<T>(path, { method: 'POST', body: formData, token });
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        return await apiFetchRaw<T>(path, { method: 'POST', body: formData, token: newToken });
-      }
-    }
-    throw err;
-  }
+  return withAuthRetry((token) =>
+    apiFetchRaw<T>(path, { method: 'POST', body: formData, token }),
+  );
 }
 
 export async function authDelete<T>(path: string): Promise<T> {
-  let token = await getAccessToken();
-  if (!token) {
-    throw new ApiError('Please log in to continue', 401);
-  }
-
-  try {
-    return await apiFetchRaw<T>(path, { method: 'DELETE', token });
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        return await apiFetchRaw<T>(path, { method: 'DELETE', token: newToken });
-      }
-    }
-    throw err;
-  }
+  return withAuthRetry((token) => apiFetchRaw<T>(path, { method: 'DELETE', token }));
 }
 
 export async function persistAuthSession(data: AuthResponse) {

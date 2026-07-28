@@ -21,6 +21,7 @@ import {
   MessageComposeModal,
   ShareProfileMenu,
 } from '@/components/network/network-modals';
+import { ProfilePostsSection } from '@/components/feed/profile-posts-section';
 import type {
   CertificationEntry,
   EducationEntry,
@@ -215,15 +216,14 @@ function ProfileActionBar({
             Message
           </LiButton>
           <ShareProfileMenu userId={userId} fullName={fullName} headline={headline} />
+          <LiButton
+            variant="outline"
+            disabled={loading}
+            onClick={() => run(() => removeConnection(userId))}
+          >
+            Remove connection
+          </LiButton>
         </div>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => run(() => removeConnection(userId))}
-          className="text-xs font-medium text-moons-muted transition hover:text-red-600 disabled:opacity-60"
-        >
-          Remove connection
-        </button>
         <MessageComposeModal
           open={showMessage}
           userId={userId}
@@ -658,6 +658,15 @@ export function NetworkProfilePage() {
                   </p>
                 </SectionCard>
               )}
+
+              <ProfilePostsSection
+                userId={profile.userId}
+                emptyMessage={
+                  isOwnProfile
+                    ? 'You have not posted anything yet. Share an update from your feed.'
+                    : `${firstName} has not posted anything yet.`
+                }
+              />
 
               {workExperiences.length > 0 && (
                 <SectionCard title="Experience" subtitle={`${workExperiences.length} position${workExperiences.length === 1 ? '' : 's'}`}>

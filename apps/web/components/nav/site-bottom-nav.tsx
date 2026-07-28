@@ -110,7 +110,7 @@ export function SiteBottomNav() {
           <BottomNavPill
             key={link.label}
             link={link}
-            active={isNavActive(pathname, link.label)}
+            active={isNavActive(pathname, link.label, link.href)}
             showDot={showDots ? navLinkShowDot(link, indicators) : false}
           />
         ))}

@@ -77,9 +77,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          headerTitle: 'MoonsJob',
-          href: null,
+          title: 'Feed',
+          headerTitle: 'Feed',
         }}
       />
       <Tabs.Screen
