@@ -29,7 +29,7 @@ function useUiStyles() {
         scrollContent: { flexGrow: 1 },
         card: {
           backgroundColor: colors.surfaceElevated,
-          borderRadius: theme.radius.lg,
+          borderRadius: theme.radius.xl,
           borderWidth: 1,
           borderColor: colors.border,
           padding: theme.spacing.lg,
@@ -40,19 +40,23 @@ function useUiStyles() {
           fontFamily: theme.fonts.bold,
           color: colors.heading,
           marginBottom: 8,
-          marginTop: 8,
+          marginTop: 10,
         },
         input: {
           backgroundColor: colors.surface,
-          borderWidth: 1,
+          borderWidth: 1.5,
           borderColor: colors.border,
           borderRadius: theme.radius.md,
-          paddingHorizontal: 14,
-          paddingVertical: 13,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
           color: colors.foreground,
           marginBottom: 8,
           fontSize: 15,
           fontFamily: theme.fonts.regular,
+        },
+        inputFocused: {
+          borderColor: colors.blue,
+          backgroundColor: colors.surfaceElevated,
         },
         passwordWrap: {
           position: 'relative',
@@ -74,43 +78,44 @@ function useUiStyles() {
         primaryButton: {
           backgroundColor: colors.blue,
           borderRadius: theme.radius.full,
-          paddingVertical: 15,
+          paddingVertical: 16,
           alignItems: 'center',
-          marginTop: 12,
+          marginTop: 14,
+          ...theme.shadow.button,
         },
         secondaryButton: {
           borderRadius: theme.radius.full,
-          borderWidth: 1,
+          borderWidth: 1.5,
           borderColor: colors.border,
           paddingVertical: 14,
           alignItems: 'center',
           marginTop: 10,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.surfaceElevated,
         },
-        buttonDisabled: { opacity: 0.65 },
-        buttonPressed: { opacity: 0.9 },
-        primaryButtonText: { color: '#fff', fontFamily: theme.fonts.bold, fontSize: 15 },
+        buttonDisabled: { opacity: 0.6 },
+        buttonPressed: { opacity: 0.9, transform: [{ scale: 0.985 }] },
+        primaryButtonText: { color: '#fff', fontFamily: theme.fonts.bold, fontSize: 15, letterSpacing: 0.2 },
         secondaryButtonText: { color: colors.heading, fontFamily: theme.fonts.semibold, fontSize: 15 },
         alertError: {
-          marginTop: 8,
+          marginTop: 10,
           backgroundColor: colors.errorBg,
           borderRadius: theme.radius.md,
-          padding: 12,
+          padding: 14,
           borderWidth: 1,
-          borderColor: 'rgba(248, 113, 113, 0.25)',
+          borderColor: 'rgba(248, 113, 113, 0.28)',
         },
         alertInfo: {
-          marginTop: 8,
+          marginTop: 10,
           backgroundColor: colors.successBg,
           borderRadius: theme.radius.md,
-          padding: 12,
+          padding: 14,
           borderWidth: 1,
-          borderColor: 'rgba(134, 239, 172, 0.25)',
+          borderColor: 'rgba(134, 239, 172, 0.28)',
         },
         error: { color: colors.error, fontSize: 14, lineHeight: 20, fontFamily: theme.fonts.regular },
         info: { color: colors.success, fontSize: 14, lineHeight: 20, fontFamily: theme.fonts.regular },
         dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
-        dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+        dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
         dividerText: { fontSize: 12, fontFamily: theme.fonts.medium, color: colors.muted },
         link: { color: colors.blue, fontFamily: theme.fonts.bold, fontSize: 14 },
       }),
@@ -166,8 +171,23 @@ export function FieldLabel({ children }: { children: string }) {
 export function Input(props: TextInputProps) {
   const styles = useUiStyles();
   const { colors } = useTheme();
+  const [focused, setFocused] = useState(false);
+  const { style, onFocus, onBlur, ...rest } = props;
+
   return (
-    <TextInput placeholderTextColor={colors.muted} style={styles.input} {...props} />
+    <TextInput
+      {...rest}
+      placeholderTextColor={colors.muted}
+      style={[styles.input, focused && styles.inputFocused, style]}
+      onFocus={(e) => {
+        setFocused(true);
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        setFocused(false);
+        onBlur?.(e);
+      }}
+    />
   );
 }
 
@@ -175,14 +195,24 @@ export function PasswordInput(props: Omit<TextInputProps, 'secureTextEntry'>) {
   const styles = useUiStyles();
   const { colors } = useTheme();
   const [visible, setVisible] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const { style, onFocus, onBlur, ...rest } = props;
 
   return (
     <View style={styles.passwordWrap}>
       <TextInput
-        {...props}
+        {...rest}
         secureTextEntry={!visible}
         placeholderTextColor={colors.muted}
-        style={[styles.input, styles.passwordInput]}
+        style={[styles.input, styles.passwordInput, focused && styles.inputFocused, style]}
+        onFocus={(e) => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
       />
       <Pressable
         onPress={() => setVisible((v) => !v)}
@@ -232,10 +262,26 @@ export function PrimaryButton({
   );
 }
 
-export function SecondaryButton({ label, onPress }: { label: string; onPress: () => void }) {
+export function SecondaryButton({
+  label,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
   const styles = useUiStyles();
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.secondaryButton,
+        disabled && styles.buttonDisabled,
+        pressed && styles.buttonPressed,
+      ]}
+    >
       <Text style={styles.secondaryButtonText}>{label}</Text>
     </Pressable>
   );

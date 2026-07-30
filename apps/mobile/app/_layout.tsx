@@ -6,6 +6,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
 import { IncomingMessageSoundListener } from '@/components/incoming-message-sound-listener';
+import { PersistentBottomPillNav } from '@/components/bottom-pill-tab-bar';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
@@ -36,12 +37,14 @@ function RootStack() {
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="search" options={{ title: 'Search' }} />
         <Stack.Screen name="network/[userId]" options={{ title: 'Profile' }} />
         <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="job/[id]" options={{ title: 'Job details' }} />
         <Stack.Screen name="companies/[recruiterId]" options={{ title: 'Company' }} />
         <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
         <Stack.Screen name="settings/security" options={{ title: 'Security' }} />
+        <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
         <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
         <Stack.Screen name="profile/network" options={{ title: 'My network' }} />
         <Stack.Screen name="about" options={{ title: 'About' }} />
@@ -76,7 +79,10 @@ function AppRoot() {
     <GoogleAuthWrapper>
       <AuthProvider>
         <IncomingMessageSoundListener />
-        <RootStack />
+        <View style={{ flex: 1 }}>
+          <RootStack />
+          <PersistentBottomPillNav />
+        </View>
       </AuthProvider>
     </GoogleAuthWrapper>
   );

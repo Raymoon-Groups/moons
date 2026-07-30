@@ -1,7 +1,8 @@
 import { apiFetch } from '@/lib/api';
+import { searchProfessionals } from '@/lib/network';
 import type { CompaniesPage, JobsPage } from '@/lib/types';
 
-export type SearchSuggestionType = 'job' | 'company' | 'skill';
+export type SearchSuggestionType = 'job' | 'company' | 'person' | 'skill';
 
 export interface SearchSuggestion {
   type: SearchSuggestionType;
@@ -9,6 +10,7 @@ export interface SearchSuggestion {
   meta?: string;
   jobId?: string;
   recruiterId?: string;
+  userId?: string;
 }
 
 const POPULAR_SEARCHES = [
@@ -61,15 +63,16 @@ export async function fetchSearchSuggestions(query: string): Promise<SearchSugge
   const params = new URLSearchParams({ q, limit: '5' });
   const companyParams = new URLSearchParams({ q, limit: '4' });
 
-  const [jobsResult, companiesResult] = await Promise.all([
+  const [jobsResult, companiesResult, peopleResult] = await Promise.all([
     apiFetch<JobsPage>(`/jobs?${params}`).catch(() => null),
     apiFetch<CompaniesPage>(`/jobs/companies?${companyParams}`).catch(() => null),
+    searchProfessionals({ q, limit: 5 }).catch(() => null),
   ]);
 
   const jobSuggestions: SearchSuggestion[] = (jobsResult?.items ?? []).slice(0, 4).map((job) => ({
     type: 'job',
     label: job.title,
-    meta: job.companyName,
+    meta: [job.companyName, job.location].filter(Boolean).join(' · '),
     jobId: job.id,
   }));
 
@@ -82,15 +85,29 @@ export async function fetchSearchSuggestions(query: string): Promise<SearchSugge
       recruiterId: company.recruiterId,
     }));
 
+  const peopleSuggestions: SearchSuggestion[] = (peopleResult?.items ?? [])
+    .slice(0, 4)
+    .map((person) => ({
+      type: 'person',
+      label: person.fullName?.trim() || 'Professional',
+      meta: person.headline || person.currentCompany || undefined,
+      userId: person.userId,
+    }));
+
   const skillSuggestions = matchSkillTerms(q, 3);
 
   const seen = new Set<string>();
-  const combined = [...jobSuggestions, ...companySuggestions, ...skillSuggestions].filter((item) => {
+  const combined = [
+    ...peopleSuggestions,
+    ...jobSuggestions,
+    ...companySuggestions,
+    ...skillSuggestions,
+  ].filter((item) => {
     const key = `${item.type}:${item.label.toLowerCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 
-  return combined.slice(0, 8);
+  return combined.slice(0, 12);
 }

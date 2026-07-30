@@ -1,17 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  FlatList,
   Image,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import type { FeedPost, PostCommentItem } from '@moons/shared';
 import { ForwardPostModal } from '@/components/feed/forward-post-modal';
+import { InlineFeedVideo } from '@/components/feed/inline-feed-video';
+import { MediaViewer } from '@/components/feed/media-viewer';
 import { resolveAssetUrl } from '@/lib/assets';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -44,23 +50,34 @@ function timeAgo(iso: string) {
 
 export function PostCard({
   post,
+  isVisible = true,
   onChange,
   onRemove,
 }: {
   post: FeedPost;
+  isVisible?: boolean;
   onChange: (next: FeedPost) => void;
   onRemove: (id: string) => void;
 }) {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  /** Card sits inside 16px list padding and 16px card padding. */
+  const mediaWidth = width - 64;
   const [busy, setBusy] = useState(false);
-  const [showComments, setShowComments] = useState((post.recentComments?.length ?? 0) > 0);
+  const [showComments, setShowComments] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const [comments, setComments] = useState<PostCommentItem[]>(post.recentComments ?? []);
   const [commentText, setCommentText] = useState('');
   const [commentFile, setCommentFile] = useState<LocalMediaFile | null>(null);
   const [hiddenCommentIds, setHiddenCommentIds] = useState<Set<string>>(() => new Set());
   const [reportedCommentIds, setReportedCommentIds] = useState<Set<string>>(() => new Set());
   const [showForward, setShowForward] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [sharedViewerIndex, setSharedViewerIndex] = useState<number | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editText, setEditText] = useState(post.body);
+  const [editSaving, setEditSaving] = useState(false);
   const isMine = post.author.userId === user?.id;
   const isConnected =
     post.connectionStatus === 'ACCEPTED' || post.connectionStatus === 'SELF';
@@ -76,55 +93,82 @@ export function PostCard({
       StyleSheet.create({
         card: {
           backgroundColor: colors.surfaceElevated,
-          borderRadius: theme.radius.lg,
+          borderRadius: theme.radius.xl,
           borderWidth: 1,
           borderColor: colors.border,
-          padding: 14,
-          marginBottom: 12,
+          padding: 16,
+          marginBottom: 14,
+          ...theme.shadow.soft,
         },
-        row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+        row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
         avatar: {
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: `${colors.blue}22`,
+          width: 46,
+          height: 46,
+          borderRadius: 23,
+          backgroundColor: `${colors.blue}18`,
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'hidden',
         },
-        avatarImg: { width: 44, height: 44, borderRadius: 22 },
-        name: { color: colors.heading, ...fontStyle('semibold'), fontSize: 15 },
-        meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-        body: { color: colors.heading, fontSize: 15, lineHeight: 22, marginTop: 10 },
-        media: { width: '100%', height: 220, borderRadius: 12, marginTop: 10, backgroundColor: '#000' },
-        counts: { flexDirection: 'row', gap: 14, marginTop: 12 },
+        avatarImg: { width: 46, height: 46, borderRadius: 23 },
+        name: { color: colors.heading, ...fontStyle('bold'), fontSize: 15 },
+        meta: { color: colors.muted, fontSize: 12, marginTop: 3, lineHeight: 16 },
+        body: { color: colors.heading, fontSize: 15, lineHeight: 23, marginTop: 12 },
+        media: {
+          width: '100%',
+          aspectRatio: 4 / 3,
+          borderRadius: theme.radius.md,
+          marginTop: 12,
+          backgroundColor: colors.surface,
+        },
+        counts: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 },
+        countRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
         countText: { color: colors.muted, fontSize: 12 },
         actions: {
           flexDirection: 'row',
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: colors.border,
-          marginTop: 10,
-          paddingTop: 6,
+          marginTop: 12,
+          paddingTop: 4,
         },
-        actionBtn: { flex: 1, alignItems: 'center', paddingVertical: 10 },
+        actionBtn: {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'row',
+          gap: 6,
+          paddingVertical: 12,
+        },
         actionText: { color: colors.heading, ...fontStyle('semibold'), fontSize: 13 },
         liked: { color: colors.blue },
         connect: {
           borderWidth: 1,
-          borderColor: `${colors.blue}66`,
+          borderColor: `${colors.blue}55`,
+          backgroundColor: `${colors.blue}12`,
           borderRadius: 999,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
         },
-        connectText: { color: colors.blue, fontSize: 12, ...fontStyle('semibold') },
+        connectText: { color: colors.blue, fontSize: 12, ...fontStyle('bold') },
         authorActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
         sharedBox: {
-          marginTop: 10,
+          marginTop: 12,
           borderWidth: 1,
           borderColor: colors.border,
-          borderRadius: 12,
-          padding: 10,
+          borderRadius: theme.radius.md,
+          padding: 12,
           backgroundColor: colors.surface,
         },
+        sharedAvatar: {
+          width: 30,
+          height: 30,
+          borderRadius: 15,
+          backgroundColor: `${colors.blue}18`,
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        },
+        sharedAvatarImg: { width: 30, height: 30, borderRadius: 15 },
         commentRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
         commentBox: {
           flex: 1,
@@ -158,13 +202,20 @@ export function PostCard({
     }
   }
 
-  async function openComments() {
+  async function toggleComments() {
+    if (showComments) {
+      setShowComments(false);
+      return;
+    }
     setShowComments(true);
+    setCommentsLoading(true);
     try {
       const data = await fetchComments(post.id);
       setComments(data.items);
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : 'Could not load comments');
+    } finally {
+      setCommentsLoading(false);
     }
   }
 
@@ -282,38 +333,14 @@ export function PostCard({
                 text: string;
                 style?: 'cancel' | 'destructive' | 'default';
                 onPress?: () => void;
-              }[] = [];
-              if (Platform.OS === 'ios') {
-                buttons.push({
+              }[] = [
+                {
                   text: 'Edit',
                   onPress: () => {
-                    Alert.prompt(
-                      'Edit post',
-                      'Update your post text',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Save',
-                          onPress: (value?: string) => {
-                            if (value == null) return;
-                            void updatePost(post.id, value)
-                              .then((next) => onChange(next))
-                              .catch((err) =>
-                                Alert.alert(
-                                  'Error',
-                                  err instanceof Error ? err.message : 'Could not save',
-                                ),
-                              );
-                          },
-                        },
-                      ],
-                      'plain-text',
-                      post.body,
-                    );
+                    setEditText(post.body);
+                    setEditOpen(true);
                   },
-                });
-              }
-              buttons.push(
+                },
                 {
                   text: 'Delete',
                   style: 'destructive',
@@ -326,7 +353,7 @@ export function PostCard({
                   },
                 },
                 { text: 'Cancel', style: 'cancel' },
-              );
+              ];
               Alert.alert('Post options', undefined, buttons);
             }}
           >
@@ -337,14 +364,25 @@ export function PostCard({
 
       {post.body ? <Text style={styles.body}>{post.body}</Text> : null}
       {post.media.length > 0 ? (
-        post.media.length === 1 && post.media[0].type === 'VIDEO' ? (
-          <Text style={[styles.meta, { marginTop: 10 }]}>Video attached — open on web for playback</Text>
-        ) : post.media.length === 1 ? (
-          <Image
-            source={{ uri: resolveAssetUrl(post.media[0].url) ?? undefined }}
-            style={styles.media}
-            resizeMode="cover"
-          />
+        post.media.length === 1 ? (
+          post.media[0].type === 'VIDEO' ? (
+            resolveAssetUrl(post.media[0].url) ? (
+              <InlineFeedVideo
+                uri={resolveAssetUrl(post.media[0].url)!}
+                playing={isVisible && viewerIndex === null}
+                style={styles.media}
+                onPress={() => setViewerIndex(0)}
+              />
+            ) : null
+          ) : (
+            <Pressable onPress={() => setViewerIndex(0)}>
+              <Image
+                source={{ uri: resolveAssetUrl(post.media[0].url) ?? undefined }}
+                style={styles.media}
+                resizeMode="contain"
+              />
+            </Pressable>
+          )
         ) : (
           <FlatList
             horizontal
@@ -352,42 +390,110 @@ export function PostCard({
             showsHorizontalScrollIndicator={false}
             data={post.media}
             keyExtractor={(item) => item.id}
-            style={{ marginTop: 10 }}
-            renderItem={({ item, index }) => (
-              <View style={{ width: 320, marginRight: 8 }}>
-                {item.type === 'VIDEO' ? (
-                  <Text style={styles.meta}>Video {index + 1}</Text>
-                ) : (
-                  <Image
-                    source={{ uri: resolveAssetUrl(item.url) ?? undefined }}
-                    style={[styles.media, { marginTop: 0 }]}
-                    resizeMode="cover"
-                  />
-                )}
-                <Text style={[styles.meta, { marginTop: 6, textAlign: 'center' }]}>
-                  {index + 1} / {post.media.length}
-                </Text>
-              </View>
-            )}
+            style={{ marginTop: 12 }}
+            snapToInterval={mediaWidth + 8}
+            decelerationRate="fast"
+            renderItem={({ item, index }) => {
+              const uri = resolveAssetUrl(item.url);
+              return (
+                <View style={{ width: mediaWidth, marginRight: 8 }}>
+                  {item.type === 'VIDEO' && uri ? (
+                    <InlineFeedVideo
+                      uri={uri}
+                      playing={isVisible && viewerIndex === null}
+                      style={[styles.media, { marginTop: 0 }]}
+                      onPress={() => setViewerIndex(index)}
+                    />
+                  ) : (
+                    <Pressable onPress={() => setViewerIndex(index)}>
+                      <Image
+                        source={{ uri: uri ?? undefined }}
+                        style={[styles.media, { marginTop: 0 }]}
+                        resizeMode="contain"
+                      />
+                    </Pressable>
+                  )}
+                  <Text style={[styles.meta, { marginTop: 6, textAlign: 'center' }]}>
+                    {index + 1} / {post.media.length}
+                  </Text>
+                </View>
+              );
+            }}
           />
         )
       ) : null}
 
       {original ? (
-        <View style={styles.sharedBox}>
-          <Text style={styles.meta}>Shared from {original.author.fullName || 'a member'}</Text>
-          {original.body ? <Text style={styles.body}>{original.body}</Text> : null}
-        </View>
+        <Pressable
+          style={styles.sharedBox}
+          onPress={() => router.push(`/network/${original.author.userId}` as never)}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={styles.sharedAvatar}>
+              {resolveAssetUrl(original.author.avatarUrl) ? (
+                <Image
+                  source={{ uri: resolveAssetUrl(original.author.avatarUrl) ?? undefined }}
+                  style={styles.sharedAvatarImg}
+                />
+              ) : (
+                <Text style={{ color: colors.blue, fontSize: 12, ...fontStyle('bold') }}>
+                  {(original.author.fullName?.[0] || '?').toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.name, { fontSize: 13 }]} numberOfLines={1}>
+                {original.author.fullName || 'MoonsJob member'}
+              </Text>
+              <Text style={styles.meta}>Original post · {timeAgo(original.createdAt)}</Text>
+            </View>
+          </View>
+          {original.body ? (
+            <Text style={[styles.body, { fontSize: 14, marginTop: 8 }]} numberOfLines={6}>
+              {original.body}
+            </Text>
+          ) : null}
+          {original.media.length > 0 ? (
+            original.media[0].type === 'VIDEO' && resolveAssetUrl(original.media[0].url) ? (
+              <InlineFeedVideo
+                uri={resolveAssetUrl(original.media[0].url)!}
+                playing={isVisible && sharedViewerIndex === null}
+                style={[styles.media, { aspectRatio: 16 / 9, marginTop: 10 }]}
+                onPress={() => setSharedViewerIndex(0)}
+              />
+            ) : original.media[0].type !== 'VIDEO' ? (
+              <Pressable onPress={() => setSharedViewerIndex(0)}>
+                <Image
+                  source={{ uri: resolveAssetUrl(original.media[0].url) ?? undefined }}
+                  style={[styles.media, { aspectRatio: 16 / 9, marginTop: 10 }]}
+                  resizeMode="contain"
+                />
+              </Pressable>
+            ) : null
+          ) : null}
+        </Pressable>
       ) : null}
 
-      <View style={styles.counts}>
-        <Text style={styles.countText}>
-          {post.likeCount} {post.likeCount === 1 ? 'like' : 'likes'}
-        </Text>
-        <Text style={styles.countText}>
-          {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
-        </Text>
-      </View>
+      {post.likeCount > 0 || post.commentCount > 0 ? (
+        <View style={styles.counts}>
+          {post.likeCount > 0 ? (
+            <View style={styles.countRow}>
+              <Ionicons name="heart" size={13} color={colors.blue} />
+              <Text style={styles.countText}>
+                {post.likeCount} {post.likeCount === 1 ? 'like' : 'likes'}
+              </Text>
+            </View>
+          ) : null}
+          {post.commentCount > 0 ? (
+            <Pressable style={styles.countRow} onPress={() => void toggleComments()} hitSlop={6}>
+              <Ionicons name="chatbubble" size={12} color={colors.muted} />
+              <Text style={styles.countText}>
+                {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <ForwardPostModal
         visible={showForward}
@@ -395,22 +501,143 @@ export function PostCard({
         onClose={() => setShowForward(false)}
       />
 
+      <MediaViewer
+        visible={viewerIndex !== null}
+        media={post.media}
+        initialIndex={viewerIndex ?? 0}
+        caption={post.body}
+        authorName={post.author.fullName || 'MoonsJob member'}
+        timeLabel={timeAgo(post.createdAt)}
+        onClose={() => setViewerIndex(null)}
+      />
+
+      {original ? (
+        <MediaViewer
+          visible={sharedViewerIndex !== null}
+          media={original.media}
+          initialIndex={sharedViewerIndex ?? 0}
+          caption={original.body}
+          authorName={original.author.fullName || 'MoonsJob member'}
+          timeLabel={timeAgo(original.createdAt)}
+          onClose={() => setSharedViewerIndex(null)}
+        />
+      ) : null}
+
+      <Modal visible={editOpen} transparent animationType="fade" onRequestClose={() => setEditOpen(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.surfaceElevated,
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Text style={{ color: colors.heading, ...fontStyle('bold'), fontSize: 16, marginBottom: 10 }}>
+              Edit post
+            </Text>
+            <TextInput
+              value={editText}
+              onChangeText={setEditText}
+              multiline
+              style={{
+                minHeight: 120,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                padding: 12,
+                color: colors.heading,
+                textAlignVertical: 'top',
+                backgroundColor: colors.surface,
+              }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+              <Pressable
+                onPress={() => setEditOpen(false)}
+                style={{ paddingHorizontal: 14, paddingVertical: 10 }}
+              >
+                <Text style={{ color: colors.muted, ...fontStyle('semibold') }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                disabled={editSaving}
+                onPress={() => {
+                  setEditSaving(true);
+                  void updatePost(post.id, editText)
+                    .then((next) => {
+                      onChange(next);
+                      setEditOpen(false);
+                    })
+                    .catch((err) =>
+                      Alert.alert('Error', err instanceof Error ? err.message : 'Could not save'),
+                    )
+                    .finally(() => setEditSaving(false));
+                }}
+                style={{
+                  backgroundColor: colors.blue,
+                  borderRadius: 999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  opacity: editSaving ? 0.7 : 1,
+                }}
+              >
+                <Text style={{ color: '#fff', ...fontStyle('semibold') }}>
+                  {editSaving ? 'Saving…' : 'Save'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.actions}>
         <Pressable style={styles.actionBtn} disabled={busy} onPress={() => void toggleLike()}>
+          <Ionicons
+            name={post.likedByMe ? 'heart' : 'heart-outline'}
+            size={18}
+            color={post.likedByMe ? colors.blue : colors.heading}
+          />
           <Text style={[styles.actionText, post.likedByMe && styles.liked]}>
             {post.likedByMe ? 'Liked' : 'Like'}
           </Text>
         </Pressable>
-        <Pressable style={styles.actionBtn} onPress={() => void openComments()}>
-          <Text style={styles.actionText}>Comment</Text>
+        <Pressable
+          style={styles.actionBtn}
+          onPress={() => void toggleComments()}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showComments }}
+        >
+          <Ionicons
+            name={showComments ? 'chatbubble' : 'chatbubble-outline'}
+            size={17}
+            color={showComments ? colors.blue : colors.heading}
+          />
+          <Text style={[styles.actionText, showComments && styles.liked]}>
+            {showComments ? 'Hide' : 'Comment'}
+          </Text>
         </Pressable>
         <Pressable style={styles.actionBtn} onPress={() => setShowForward(true)}>
+          <Ionicons name="arrow-redo-outline" size={18} color={colors.heading} />
           <Text style={styles.actionText}>Forward</Text>
         </Pressable>
       </View>
 
       {showComments ? (
         <View>
+          {commentsLoading && comments.length === 0 ? (
+            <ActivityIndicator color={colors.blue} style={{ marginTop: 12 }} />
+          ) : comments.length === 0 ? (
+            <Text style={[styles.meta, { marginTop: 10 }]}>
+              No comments yet — be the first to reply.
+            </Text>
+          ) : null}
           {comments
             .filter((c) => !reportedCommentIds.has(c.id))
             .map((c) => {

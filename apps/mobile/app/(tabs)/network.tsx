@@ -35,6 +35,7 @@ import {
 import { fontStyle } from '@/lib/font-style';
 import { useNavIndicators } from '@/lib/nav-indicators';
 import { subscribeRefresh } from '@/lib/refresh-events';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -91,6 +92,7 @@ function FilterPill({
 export default function NetworkScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding();
   const { acknowledgeNetworkBadge } = useNavIndicators();
   const isRecruiter = user?.role === UserRole.RECRUITER;
   const params = useLocalSearchParams<{ tab?: string }>();
@@ -326,11 +328,11 @@ export default function NetworkScreen() {
 
   return (
     <AppScreen>
-      <AuthenticatedScreen>
+      <AuthenticatedScreen padBottom={false}>
         <FlatList
           data={listData}
           keyExtractor={(item) => item.userId}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPadding }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl

@@ -24,7 +24,7 @@ export default function ProfileScreen() {
   const { profile, name, avatarUrl, logoUrl, refresh } = useProfile();
   const bottomPadding = useTabScreenPadding();
   const isRecruiter = user?.role === UserRole.RECRUITER;
-  const companyName = profile?.companyName?.trim() || name;
+  const companyName = profile?.currentCompany?.trim() || name;
   const industryLine = profile?.industry?.trim() || '';
   const locationLine = profile?.location?.trim() || '';
   const metaLine = [industryLine, locationLine].filter(Boolean).join(' · ');

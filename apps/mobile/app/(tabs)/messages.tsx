@@ -20,11 +20,13 @@ import {
   type ConversationPreview,
 } from '@/lib/messages';
 import { subscribeRefresh } from '@/lib/refresh-events';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
 export default function MessagesScreen() {
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding();
   const params = useLocalSearchParams<{ with?: string; conversation?: string }>();
   const [items, setItems] = useState<ConversationPreview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,7 +133,7 @@ export default function MessagesScreen() {
 
   return (
     <AppScreen>
-      <AuthenticatedScreen>
+      <AuthenticatedScreen padBottom={false}>
         {openingUserId ? (
           <View style={styles.openingOverlay}>
             <ActivityIndicator size="large" color={colors.blue} />
@@ -140,7 +142,7 @@ export default function MessagesScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPadding }]}
           showsVerticalScrollIndicator={false}
           extraData={items}
           refreshControl={

@@ -88,22 +88,23 @@ export function EmptyState({
           alignItems: 'center',
           paddingVertical: 48,
           paddingHorizontal: 28,
-          borderRadius: theme.radius.lg,
+          borderRadius: theme.radius.xl,
           borderWidth: 1,
           borderColor: colors.border,
           backgroundColor: colors.surfaceElevated,
           marginTop: 8,
+          ...theme.shadow.soft,
         },
         iconWrap: {
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: `${colors.blue}18`,
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+          backgroundColor: `${colors.blue}16`,
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: 14,
+          marginBottom: 16,
         },
-        title: { fontSize: 17, color: colors.heading, textAlign: 'center', ...fontStyle('bold') },
+        title: { fontSize: 18, color: colors.heading, textAlign: 'center', ...fontStyle('bold') },
         message: {
           marginTop: 8,
           fontSize: 14,
@@ -240,24 +241,47 @@ export function PrimaryBanner({
     <Pressable
       onPress={onPress}
       style={{
-        borderRadius: theme.radius.lg,
+        borderRadius: theme.radius.xl,
         borderWidth: 1,
-        borderColor: `${colors.blue}44`,
-        backgroundColor: isDark ? `${colors.blue}18` : `${colors.blue}10`,
+        borderColor: `${colors.blue}40`,
+        backgroundColor: isDark ? `${colors.blue}1A` : `${colors.blue}12`,
         padding: theme.spacing.md,
         marginBottom: theme.spacing.md,
+        overflow: 'hidden',
       }}
     >
-      <Text style={{ fontSize: 15, color: colors.heading, ...fontStyle('bold') }} numberOfLines={2}>
+      <View
+        style={{
+          position: 'absolute',
+          right: -20,
+          top: -20,
+          width: 90,
+          height: 90,
+          borderRadius: 45,
+          backgroundColor: `${colors.blue}18`,
+        }}
+      />
+      <Text style={{ fontSize: 16, color: colors.heading, ...fontStyle('bold') }} numberOfLines={2}>
         {title}
       </Text>
       <Text
-        style={{ marginTop: 4, fontSize: 13, color: colors.muted, lineHeight: 19, ...fontStyle('regular') }}
+        style={{ marginTop: 6, fontSize: 13, color: colors.muted, lineHeight: 19, ...fontStyle('regular') }}
         numberOfLines={3}
       >
         {subtitle}
       </Text>
-      <Text style={{ marginTop: 10, fontSize: 13, color: colors.blue, ...fontStyle('bold') }}>{ctaLabel} →</Text>
+      <View
+        style={{
+          marginTop: 12,
+          alignSelf: 'flex-start',
+          backgroundColor: colors.blue,
+          borderRadius: 999,
+          paddingHorizontal: 14,
+          paddingVertical: 8,
+        }}
+      >
+        <Text style={{ fontSize: 13, color: '#fff', ...fontStyle('bold') }}>{ctaLabel} →</Text>
+      </View>
     </Pressable>
   );
 }

@@ -1,6 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { EmploymentType } from '@moons/shared';
+import { EmploymentType, ScreeningQuestionType, type ScreeningQuestion } from '@moons/shared';
+import {
+  ScreeningQuestionsEditor,
+  buildScreeningQuestions,
+} from '@/components/recruiter/screening-questions-editor';
 import { SelectField } from '@/components/profile/select-field';
 import { LoadingScreen } from '@/components/loading-screen';
 import { Card, ErrorText, FieldLabel, Input, PrimaryButton, Screen } from '@/components/ui';
@@ -25,6 +29,8 @@ export default function EditJobScreen() {
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
   const [employmentType, setEmploymentType] = useState(EmploymentType.FULL_TIME);
+  const [askForCv, setAskForCv] = useState(true);
+  const [customQuestions, setCustomQuestions] = useState<ScreeningQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -39,6 +45,15 @@ export default function EditJobScreen() {
         setLocation(job.location);
         setSalaryRange(job.salaryRange ?? '');
         setEmploymentType(job.employmentType as EmploymentType);
+
+        const questions = job.screeningQuestions ?? [];
+        const hasResume = questions.some((q) => q.type === ScreeningQuestionType.RESUME);
+        setAskForCv(hasResume);
+        setCustomQuestions(
+          questions
+            .filter((q) => q.type !== ScreeningQuestionType.RESUME)
+            .map((q, index) => ({ ...q, sortOrder: index })),
+        );
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -48,7 +63,7 @@ export default function EditJobScreen() {
     setError('');
     setSaving(true);
     try {
-      await authFetch(`/jobs/mine/${id}`, {
+      await authFetch(`/jobs/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           title,
@@ -57,6 +72,7 @@ export default function EditJobScreen() {
           location,
           salaryRange: salaryRange || undefined,
           employmentType,
+          screeningQuestions: buildScreeningQuestions(askForCv, customQuestions),
         }),
       });
       router.back();
@@ -95,10 +111,17 @@ export default function EditJobScreen() {
           multiline
           style={{ minHeight: 120, textAlignVertical: 'top' }}
         />
+
+        <ScreeningQuestionsEditor
+          askForCv={askForCv}
+          onAskForCvChange={setAskForCv}
+          questions={customQuestions}
+          onChange={setCustomQuestions}
+        />
+
         {error ? <ErrorText>{error}</ErrorText> : null}
         <PrimaryButton label={saving ? 'Saving…' : 'Save changes'} onPress={handleSave} loading={saving} />
       </Card>
     </Screen>
   );
 }
-

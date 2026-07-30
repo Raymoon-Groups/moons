@@ -34,7 +34,7 @@ export function AuthLayout({
         root: { flex: 1, backgroundColor: colors.background },
         hero: {
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: 36,
+          paddingBottom: 44,
         },
         heroTop: {
           flexDirection: 'row',
@@ -43,19 +43,21 @@ export function AuthLayout({
         },
         heroTitle: {
           marginTop: theme.spacing.lg,
-          fontSize: 28,
+          fontSize: 30,
           fontFamily: theme.fonts.extrabold,
           color: colors.white,
-          lineHeight: 36,
+          lineHeight: 38,
+          letterSpacing: -0.3,
         },
         heroSubtitle: {
           marginTop: theme.spacing.sm,
           fontSize: 15,
           lineHeight: 23,
           fontFamily: theme.fonts.regular,
-          color: 'rgba(255,255,255,0.88)',
+          color: 'rgba(255,255,255,0.9)',
+          maxWidth: 320,
         },
-        formArea: { flex: 1, marginTop: -28 },
+        formArea: { flex: 1, marginTop: -32 },
         scroll: { paddingHorizontal: theme.spacing.md, flexGrow: 1 },
         card: {
           backgroundColor: colors.surfaceElevated,
@@ -69,6 +71,7 @@ export function AuthLayout({
           fontSize: 26,
           fontFamily: theme.fonts.extrabold,
           color: colors.heading,
+          letterSpacing: -0.2,
         },
         subtitle: {
           marginTop: theme.spacing.sm,
@@ -89,7 +92,7 @@ export function AuthLayout({
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={['#3568b8', '#4a7fd4', '#1a2744']}
+        colors={['#2f63c4', '#4a7fd4', '#1a2744']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.hero, { paddingTop: insets.top + 20 }]}

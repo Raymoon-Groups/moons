@@ -67,6 +67,12 @@ export default function SettingsScreen() {
         onPress={() => router.push('/settings/security')}
         colors={colors}
       />
+      <MenuLink
+        label="Delete account"
+        subtitle="How to request permanent account deletion"
+        onPress={() => router.push('/delete-account')}
+        colors={colors}
+      />
 
       <Text style={[styles.heading, { color: colors.muted, marginTop: 8 }, fontStyle('bold')]}>Company</Text>
       {LEGAL_LINKS.map((link) => (

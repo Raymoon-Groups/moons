@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -32,15 +32,21 @@ const FILTER_OPTIONS = [
 export default function JobsScreen() {
   const { colors } = useTheme();
   const bottomPadding = useTabScreenPadding();
+  const params = useLocalSearchParams<{ q?: string | string[] }>();
+  const paramQ = Array.isArray(params.q) ? params.q[0] : params.q;
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(paramQ?.trim() || '');
   const [location, setLocation] = useState('');
   const [experience, setExperience] = useState('');
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (paramQ?.trim()) setQuery(paramQ.trim());
+  }, [paramQ]);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);

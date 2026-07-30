@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs, router } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { UserRole } from '@moons/shared';
-import { BottomPillTabBar } from '@/components/bottom-pill-tab-bar';
 import { NotificationBell } from '@/components/notification-bell';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/lib/auth-context';
@@ -20,6 +19,22 @@ function HeaderActions() {
 
   return (
     <View style={[styles.headerRight, compact && styles.headerRightCompact]}>
+      <Pressable
+        onPress={() => router.push('/search')}
+        style={[
+          styles.profileBtn,
+          {
+            width: btnSize,
+            height: btnSize,
+            borderRadius: btnSize / 2,
+            borderColor: colors.border,
+            backgroundColor: colors.surfaceElevated,
+          },
+        ]}
+        accessibilityLabel="Search"
+      >
+        <Ionicons name="search" size={iconSize} color={colors.heading} />
+      </Pressable>
       <NotificationBell hasUnread={indicators.bell} compact={compact} />
       <ThemeToggle size={compact ? 36 : 40} />
       <Pressable
@@ -60,7 +75,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      tabBar={(props) => <BottomPillTabBar {...props} />}
+      tabBar={() => null}
       screenOptions={{
         headerStyle: {
           backgroundColor: colors.surfaceElevated,
