@@ -27,7 +27,14 @@ function MoonIcon() {
   );
 }
 
-export function ThemeToggle({ className = '' }: { className?: string }) {
+export function ThemeToggle({
+  className = '',
+  bare = false,
+}: {
+  className?: string;
+  /** Icon-only control without its own floating pill (for mobile glass bar). */
+  bare?: boolean;
+}) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -41,7 +48,11 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className={`header-float flex h-11 w-11 shrink-0 items-center justify-center text-moons-muted transition hover:text-moons-blue focus:outline-none focus:ring-2 focus:ring-moons-blue/20 sm:h-12 sm:w-12 ${className}`}
+      className={`${
+        bare
+          ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-moons-muted transition hover:bg-surface hover:text-moons-blue focus:outline-none focus:ring-2 focus:ring-moons-blue/20'
+          : 'header-float flex h-11 w-11 shrink-0 items-center justify-center text-moons-muted transition hover:text-moons-blue focus:outline-none focus:ring-2 focus:ring-moons-blue/20 sm:h-12 sm:w-12'
+      } ${className}`}
       aria-label={mounted ? (isDark ? 'Switch to light theme' : 'Switch to dark theme') : 'Toggle theme'}
       title={mounted ? (isDark ? 'Light mode' : 'Dark mode') : 'Toggle theme'}
     >

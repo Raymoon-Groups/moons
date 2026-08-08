@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,7 +20,9 @@ import {
   formatNotificationTime,
   markBellNotificationsRead,
   markNotificationRead,
+  notifyNotificationsRefresh,
 } from '@/lib/notifications';
+import { openNotification } from '@/lib/notification-navigation';
 import { subscribeRefresh, emitRefresh } from '@/lib/refresh-events';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
@@ -51,7 +52,15 @@ function isInviteStillActionable(
   );
 }
 
-export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; compact?: boolean }) {
+export function NotificationBell({
+  hasUnread,
+  compact,
+  bare = false,
+}: {
+  hasUnread: boolean;
+  compact?: boolean;
+  bare?: boolean;
+}) {
   const { colors } = useTheme();
   const btnSize = compact ? 36 : 40;
   const iconSize = compact ? 18 : 20;
@@ -97,29 +106,17 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
     }
   }
 
-  function handlePress(item: NotificationItem) {
+  async function handlePress(item: NotificationItem) {
     setOpen(false);
-    if (!item.linkUrl) return;
-    if (item.linkUrl.includes('networkTab=visitors')) {
-      router.push('/profile/network?tab=visitors' as never);
-      return;
+    try {
+      if (!item.readAt) {
+        await markNotificationRead(item.id);
+        notifyNotificationsRefresh();
+      }
+    } catch {
+      // still navigate even if mark-read fails
     }
-    if (item.linkUrl.includes('networkTab=pending') || item.linkUrl.includes('tab=pending')) {
-      router.push('/(tabs)/network?tab=pending' as never);
-      return;
-    }
-    if (item.linkUrl.startsWith('/network/')) {
-      router.push(item.linkUrl as never);
-      return;
-    }
-    const conversationMatch = item.linkUrl.match(/[?&]conversation=([^&]+)/);
-    if (item.linkUrl.startsWith('/messages') && conversationMatch?.[1]) {
-      router.push(`/messages/${decodeURIComponent(conversationMatch[1])}` as never);
-      return;
-    }
-    if (item.linkUrl.startsWith('/')) {
-      router.push(item.linkUrl as never);
-    }
+    openNotification(item);
   }
 
   async function handleInviteAction(item: NotificationItem, action: 'accept' | 'ignore') {
@@ -128,7 +125,9 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
     setActionLoadingId(item.id);
     try {
       if (action === 'accept') {
-        await acceptConnectionInvite(connectionId);
+        await acceptConnectionInvite(connectionId, {
+          fullName: item.title?.replace(/\s+invited you.*$/i, '').trim() || null,
+        });
         setActionById((prev) => ({ ...prev, [item.id]: 'accepted' }));
       } else {
         await ignoreConnectionInvite(connectionId);
@@ -170,8 +169,9 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
             width: btnSize,
             height: btnSize,
             borderRadius: btnSize / 2,
-            borderColor: colors.border,
-            backgroundColor: colors.surfaceElevated,
+            borderWidth: bare ? 0 : 1,
+            borderColor: bare ? 'transparent' : colors.border,
+            backgroundColor: bare ? 'transparent' : colors.surfaceElevated,
           },
         ]}
         accessibilityLabel="Notifications"
@@ -219,21 +219,27 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
                     !inviteState &&
                     isInviteStillActionable(item, pendingInviteIds, items);
 
-                  return (
+                      return (
                     <Pressable
                       key={item.id}
                       onPress={() => {
-                        if (!canAct) handlePress(item);
+                        // Always open the related screen; invite actions stay as separate buttons.
+                        void handlePress(item);
                       }}
                       style={[styles.item, { borderBottomColor: colors.border }]}
                     >
-                      <Text style={[fontStyle('semibold'), { color: colors.heading, fontSize: 14 }]}>
-                        {item.title}
-                      </Text>
-                      <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{item.body}</Text>
-                      <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
-                        {formatNotificationTime(item.createdAt)}
-                      </Text>
+                      <View style={styles.itemTop}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={[fontStyle('semibold'), { color: colors.heading, fontSize: 14 }]}>
+                            {item.title}
+                          </Text>
+                          <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{item.body}</Text>
+                          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
+                            {formatNotificationTime(item.createdAt)}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                      </View>
 
                       {inviteState === 'accepted' ? (
                         <Text style={{ color: '#15803d', fontSize: 12, marginTop: 8, ...fontStyle('semibold') }}>
@@ -250,7 +256,10 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
                         <View style={styles.actions}>
                           <Pressable
                             disabled={actionLoadingId === item.id}
-                            onPress={() => void handleInviteAction(item, 'accept')}
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              void handleInviteAction(item, 'accept');
+                            }}
                             style={[styles.actionBtn, { backgroundColor: colors.blue }]}
                           >
                             <Text style={{ color: '#fff', fontSize: 12, ...fontStyle('bold') }}>
@@ -259,7 +268,10 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
                           </Pressable>
                           <Pressable
                             disabled={actionLoadingId === item.id}
-                            onPress={() => void handleInviteAction(item, 'ignore')}
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              void handleInviteAction(item, 'ignore');
+                            }}
                             style={[
                               styles.actionBtn,
                               {
@@ -276,7 +288,7 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
                         </View>
                       ) : null}
                     </Pressable>
-                  );
+                      );
                 })}
               </ScrollView>
               );
@@ -290,7 +302,6 @@ export function NotificationBell({ hasUnread, compact }: { hasUnread: boolean; c
 
 const styles = StyleSheet.create({
   bell: {
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -326,6 +337,11 @@ const styles = StyleSheet.create({
   item: {
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  itemTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
   },
   actions: {
     flexDirection: 'row',

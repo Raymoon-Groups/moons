@@ -1,4 +1,5 @@
-import { UserRole, type NetworkStats, type NetworkUserCard } from '@moons/shared';
+import { Ionicons } from '@expo/vector-icons';
+import { type NetworkStats, type NetworkUserCard } from '@moons/shared';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -6,38 +7,41 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { AppScreen } from '@/components/app-screen';
 import { AuthenticatedScreen } from '@/components/authenticated-screen';
-import { PersonCard, type ConnectionUpdate } from '@/components/network/person-card';
+import { NetworkDetailHeader, NetworkSegmentTabs } from '@/components/network/network-detail-header';
+import { NetworkInviteRow } from '@/components/network/network-invite-row';
 import { NetworkListRow } from '@/components/network/network-list-row';
-import { NetworkTabs, type NetworkTabId } from '@/components/network/network-tabs';
-import { EmptyState, ScreenHeader } from '@/components/portal-ui';
+import { NetworkStatCard } from '@/components/network/network-stat-card';
+import { PersonCard, type ConnectionUpdate } from '@/components/network/person-card';
+import { SuggestionDiscoveryCard } from '@/components/network/suggestion-discovery-card';
+import { EmptyState } from '@/components/portal-ui';
 import { SearchBar } from '@/components/search-bar';
-import { Input } from '@/components/ui';
 import { ApiError } from '@/lib/api';
-import { useAuth } from '@/lib/auth-context';
-import { OPEN_ON_MOONS_LABEL } from '@/lib/open-on-moons';
+import { fontStyle } from '@/lib/font-style';
 import {
   fetchConnections,
   fetchNetworkStats,
   fetchPendingReceived,
   fetchPendingSent,
-  fetchRecentConnections,
   fetchSuggestions,
   searchProfessionals,
   type ConnectionListItem,
   type PendingRequestItem,
 } from '@/lib/network';
-import { fontStyle } from '@/lib/font-style';
 import { useNavIndicators } from '@/lib/nav-indicators';
 import { subscribeRefresh } from '@/lib/refresh-events';
 import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+
+type ViewMode = 'home' | 'invitations' | 'connections' | 'suggestions' | 'search';
+type InviteSegment = 'received' | 'sent';
 
 function applyConnectionUpdate(
   list: NetworkUserCard[],
@@ -56,60 +60,69 @@ function applyConnectionUpdate(
   );
 }
 
-function FilterPill({
-  active,
-  label,
-  onPress,
+function SectionHeader({
+  title,
+  count,
+  badge = false,
+  onSeeAll,
 }: {
-  active: boolean;
-  label: string;
-  onPress: () => void;
+  title: string;
+  count?: number;
+  /** Red alert badge (use for invitations only). */
+  badge?: boolean;
+  onSeeAll?: () => void;
 }) {
   const { colors } = useTheme();
   return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.filterPill,
-        active
-          ? { backgroundColor: colors.blue }
-          : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
-      ]}
-    >
-      <Text
-        style={[
-          styles.filterPillText,
-          { color: active ? '#fff' : colors.muted },
-          active ? fontStyle('bold') : fontStyle('semibold'),
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionTitleRow}>
+        <Text style={[styles.sectionTitle, { color: colors.heading }, fontStyle('bold')]} numberOfLines={1}>
+          {title}
+        </Text>
+        {badge && typeof count === 'number' && count > 0 ? (
+          <View style={[styles.countBadge, { backgroundColor: '#ef4444' }]}>
+            <Text style={[styles.countBadgeText, fontStyle('bold')]}>{count > 99 ? '99+' : count}</Text>
+          </View>
+        ) : null}
+      </View>
+      {onSeeAll ? (
+        <Pressable onPress={onSeeAll} hitSlop={10} style={styles.seeAllBtn}>
+          <Text style={[styles.seeAll, { color: colors.muted }, fontStyle('medium')]}>See All</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.muted} />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
 export default function NetworkScreen() {
-  const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const bottomPadding = useTabScreenPadding();
   const { acknowledgeNetworkBadge } = useNavIndicators();
-  const isRecruiter = user?.role === UserRole.RECRUITER;
-  const params = useLocalSearchParams<{ tab?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; q?: string | string[] }>();
 
-  const initialTab = useMemo<NetworkTabId>(() => {
+  const paramQ = useMemo(() => {
+    const raw = params.q;
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    return value?.trim() || '';
+  }, [params.q]);
+
+  const initialView = useMemo<ViewMode>(() => {
     const raw = typeof params.tab === 'string' ? params.tab : '';
-    if (raw === 'pending' || raw === 'sent' || raw === 'recent' || raw === 'suggestions' || raw === 'connections') {
-      return raw;
-    }
-    return 'connections';
+    if (raw === 'search' || paramQ) return 'search';
+    if (raw === 'suggestions') return 'suggestions';
+    if (raw === 'sent' || raw === 'pending') return 'invitations';
+    if (raw === 'recent' || raw === 'connections') return 'connections';
+    return 'home';
+  }, [params.tab, paramQ]);
+
+  const initialInviteSegment = useMemo<InviteSegment>(() => {
+    const raw = typeof params.tab === 'string' ? params.tab : '';
+    return raw === 'sent' ? 'sent' : 'received';
   }, [params.tab]);
 
-  const [tab, setTab] = useState<NetworkTabId>(initialTab);
-
-  useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
+  const [view, setView] = useState<ViewMode>(initialView);
+  const [inviteSegment, setInviteSegment] = useState<InviteSegment>(initialInviteSegment);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -119,94 +132,63 @@ export default function NetworkScreen() {
   const [pending, setPending] = useState<PendingRequestItem[]>([]);
   const [sent, setSent] = useState<PendingRequestItem[]>([]);
   const [suggestions, setSuggestions] = useState<NetworkUserCard[]>([]);
-  const [recent, setRecent] = useState<ConnectionListItem[]>([]);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchSkills, setSearchSkills] = useState('');
-  const [searchLocation, setSearchLocation] = useState('');
-  const [searchRole, setSearchRole] = useState<'CANDIDATE' | 'RECRUITER' | ''>('');
-  const [searchOpenToWork, setSearchOpenToWork] = useState(false);
-  const [searchHiring, setSearchHiring] = useState(false);
-  const [searchActive, setSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(paramQ);
   const [searchResults, setSearchResults] = useState<NetworkUserCard[]>([]);
   const [searching, setSearching] = useState(false);
+  const [connectionsFilter, setConnectionsFilter] = useState('');
 
-  const refreshStats = useCallback(async () => {
+  useEffect(() => {
+    setView(initialView);
+    setInviteSegment(initialInviteSegment);
+  }, [initialView, initialInviteSegment]);
+
+  const loadAll = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError('');
     try {
-      setStats(await fetchNetworkStats());
-    } catch {
-      // keep existing stats
+      const [nextStats, connData, received, outgoing, suggestionData] = await Promise.all([
+        fetchNetworkStats(),
+        fetchConnections(),
+        fetchPendingReceived(),
+        fetchPendingSent(),
+        fetchSuggestions(1, 12),
+      ]);
+      setStats(nextStats);
+      setConnections(connData.items);
+      setPending(received.items);
+      setSent(outgoing.items);
+      setSuggestions(suggestionData.items);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to load network');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  const loadTab = useCallback(
-    async (isRefresh = false) => {
-      if (searchActive) return;
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
-      setError('');
-      try {
-        await refreshStats();
-        switch (tab) {
-          case 'connections': {
-            const data = await fetchConnections();
-            setConnections(data.items);
-            break;
-          }
-          case 'pending': {
-            const data = await fetchPendingReceived();
-            setPending(data.items);
-            break;
-          }
-          case 'sent': {
-            const data = await fetchPendingSent();
-            setSent(data.items);
-            break;
-          }
-          case 'suggestions': {
-            const data = await fetchSuggestions();
-            setSuggestions(data.items);
-            break;
-          }
-          case 'recent':
-            setRecent(await fetchRecentConnections());
-            break;
-        }
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Failed to load network');
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [tab, searchActive, refreshStats],
-  );
-
   useFocusEffect(
     useCallback(() => {
-      void loadTab();
+      void loadAll();
       void (async () => {
         try {
           const nextStats = await fetchNetworkStats();
           setStats(nextStats);
           await acknowledgeNetworkBadge(nextStats.pendingReceived);
         } catch {
-          // ignore badge clear errors
+          // ignore
         }
       })();
-    }, [loadTab, acknowledgeNetworkBadge]),
+    }, [loadAll, acknowledgeNetworkBadge]),
   );
 
   useEffect(() => {
-    if (!searchActive) void loadTab();
-  }, [tab, searchActive, loadTab]);
-
-  useEffect(() => {
     const unsub = subscribeRefresh('moons:connections-refresh', () => {
-      void loadTab(true);
+      void loadAll(true);
     });
     return unsub;
-  }, [loadTab]);
+  }, [loadAll]);
 
   function handleConnectionChange(userId: string, update: ConnectionUpdate) {
     if (
@@ -214,44 +196,48 @@ export default function NetworkScreen() {
       update.connectionStatus === 'NONE' ||
       update.connectionStatus === 'REJECTED'
     ) {
-      setSuggestions((prev) => prev.filter((p) => p.userId !== userId));
+      setPending((prev) => prev.filter((item) => item.fromUser?.userId !== userId));
+      setSent((prev) => prev.filter((item) => item.toUser?.userId !== userId));
+      if (update.connectionStatus === 'ACCEPTED') {
+        setSuggestions((prev) => prev.filter((p) => p.userId !== userId));
+      } else {
+        setSuggestions((prev) =>
+          prev.map((p) =>
+            p.userId === userId
+              ? {
+                  ...p,
+                  connectionStatus: 'NONE',
+                  connectionId: null,
+                  connectionDirection: null,
+                }
+              : p,
+          ),
+        );
+      }
+      if (update.connectionStatus !== 'ACCEPTED') {
+        setConnections((prev) => prev.filter((c) => c.user.userId !== userId));
+      }
     } else {
       setSuggestions((prev) => applyConnectionUpdate(prev, userId, update));
     }
     setSearchResults((prev) => applyConnectionUpdate(prev, userId, update));
-    void refreshStats();
+    void fetchNetworkStats()
+      .then(setStats)
+      .catch(() => undefined);
   }
 
-  function clearSearch() {
-    setSearchActive(false);
-    setSearchResults([]);
-    setSearchQuery('');
-    setSearchSkills('');
-    setSearchLocation('');
-    setSearchRole('');
-    setSearchOpenToWork(false);
-    setSearchHiring(false);
-    setError('');
-  }
-
-  async function runSearch() {
-    const q = searchQuery.trim();
-    if (!q && !searchSkills.trim() && !searchLocation.trim() && !searchRole && !searchOpenToWork && !searchHiring) {
-      clearSearch();
+  async function runSearch(nextQuery?: string) {
+    const q = (nextQuery ?? searchQuery).trim();
+    if (!q) {
+      setView('home');
+      setSearchResults([]);
       return;
     }
     setSearching(true);
-    setSearchActive(true);
+    setView('search');
     setError('');
     try {
-      const data = await searchProfessionals({
-        q,
-        skills: searchSkills,
-        location: searchLocation,
-        role: searchRole,
-        ...(searchOpenToWork ? { openToWork: true } : {}),
-        ...(searchHiring ? { isHiring: true } : {}),
-      });
+      const data = await searchProfessionals({ q });
       setSearchResults(data.items);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Search failed');
@@ -260,264 +246,458 @@ export default function NetworkScreen() {
     }
   }
 
-  const listData: NetworkUserCard[] = useMemo(() => {
-    if (searchActive) return searchResults;
-    switch (tab) {
-      case 'connections':
-        return connections.map((r) => ({
-          ...r.user,
-          connectionStatus: 'ACCEPTED',
-          connectionId: r.connectionId,
-        }));
-      case 'pending':
-        return pending
-          .filter((item) => item.fromUser)
-          .map((item) => ({
+  useEffect(() => {
+    if (!paramQ) return;
+    setSearchQuery(paramQ);
+    setView('search');
+    void runSearch(paramQ);
+    // Intentional: only re-run when deep-link query changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramQ]);
+
+  const receivedInvites = useMemo(
+    () =>
+      pending
+        .filter((item) => item.fromUser)
+        .map((item) => ({
+          id: item.id,
+          person: {
             ...item.fromUser!,
-            connectionStatus: 'PENDING',
+            connectionStatus: 'PENDING' as const,
             connectionId: item.id,
             connectionDirection: 'received' as const,
-          }));
-      case 'sent':
-        return sent
-          .filter((item) => item.toUser)
-          .map((item) => ({
+          },
+        })),
+    [pending],
+  );
+
+  const sentInvites = useMemo(
+    () =>
+      sent
+        .filter((item) => item.toUser)
+        .map((item) => ({
+          id: item.id,
+          person: {
             ...item.toUser!,
-            connectionStatus: 'PENDING',
+            connectionStatus: 'PENDING' as const,
             connectionId: item.id,
             connectionDirection: 'sent' as const,
-          }));
-      case 'suggestions':
-        return suggestions;
-      case 'recent':
-        return recent.map((r) => ({
-          ...r.user,
-          connectionStatus: 'ACCEPTED',
-          connectionId: r.connectionId,
-        }));
-      default:
-        return [];
-    }
-  }, [searchActive, searchResults, tab, connections, pending, sent, suggestions, recent]);
+          },
+        })),
+    [sent],
+  );
 
-  const emptyState = useMemo(() => {
-    if (searchActive) {
-      return { title: 'No professionals found', message: 'Try a different name, skill, or company keyword.' };
-    }
-    switch (tab) {
-      case 'connections':
-        return { title: 'No connections yet', message: 'Browse suggestions or search professionals to start building your network.' };
-      case 'pending':
-        return { title: 'No pending requests', message: 'When someone sends you a connection invite, it will show up here.' };
-      case 'sent':
-        return { title: 'No sent requests', message: 'Invites you send will appear here until they are accepted or declined.' };
-      case 'recent':
-        return { title: 'No recent connections', message: 'People you connect with will appear here.' };
-      default:
-        return { title: 'No suggestions yet', message: 'Complete your profile for better recommendations.' };
-    }
-  }, [searchActive, tab]);
+  const connectionPeople = useMemo(
+    () =>
+      connections.map((r) => ({
+        ...r.user,
+        connectionStatus: 'ACCEPTED' as const,
+        connectionId: r.connectionId,
+      })),
+    [connections],
+  );
 
-  const resultLabel = searchActive
-    ? `${listData.length} result${listData.length === 1 ? '' : 's'}`
-    : tab === 'suggestions' || tab === 'recent'
-      ? `${listData.length} ${tab === 'suggestions' ? 'suggestion' : 'connection'}${listData.length === 1 ? '' : 's'}`
-      : `${listData.length} ${listData.length === 1 ? 'person' : 'people'}`;
+  const invitePreview = receivedInvites.slice(0, 3);
+  const suggestionPreview = suggestions.slice(0, 8);
 
-  const isSocialTab = tab === 'connections' || tab === 'pending' || tab === 'sent';
+  const activeInvites = inviteSegment === 'received' ? receivedInvites : sentInvites;
+
+  const filteredConnections = useMemo(() => {
+    const q = connectionsFilter.trim().toLowerCase();
+    if (!q) return connectionPeople;
+    return connectionPeople.filter((person) => {
+      const hay = [person.fullName, person.headline, person.currentCompany, person.location]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [connectionPeople, connectionsFilter]);
+
+  const pageBg = isDark ? colors.background : '#F3F6FB';
+
+  function openInvitations(segment: InviteSegment = 'received') {
+    setInviteSegment(segment);
+    setView('invitations');
+  }
+
+  function openConnections() {
+    setConnectionsFilter('');
+    setView('connections');
+  }
+
+  if (loading && !refreshing) {
+    return (
+      <AppScreen>
+        <AuthenticatedScreen padBottom={false}>
+          <View style={[styles.centered, { backgroundColor: pageBg }]}>
+            <ActivityIndicator size="large" color={colors.blue} />
+          </View>
+        </AuthenticatedScreen>
+      </AppScreen>
+    );
+  }
+
+  const listData =
+    view === 'home'
+      ? [{ id: 'home' as const }]
+      : view === 'invitations'
+        ? [{ id: 'invite-list' as const }]
+        : view === 'connections'
+          ? [{ id: 'connections-list' as const }]
+          : view === 'suggestions'
+            ? suggestions.map((p) => ({ id: p.userId, person: p }))
+            : searchResults.map((p) => ({ id: p.userId, person: p }));
+
+  const showBack = view !== 'home';
 
   return (
     <AppScreen>
       <AuthenticatedScreen padBottom={false}>
         <FlatList
-          data={listData}
-          keyExtractor={(item) => item.userId}
+          style={{ backgroundColor: pageBg }}
+          data={listData as { id: string; person?: NetworkUserCard }[]}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.list, { paddingBottom: bottomPadding }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => (searchActive ? void runSearch() : void loadTab(true))}
+              onRefresh={() => (view === 'search' ? void runSearch() : void loadAll(true))}
               tintColor={colors.blue}
             />
           }
           ListHeaderComponent={
             <View>
-              <ScreenHeader
-                eyebrow="Connections"
-                title="My Network"
-                subtitle={
-                  isRecruiter
-                    ? 'Discover talent and grow your professional network.'
-                    : 'Connect with professionals who share your skills and industry.'
-                }
-              />
-
-              {stats && !searchActive ? (
-                <View style={[styles.statsBar, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-                  <StatItem
-                    label="Connections"
-                    value={stats.connections}
-                    active={tab === 'connections'}
-                    onPress={() => setTab('connections')}
+              {view === 'invitations' ? (
+                <>
+                  <NetworkDetailHeader
+                    title="Invitations"
+                    subtitle="Accept new requests or manage invites you’ve already sent."
+                    count={
+                      inviteSegment === 'received' ? receivedInvites.length : sentInvites.length
+                    }
+                    icon="mail-unread-outline"
+                    onBack={() => setView('home')}
                   />
-                  <View style={[styles.statsDivider, { backgroundColor: colors.border }]} />
-                  <StatItem
-                    label="Pending"
-                    value={stats.pendingReceived}
-                    active={tab === 'pending'}
-                    onPress={() => setTab('pending')}
+                  <NetworkSegmentTabs
+                    value={inviteSegment}
+                    onChange={(id) => setInviteSegment(id as InviteSegment)}
+                    options={[
+                      { id: 'received', label: 'Received', count: receivedInvites.length },
+                      { id: 'sent', label: 'Sent', count: sentInvites.length },
+                    ]}
                   />
-                  <View style={[styles.statsDivider, { backgroundColor: colors.border }]} />
-                  <StatItem
-                    label="Sent"
-                    value={stats.pendingSent}
-                    active={tab === 'sent'}
-                    onPress={() => setTab('sent')}
-                  />
-                </View>
+                </>
               ) : null}
 
-              <View style={[styles.searchPanel, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-                <Text style={[{ color: colors.heading, fontSize: 15 }, fontStyle('bold')]}>Search professionals</Text>
-                <Text style={[{ color: colors.muted, fontSize: 12, marginTop: 4 }, fontStyle('regular')]}>
-                  {isRecruiter
-                    ? 'Find candidates by name, skills, location, or availability'
-                    : 'Name, skills, location, or hiring status'}
-                </Text>
-
-                <View style={styles.searchSection}>
-                  <SearchBar
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder="Search by name or headline"
-                    onSubmitEditing={() => void runSearch()}
+              {view === 'connections' ? (
+                <>
+                  <NetworkDetailHeader
+                    title="Your connections"
+                    subtitle="Message people in your network or open their profile."
+                    count={connectionPeople.length}
+                    icon="people-outline"
+                    onBack={() => setView('home')}
                   />
-                  <View style={styles.searchActions}>
-                    {searchActive ? (
-                      <Pressable onPress={clearSearch} style={styles.clearBtn}>
-                        <Text style={{ color: colors.muted, ...fontStyle('semibold'), fontSize: 13 }}>Clear</Text>
-                      </Pressable>
-                    ) : null}
-                    <Pressable onPress={() => void runSearch()} style={[styles.searchBtn, { backgroundColor: colors.blue }]}>
-                      <Text style={{ color: '#fff', ...fontStyle('bold'), fontSize: 14 }}>
-                        {searching ? 'Searching…' : 'Search'}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
-
-                <Input value={searchSkills} onChangeText={setSearchSkills} placeholder="Skills" />
-                <View style={styles.filterRow}>
-                  <View style={{ flex: 1 }}>
-                    <Input value={searchLocation} onChangeText={setSearchLocation} placeholder="Location" />
-                  </View>
-                </View>
-
-                <View style={styles.roleFilters}>
-                  <FilterPill
-                    active={searchRole === ''}
-                    label="All roles"
-                    onPress={() => setSearchRole('')}
-                  />
-                  <FilterPill
-                    active={searchRole === UserRole.CANDIDATE}
-                    label="Candidates"
-                    onPress={() => setSearchRole(UserRole.CANDIDATE)}
-                  />
-                  <FilterPill
-                    active={searchRole === UserRole.RECRUITER}
-                    label="Recruiters"
-                    onPress={() => setSearchRole(UserRole.RECRUITER)}
-                  />
-                </View>
-
-                <View style={styles.roleFilters}>
-                  {isRecruiter ? (
-                    <FilterPill
-                      active={searchOpenToWork}
-                      label={OPEN_ON_MOONS_LABEL}
-                      onPress={() => setSearchOpenToWork((v) => !v)}
+                  <View style={styles.searchWrap}>
+                    <SearchBar
+                      value={connectionsFilter}
+                      onChangeText={setConnectionsFilter}
+                      placeholder="Filter connections…"
                     />
+                  </View>
+                </>
+              ) : null}
+
+              {showBack && view !== 'invitations' && view !== 'connections' ? (
+                <Pressable onPress={() => setView('home')} style={styles.backRow} hitSlop={8}>
+                  <View
+                    style={[
+                      styles.backBtn,
+                      { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+                    ]}
+                  >
+                    <Ionicons name="chevron-back" size={18} color={colors.heading} />
+                  </View>
+                  <Text style={[{ color: colors.heading, fontSize: 16 }, fontStyle('bold')]}>
+                    {view === 'suggestions' ? 'People you may know' : 'Search results'}
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              {view === 'home' ? (
+                <>
+                  <View style={styles.statsRow}>
+                    <NetworkStatCard
+                      icon="people-outline"
+                      label="Connections"
+                      value={stats?.connections ?? connectionPeople.length}
+                      onPress={openConnections}
+                    />
+                    <NetworkStatCard
+                      icon="mail-unread-outline"
+                      label="Invites"
+                      value={stats?.pendingReceived ?? receivedInvites.length}
+                      onPress={() => openInvitations('received')}
+                    />
+                    <NetworkStatCard
+                      icon="paper-plane-outline"
+                      label="Sent"
+                      value={stats?.pendingSent ?? sentInvites.length}
+                      onPress={() => openInvitations('sent')}
+                    />
+                  </View>
+
+                  <View style={styles.searchWrap}>
+                    <SearchBar
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholder="Search professionals…"
+                      onSubmitEditing={() => void runSearch()}
+                    />
+                  </View>
+
+                  {error ? (
+                    <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
                   ) : null}
-                  <FilterPill active={searchHiring} label="Hiring" onPress={() => setSearchHiring((v) => !v)} />
-                </View>
-              </View>
 
-              {!searchActive ? (
-                <NetworkTabs
-                  value={tab}
-                  onChange={setTab}
-                  counts={{
-                    connections: stats?.connections,
-                    pending: stats?.pendingReceived,
-                    sent: stats?.pendingSent,
-                  }}
-                />
+                  <SectionHeader
+                    title="Invitations"
+                    count={receivedInvites.length}
+                    badge
+                    onSeeAll={receivedInvites.length > 0 ? () => openInvitations('received') : undefined}
+                  />
+                  <View
+                    style={[
+                      styles.blockCard,
+                      { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+                      theme.shadow.soft,
+                    ]}
+                  >
+                    {invitePreview.length === 0 ? (
+                      <Text style={[styles.emptyInline, { color: colors.muted }, fontStyle('medium')]}>
+                        No pending invitations right now.
+                      </Text>
+                    ) : (
+                      invitePreview.map((item, index) => (
+                        <NetworkInviteRow
+                          key={item.id}
+                          person={item.person}
+                          connectionId={item.id}
+                          direction="received"
+                          isLast={index === invitePreview.length - 1}
+                          onConnectionChange={handleConnectionChange}
+                          onUpdated={() => void loadAll(true)}
+                        />
+                      ))
+                    )}
+                  </View>
+
+                  <SectionHeader
+                    title="People you may know"
+                    onSeeAll={suggestions.length > 0 ? () => setView('suggestions') : undefined}
+                  />
+                  {suggestionPreview.length === 0 ? (
+                    <View
+                      style={[
+                        styles.blockCard,
+                        { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+                      ]}
+                    >
+                      <Text style={[styles.emptyInline, { color: colors.muted }, fontStyle('medium')]}>
+                        Complete your profile for better recommendations.
+                      </Text>
+                    </View>
+                  ) : (
+                    <ScrollView
+                      horizontal
+                      nestedScrollEnabled
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.suggestScroll}
+                      contentContainerStyle={styles.suggestRow}
+                    >
+                      {suggestionPreview.map((person) => (
+                        <SuggestionDiscoveryCard
+                          key={person.userId}
+                          person={person}
+                          onConnectionChange={handleConnectionChange}
+                          onDismiss={() =>
+                            setSuggestions((prev) => prev.filter((p) => p.userId !== person.userId))
+                          }
+                          onUpdated={() => void loadAll(true)}
+                        />
+                      ))}
+                    </ScrollView>
+                  )}
+
+                  <SectionHeader
+                    title="Your connections"
+                    onSeeAll={connectionPeople.length > 0 ? openConnections : undefined}
+                  />
+                </>
               ) : (
-                <Text style={[{ color: colors.heading, fontSize: 15, marginBottom: 10 }, fontStyle('bold')]}>Search results</Text>
+                <>
+                  {view === 'search' ? (
+                    <View style={styles.searchWrap}>
+                      <SearchBar
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholder="Search professionals…"
+                        onSubmitEditing={() => void runSearch()}
+                      />
+                    </View>
+                  ) : null}
+                  {error ? (
+                    <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+                  ) : null}
+                  {searching ? (
+                    <ActivityIndicator color={colors.blue} style={{ marginVertical: 24 }} />
+                  ) : null}
+                </>
               )}
-
-              {!loading && !searching && !isSocialTab ? (
-                <Text style={[styles.resultLabel, { color: colors.muted }, fontStyle('semibold')]}>{resultLabel}</Text>
-              ) : null}
-
-              {error ? (
-                <View style={[styles.errorBox, { backgroundColor: colors.errorBg, borderColor: `${colors.error}33` }]}>
-                  <Text style={{ color: colors.error, fontSize: 13, ...fontStyle('medium') }}>{error}</Text>
-                </View>
-              ) : null}
-
-              {(loading || searching) && listData.length === 0 ? (
-                <ActivityIndicator style={{ marginVertical: 40 }} color={colors.blue} />
-              ) : null}
             </View>
           }
-          renderItem={({ item, index }) => {
-            const row =
-              isSocialTab && !searchActive ? (
-                <NetworkListRow
-                  person={item}
-                  onConnectionChange={handleConnectionChange}
-                  onUpdated={() => void loadTab(true)}
-                  showConnect={tab !== 'pending'}
-                  isLast={index === listData.length - 1}
-                />
-              ) : (
+          renderItem={({ item }) => {
+            if (view === 'home') {
+              if (connectionPeople.length === 0) {
+                return (
+                  <EmptyState
+                    icon="people-outline"
+                    title="No connections yet"
+                    message="Browse suggestions above to start building your network."
+                  />
+                );
+              }
+              return (
+                <View
+                  style={[
+                    styles.blockCard,
+                    styles.connectionsPad,
+                    { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+                    theme.shadow.soft,
+                  ]}
+                >
+                  {connectionPeople.slice(0, 5).map((person, index) => (
+                    <NetworkListRow
+                      key={person.userId}
+                      person={person}
+                      showConnect
+                      isLast={index === Math.min(connectionPeople.length, 5) - 1}
+                      onConnectionChange={handleConnectionChange}
+                      onUpdated={() => void loadAll(true)}
+                    />
+                  ))}
+                </View>
+              );
+            }
+
+            if (view === 'invitations') {
+              if (activeInvites.length === 0) {
+                return (
+                  <EmptyState
+                    icon={inviteSegment === 'received' ? 'mail-unread-outline' : 'paper-plane-outline'}
+                    title={inviteSegment === 'received' ? 'No invitations' : 'No sent invites'}
+                    message={
+                      inviteSegment === 'received'
+                        ? 'When someone sends you a connection invite, it will show up here.'
+                        : 'Invites you send will appear here until they respond.'
+                    }
+                  />
+                );
+              }
+              return (
+                <View
+                  style={[
+                    styles.blockCard,
+                    { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+                    theme.shadow.soft,
+                  ]}
+                >
+                  {activeInvites.map((row, index) => (
+                    <NetworkInviteRow
+                      key={row.id}
+                      person={row.person}
+                      connectionId={row.id}
+                      direction={inviteSegment}
+                      isLast={index === activeInvites.length - 1}
+                      onConnectionChange={handleConnectionChange}
+                      onUpdated={() => void loadAll(true)}
+                    />
+                  ))}
+                </View>
+              );
+            }
+
+            if (view === 'connections') {
+              if (filteredConnections.length === 0) {
+                return (
+                  <EmptyState
+                    icon="people-outline"
+                    title={connectionsFilter.trim() ? 'No matches' : 'No connections yet'}
+                    message={
+                      connectionsFilter.trim()
+                        ? 'Try a different name, company, or headline.'
+                        : 'Browse suggestions to start building your network.'
+                    }
+                  />
+                );
+              }
+              return (
+                <View
+                  style={[
+                    styles.blockCard,
+                    styles.connectionsPad,
+                    { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+                    theme.shadow.soft,
+                  ]}
+                >
+                  {filteredConnections.map((person, index) => (
+                    <NetworkListRow
+                      key={person.userId}
+                      person={person}
+                      showConnect
+                      variant="detail"
+                      isLast={index === filteredConnections.length - 1}
+                      onConnectionChange={handleConnectionChange}
+                      onUpdated={() => void loadAll(true)}
+                    />
+                  ))}
+                </View>
+              );
+            }
+
+            const person = item.person;
+            if (!person) return null;
+            return (
+              <View style={styles.personCardWrap}>
                 <PersonCard
-                  person={item}
+                  person={person}
+                  showConnect
                   onConnectionChange={handleConnectionChange}
-                  onUpdated={() => void loadTab(true)}
-                  showConnect={tab !== 'pending'}
                   onDismiss={
-                    tab === 'suggestions' && !searchActive
-                      ? () => setSuggestions((prev) => prev.filter((p) => p.userId !== item.userId))
+                    view === 'suggestions'
+                      ? () => setSuggestions((prev) => prev.filter((p) => p.userId !== person.userId))
                       : undefined
                   }
+                  onUpdated={() => void loadAll(true)}
                 />
-              );
-
-            if (!isSocialTab || searchActive) return row;
-
-            const isFirst = index === 0;
-            const isLast = index === listData.length - 1;
-            return (
-              <View
-                style={[
-                  styles.socialListItem,
-                  { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
-                  isFirst && styles.socialListFirst,
-                  isLast && styles.socialListLast,
-                  isLast && !isFirst && styles.socialListLastOnly,
-                ]}
-              >
-                {row}
               </View>
             );
           }}
           ListEmptyComponent={
-            !loading && !searching ? (
-              <EmptyState icon="people-outline" title={emptyState.title} message={emptyState.message} />
+            view === 'search' && !loading && !searching ? (
+              <EmptyState
+                icon="search-outline"
+                title="No professionals found"
+                message="Try a different name, skill, or company keyword."
+              />
+            ) : view === 'suggestions' && !loading ? (
+              <EmptyState
+                icon="sparkles-outline"
+                title="No suggestions yet"
+                message="Complete your profile for better recommendations."
+              />
             ) : null
           }
         />
@@ -526,110 +706,110 @@ export default function NetworkScreen() {
   );
 }
 
-function StatItem({
-  label,
-  value,
-  active,
-  onPress,
-}: {
-  label: string;
-  value: number;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const { colors } = useTheme();
-  return (
-    <Pressable onPress={onPress} style={styles.statItem}>
-      <Text style={[{ color: colors.heading, fontSize: 20 }, fontStyle('bold')]}>{value}</Text>
-      <Text
-        style={[
-          { fontSize: 12, marginTop: 2 },
-          active ? { color: colors.blue, ...fontStyle('bold') } : { color: colors.muted, ...fontStyle('semibold') },
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  list: { padding: theme.spacing.md, paddingBottom: theme.spacing.md },
-  statsBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    marginBottom: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    ...theme.shadow.soft,
+  list: {
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: 4,
   },
-  statItem: {
+  centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statsDivider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: 'stretch',
-    marginVertical: 4,
-  },
-  socialListItem: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    paddingHorizontal: theme.spacing.md,
-  },
-  socialListFirst: {
-    borderTopWidth: 1,
-    borderTopLeftRadius: theme.radius.lg,
-    borderTopRightRadius: theme.radius.lg,
-    paddingTop: 4,
-  },
-  socialListLast: {
-    borderBottomWidth: 1,
-    borderBottomLeftRadius: theme.radius.lg,
-    borderBottomRightRadius: theme.radius.lg,
-    marginBottom: theme.spacing.md,
-    paddingBottom: 4,
-  },
-  socialListLastOnly: {
-    borderTopWidth: 1,
-    borderTopLeftRadius: theme.radius.lg,
-    borderTopRightRadius: theme.radius.lg,
-    paddingTop: 4,
-  },
-  searchPanel: {
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    marginBottom: theme.spacing.md,
-    padding: theme.spacing.md,
-    gap: 10,
-  },
-  searchSection: { marginTop: 4 },
-  searchActions: {
+  backRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
     gap: 10,
-    marginTop: -4,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 16,
   },
-  clearBtn: { paddingHorizontal: 8, paddingVertical: 8 },
-  searchBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 999 },
-  filterRow: { flexDirection: 'row', gap: 8 },
-  roleFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  filterPill: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
-  filterPillText: { fontSize: 12 },
-  resultLabel: {
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  searchWrap: {
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginTop: 14,
+    minHeight: 28,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 8,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    flexShrink: 1,
+  },
+  countBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  countBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    flexShrink: 0,
+  },
+  seeAll: {
     fontSize: 12,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
+  },
+  blockCard: {
+    borderRadius: theme.radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  connectionsPad: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  emptyInline: {
+    fontSize: 13,
+    lineHeight: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    textAlign: 'center',
+  },
+  suggestScroll: {
+    marginHorizontal: -theme.spacing.md,
+  },
+  suggestRow: {
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: 4,
+    paddingTop: 2,
+  },
+  personCardWrap: {
     marginBottom: 10,
   },
-  errorBox: {
-    borderWidth: 1,
-    borderRadius: theme.radius.md,
-    padding: 12,
-    marginBottom: 12,
+  error: {
+    fontSize: 13,
+    marginBottom: 10,
   },
 });

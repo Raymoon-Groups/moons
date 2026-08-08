@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -20,39 +20,95 @@ import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const AUTO_SCROLL_MS = 2000;
 
 type IntroSlide = {
   key: string;
-  icon?: keyof typeof Ionicons.glyphMap;
   title: string;
   description: string;
   welcome?: boolean;
+  centerIcon?: keyof typeof Ionicons.glyphMap;
+  orbitIcons?: Array<keyof typeof Ionicons.glyphMap>;
 };
 
 const SLIDES: IntroSlide[] = [
   {
-    key: 'welcome',
-    welcome: true,
-    title: 'Welcome to MoonsJob',
-    description: 'Your career hub for jobs, networking, and messaging — all in one place.',
+    key: 'smart-search',
+    centerIcon: 'search',
+    orbitIcons: [
+      'wallet-outline',
+      'briefcase-outline',
+      'construct-outline',
+      'location-outline',
+      'business-outline',
+      'phone-portrait-outline',
+    ],
+    title: 'Smart Search',
+    description:
+      'Search jobseekers and jobs by key skills, location, experience, and many other criteria.',
+  },
+  {
+    key: 'track-applies',
+    centerIcon: 'eye-outline',
+    orbitIcons: [
+      'document-text-outline',
+      'checkmark-circle-outline',
+      'time-outline',
+      'people-outline',
+      'notifications-outline',
+      'trending-up-outline',
+    ],
+    title: 'Track Applies',
+    description:
+      'Keep track of applies on your job postings and step-by-step related updates.',
   },
   {
     key: 'jobs',
-    icon: 'briefcase-outline',
+    centerIcon: 'briefcase',
+    orbitIcons: [
+      'search-outline',
+      'filter-outline',
+      'bookmark-outline',
+      'send-outline',
+      'stats-chart-outline',
+      'star-outline',
+    ],
     title: 'Discover opportunities',
     description: 'Browse roles, apply in seconds, and track every application from your phone.',
   },
   {
     key: 'network',
-    icon: 'people-outline',
+    centerIcon: 'people',
+    orbitIcons: [
+      'person-add-outline',
+      'chatbubble-outline',
+      'globe-outline',
+      'ribbon-outline',
+      'heart-outline',
+      'link-outline',
+    ],
     title: 'Build your network',
-    description: 'Connect with recruiters and professionals who match your goals.',
+    description: 'Connect with recruiters and professionals who match your career goals.',
   },
   {
     key: 'messages',
-    icon: 'chatbubble-outline',
+    centerIcon: 'chatbubbles',
+    orbitIcons: [
+      'mail-outline',
+      'attach-outline',
+      'image-outline',
+      'mic-outline',
+      'checkmark-done-outline',
+      'notifications-outline',
+    ],
     title: 'Message directly',
     description: 'Stay in touch with your connections without leaving the app.',
+  },
+  {
+    key: 'welcome',
+    welcome: true,
+    title: 'Welcome to MoonsJob',
+    description: 'Your career hub for jobs, networking, and messaging — all in one place.',
   },
 ];
 
@@ -60,22 +116,107 @@ type AppIntroProps = {
   onComplete: () => void;
 };
 
+function OrbitIllustration({
+  centerIcon,
+  orbitIcons,
+  blue,
+  surface,
+  border,
+}: {
+  centerIcon: keyof typeof Ionicons.glyphMap;
+  orbitIcons: Array<keyof typeof Ionicons.glyphMap>;
+  blue: string;
+  surface: string;
+  border: string;
+}) {
+  const size = 220;
+  const radius = 78;
+  const center = size / 2;
+
+  return (
+    <View style={{ width: size, height: size, marginBottom: theme.spacing.xl }}>
+      <View
+        style={{
+          position: 'absolute',
+          top: center - 78,
+          left: center - 78,
+          width: 156,
+          height: 156,
+          borderRadius: 78,
+          borderWidth: 1.5,
+          borderColor: `${blue}33`,
+          borderStyle: 'dashed',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: center - 44,
+          left: center - 44,
+          width: 88,
+          height: 88,
+          borderRadius: 44,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: `${blue}18`,
+          borderWidth: 1,
+          borderColor: `${blue}44`,
+        }}
+      >
+        <Ionicons name={centerIcon} size={36} color={blue} />
+      </View>
+      {orbitIcons.map((icon, i) => {
+        const angle = (Math.PI * 2 * i) / orbitIcons.length - Math.PI / 2;
+        const x = center + radius * Math.cos(angle) - 18;
+        const y = center + radius * Math.sin(angle) - 18;
+        return (
+          <View
+            key={`${icon}-${i}`}
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: surface,
+              borderWidth: 1,
+              borderColor: border,
+              shadowColor: '#0f172a',
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          >
+            <Ionicons name={icon} size={16} color={blue} />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 export function AppIntro({ onComplete }: AppIntroProps) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<IntroSlide>>(null);
+  const indexRef = useRef(0);
+  const pausingRef = useRef(false);
   const [index, setIndex] = useState(0);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: { flex: 1, backgroundColor: colors.background },
+        root: { flex: 1, backgroundColor: isDark ? colors.background : '#f4f6fc' },
         topGlow: {
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: 280,
+          height: 320,
         },
         skip: {
           position: 'absolute',
@@ -96,35 +237,25 @@ export function AppIntro({ onComplete }: AppIntroProps) {
           alignItems: 'center',
           justifyContent: 'center',
         },
-        iconCircle: {
-          width: 88,
-          height: 88,
-          borderRadius: 44,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: `${colors.blue}18`,
-          borderWidth: 1,
-          borderColor: `${colors.blue}33`,
-          marginBottom: theme.spacing.lg,
-        },
         title: {
-          fontSize: theme.typography.hero,
+          fontSize: 28,
           color: colors.heading,
           textAlign: 'center',
           marginBottom: theme.spacing.sm,
           ...fontStyle('bold'),
         },
         description: {
-          fontSize: theme.typography.subtitle,
+          fontSize: 15,
           lineHeight: 22,
           color: colors.muted,
           textAlign: 'center',
-          maxWidth: 320,
+          maxWidth: 300,
           ...fontStyle('regular'),
         },
         dots: {
           flexDirection: 'row',
           justifyContent: 'center',
+          alignItems: 'center',
           gap: 8,
           marginBottom: theme.spacing.md,
         },
@@ -137,25 +268,45 @@ export function AppIntro({ onComplete }: AppIntroProps) {
           paddingTop: theme.spacing.sm,
         },
       }),
-    [colors],
+    [colors, isDark],
   );
 
   const isLast = index === SLIDES.length - 1;
 
+  const scrollTo = useCallback((next: number, animated = true) => {
+    const clamped = Math.max(0, Math.min(next, SLIDES.length - 1));
+    listRef.current?.scrollToIndex({ index: clamped, animated });
+    indexRef.current = clamped;
+    setIndex(clamped);
+  }, []);
+
   const goNext = useCallback(() => {
-    if (isLast) {
+    if (indexRef.current >= SLIDES.length - 1) {
       onComplete();
       return;
     }
-    const next = index + 1;
-    listRef.current?.scrollToIndex({ index: next, animated: true });
-    setIndex(next);
-  }, [index, isLast, onComplete]);
+    scrollTo(indexRef.current + 1);
+  }, [onComplete, scrollTo]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (pausingRef.current) return;
+      if (indexRef.current >= SLIDES.length - 1) {
+        // Stay on last slide until user taps Get started
+        return;
+      }
+      scrollTo(indexRef.current + 1);
+    }, AUTO_SCROLL_MS);
+    return () => clearInterval(id);
+  }, [scrollTo]);
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const next = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-    if (next !== index) setIndex(next);
-  }, [index]);
+    if (next !== indexRef.current) {
+      indexRef.current = next;
+      setIndex(next);
+    }
+  }, []);
 
   const renderSlide: ListRenderItem<IntroSlide> = useCallback(
     ({ item }) => (
@@ -164,16 +315,20 @@ export function AppIntro({ onComplete }: AppIntroProps) {
           <View style={{ marginBottom: theme.spacing.xl }}>
             <MoonsLogo size="xl" variant="onDark" />
           </View>
-        ) : item.icon ? (
-          <View style={styles.iconCircle}>
-            <Ionicons name={item.icon} size={40} color={colors.blue} />
-          </View>
+        ) : item.centerIcon && item.orbitIcons ? (
+          <OrbitIllustration
+            centerIcon={item.centerIcon}
+            orbitIcons={item.orbitIcons}
+            blue={colors.blue}
+            surface={colors.surfaceElevated}
+            border={colors.border}
+          />
         ) : null}
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.description}>{item.description}</Text>
       </View>
     ),
-    [colors.blue, styles],
+    [colors.blue, colors.border, colors.surfaceElevated, styles],
   );
 
   return (
@@ -182,7 +337,7 @@ export function AppIntro({ onComplete }: AppIntroProps) {
         colors={
           isDark
             ? ['rgba(74, 127, 212, 0.22)', 'rgba(26, 39, 68, 0.1)', 'transparent']
-            : ['rgba(186, 210, 245, 0.55)', 'rgba(74, 127, 212, 0.08)', 'transparent']
+            : ['rgba(186, 210, 245, 0.7)', 'rgba(232, 238, 252, 0.9)', 'transparent']
         }
         style={styles.topGlow}
         pointerEvents="none"
@@ -208,6 +363,15 @@ export function AppIntro({ onComplete }: AppIntroProps) {
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          pausingRef.current = true;
+        }}
+        onMomentumScrollEnd={() => {
+          // Resume auto-scroll shortly after a manual swipe
+          setTimeout(() => {
+            pausingRef.current = false;
+          }, AUTO_SCROLL_MS);
+        }}
         style={{ flex: 1, marginTop: insets.top + 40 }}
         getItemLayout={(_, i) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * i, index: i })}
       />
@@ -221,7 +385,7 @@ export function AppIntro({ onComplete }: AppIntroProps) {
                 styles.dot,
                 {
                   width: i === index ? 22 : 8,
-                  backgroundColor: i === index ? colors.blue : `${colors.muted}55`,
+                  backgroundColor: i === index ? colors.blue : `${colors.blue}35`,
                 },
               ]}
             />

@@ -186,7 +186,7 @@ export function PersonCard({
                       text: 'Remove',
                       style: 'destructive',
                       onPress: () =>
-                        void run(() => removeConnection(local.userId), {
+                        void run(() => removeConnection(local.userId, { fullName: name }), {
                           connectionId: '',
                           connectionStatus: 'NONE',
                           connectionDirection: null,
@@ -208,7 +208,7 @@ export function PersonCard({
               disabled={loading}
               onPress={() =>
                 void run(
-                  () => acceptConnectionInvite(local.connectionId!),
+                  () => acceptConnectionInvite(local.connectionId!, { fullName: local.fullName }),
                   { connectionId: local.connectionId!, connectionStatus: 'ACCEPTED', connectionDirection: null },
                 )
               }

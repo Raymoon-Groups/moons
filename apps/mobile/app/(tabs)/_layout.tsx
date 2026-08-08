@@ -1,60 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Redirect, Tabs, router } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Redirect, Tabs } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
 import { UserRole } from '@moons/shared';
-import { NotificationBell } from '@/components/notification-bell';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { GlassTabHeader } from '@/components/glass-tab-header';
 import { useAuth } from '@/lib/auth-context';
-import { useNavIndicators } from '@/lib/nav-indicators';
 import { useTheme } from '@/lib/theme-context';
-import { theme } from '@/lib/theme';
 
-function HeaderActions() {
-  const { indicators } = useNavIndicators();
-  const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const compact = width < 380;
-  const iconSize = compact ? 18 : 20;
-  const btnSize = compact ? 36 : 40;
-
-  return (
-    <View style={[styles.headerRight, compact && styles.headerRightCompact]}>
-      <Pressable
-        onPress={() => router.push('/search')}
-        style={[
-          styles.profileBtn,
-          {
-            width: btnSize,
-            height: btnSize,
-            borderRadius: btnSize / 2,
-            borderColor: colors.border,
-            backgroundColor: colors.surfaceElevated,
-          },
-        ]}
-        accessibilityLabel="Search"
-      >
-        <Ionicons name="search" size={iconSize} color={colors.heading} />
-      </Pressable>
-      <NotificationBell hasUnread={indicators.bell} compact={compact} />
-      <ThemeToggle size={compact ? 36 : 40} />
-      <Pressable
-        onPress={() => router.push('/(tabs)/profile')}
-        style={[
-          styles.profileBtn,
-          {
-            width: btnSize,
-            height: btnSize,
-            borderRadius: btnSize / 2,
-            borderColor: colors.border,
-            backgroundColor: colors.surfaceElevated,
-          },
-        ]}
-        accessibilityLabel="Profile"
-      >
-        <Ionicons name="person-outline" size={iconSize} color={colors.heading} />
-      </Pressable>
-    </View>
-  );
+function resolveHeaderTitle(options: { headerTitle?: unknown; title?: string }) {
+  if (typeof options.headerTitle === 'string') return options.headerTitle;
+  if (typeof options.title === 'string') return options.title;
+  return '';
 }
 
 export default function TabsLayout() {
@@ -77,15 +31,8 @@ export default function TabsLayout() {
     <Tabs
       tabBar={() => null}
       screenOptions={{
-        headerStyle: {
-          backgroundColor: colors.surfaceElevated,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-        },
-        headerTintColor: colors.heading,
-        headerTitleStyle: { fontFamily: theme.fonts.semibold, fontSize: 17, color: colors.heading },
+        header: ({ options }) => <GlassTabHeader title={resolveHeaderTitle(options)} />,
         headerShadowVisible: false,
-        headerRight: () => <HeaderActions />,
         sceneStyle: { backgroundColor: colors.background },
       }}
     >
@@ -161,22 +108,3 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginRight: 12,
-    flexShrink: 1,
-  },
-  headerRightCompact: {
-    gap: 6,
-    marginRight: 8,
-  },
-  profileBtn: {
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

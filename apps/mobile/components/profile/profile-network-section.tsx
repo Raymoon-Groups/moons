@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ConnectionRequestCard } from '@/components/network/connection-request-card';
 import { PersonCard } from '@/components/network/person-card';
 import {
   fetchConnections,
@@ -145,7 +146,7 @@ export function ProfileNetworkSection() {
           ) : (
             pending.map((item) =>
               item.fromUser ? (
-                <PersonCard
+                <ConnectionRequestCard
                   key={item.id}
                   person={{
                     ...item.fromUser,
@@ -153,6 +154,9 @@ export function ProfileNetworkSection() {
                     connectionId: item.id,
                     connectionDirection: 'received',
                   }}
+                  connectionId={item.id}
+                  createdAt={item.createdAt}
+                  direction="received"
                   onUpdated={load}
                 />
               ) : null,
@@ -164,7 +168,7 @@ export function ProfileNetworkSection() {
           ) : (
             sent.map((item) =>
               item.toUser ? (
-                <PersonCard
+                <ConnectionRequestCard
                   key={item.id}
                   person={{
                     ...item.toUser,
@@ -172,6 +176,9 @@ export function ProfileNetworkSection() {
                     connectionId: item.id,
                     connectionDirection: 'sent',
                   }}
+                  connectionId={item.id}
+                  createdAt={item.createdAt}
+                  direction="sent"
                   onUpdated={load}
                 />
               ) : null,

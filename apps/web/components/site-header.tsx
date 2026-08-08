@@ -79,11 +79,14 @@ function ProfileMenuButton({
   pathname,
   extraMenuLinks,
   compact = false,
+  bare = false,
 }: {
   onLogout: () => void;
   pathname?: string;
   extraMenuLinks?: readonly { label: string; href: string }[];
   compact?: boolean;
+  /** Avatar control without its own floating pill (for mobile glass bar). */
+  bare?: boolean;
 }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -110,8 +113,12 @@ function ProfileMenuButton({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`header-float flex shrink-0 items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-moons-blue/20 sm:gap-2.5 ${
-          compact ? 'p-1.5' : 'py-1.5 pl-1.5 pr-3 sm:py-2 sm:pl-2 sm:pr-3.5'
+        className={`${
+          bare
+            ? 'flex shrink-0 items-center gap-1.5 rounded-full p-1 transition hover:bg-surface focus:outline-none focus:ring-2 focus:ring-moons-blue/20'
+            : `header-float flex shrink-0 items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-moons-blue/20 sm:gap-2.5 ${
+                compact ? 'p-1.5' : 'py-1.5 pl-1.5 pr-3 sm:py-2 sm:pl-2 sm:pr-3.5'
+              }`
         } ${open ? 'ring-2 ring-moons-blue/20' : ''}`}
         aria-label={`${displayName} menu`}
         aria-expanded={open}
@@ -119,7 +126,9 @@ function ProfileMenuButton({
         title={displayName}
       >
         <span
-          className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface ${compact ? 'h-9 w-9' : 'h-9 w-9 sm:h-10 sm:w-10'}`}
+          className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface ${
+            bare || compact ? 'h-8 w-8' : 'h-9 w-9 sm:h-10 sm:w-10'
+          }`}
         >
           {avatarSrc ? (
             <img
@@ -280,22 +289,32 @@ function AuthenticatedHeader({
 }) {
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4">
-      <div className="flex items-center gap-2 sm:gap-3">
+      {/* Mobile: single glass bar */}
+      <div className="header-float flex items-center gap-1.5 px-2 py-1.5 md:hidden">
+        <div className="shrink-0">
+          <MoonsLogo size="sm" priority />
+        </div>
+        <NavUniversalSearch embedded stretched className="min-w-0 flex-1" />
+        <div className="flex shrink-0 items-center gap-0.5">
+          <ThemeToggle bare />
+          <NotificationBell bare hasUnread={hasUnreadBell} />
+          <ProfileMenuButton bare onLogout={onLogout} pathname={pathname} />
+        </div>
+      </div>
+
+      {/* Desktop: classic multi-pill header */}
+      <div className="hidden items-center gap-2 md:flex sm:gap-3">
         <HeaderFloat className="flex shrink-0 items-center px-2.5 py-1 sm:px-3 sm:py-1.5">
           <MoonsLogo size="md" priority />
         </HeaderFloat>
 
-        <NavUniversalSearch
-          floating
-          stretched
-          className="hidden min-w-0 flex-1 md:block"
-        />
+        <NavUniversalSearch floating stretched className="min-w-0 flex-1" />
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
           {isRecruiter && (
             <Link
               href="/recruiter/jobs/new"
-              className="header-float hidden items-center border-transparent bg-moons-blue px-6 py-3 text-[15px] font-semibold text-white transition hover:bg-moons-blue-dark md:inline-flex"
+              className="header-float inline-flex items-center border-transparent bg-moons-blue px-6 py-3 text-[15px] font-semibold text-white transition hover:bg-moons-blue-dark"
             >
               Post a Job
             </Link>
@@ -304,10 +323,6 @@ function AuthenticatedHeader({
           <NotificationBell hasUnread={hasUnreadBell} />
           <ProfileMenuButton onLogout={onLogout} pathname={pathname} />
         </div>
-      </div>
-
-      <div className="mt-2.5 md:hidden">
-        <NavUniversalSearch floating stretched className="min-w-0 w-full" />
       </div>
     </div>
   );
@@ -373,16 +388,37 @@ export function SiteHeader() {
         ) : null}
 
         <div className="mx-auto max-w-7xl px-3 sm:px-4">
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mobile: single glass bar */}
+          <div className="header-float flex items-center gap-1.5 px-2 py-1.5 md:hidden">
+            <div className="shrink-0">
+              <MoonsLogo size="sm" priority />
+            </div>
+            <NavUniversalSearch embedded stretched className="min-w-0 flex-1" />
+            <div className="flex shrink-0 items-center gap-0.5">
+              <ThemeToggle bare />
+              {ready && user ? (
+                <>
+                  <NotificationBell bare hasUnread={indicators.bell} />
+                  <ProfileMenuButton bare onLogout={handleLogout} pathname={pathname} />
+                </>
+              ) : (
+                <Link
+                  href="/register"
+                  className="inline-flex items-center rounded-full bg-moons-blue px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+                >
+                  Get Started
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop: classic multi-pill header */}
+          <div className="hidden items-center gap-2 md:flex sm:gap-3">
             <HeaderFloat className="flex shrink-0 items-center px-2.5 py-1 sm:px-3 sm:py-1.5">
               <MoonsLogo size="md" priority />
             </HeaderFloat>
 
-            <NavUniversalSearch
-              floating
-              stretched
-              className="hidden min-w-0 flex-1 md:block"
-            />
+            <NavUniversalSearch floating stretched className="min-w-0 flex-1" />
 
             <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
               <ThemeToggle />
@@ -408,10 +444,6 @@ export function SiteHeader() {
                 </>
               )}
             </div>
-          </div>
-
-          <div className="mt-2.5 md:hidden">
-            <NavUniversalSearch floating stretched className="min-w-0 w-full" />
           </div>
         </div>
       </div>

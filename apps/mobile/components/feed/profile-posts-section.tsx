@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,7 +21,7 @@ export function ProfilePostsSection({
   userId: string;
   emptyMessage?: string;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -54,66 +55,106 @@ export function ProfilePostsSection({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        section: {
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          padding: theme.spacing.md,
-          marginBottom: theme.spacing.md,
+        head: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 12,
         },
-        title: { fontSize: 16, marginBottom: 4 },
-        subtitle: { fontSize: 12, marginBottom: 12 },
-        empty: { textAlign: 'center', paddingVertical: 20, fontSize: 14 },
+        title: {
+          fontSize: 11,
+          letterSpacing: 0.5,
+          textTransform: 'uppercase',
+          color: colors.muted,
+          ...fontStyle('semibold'),
+        },
+        count: {
+          fontSize: 12,
+          color: colors.muted,
+          ...fontStyle('medium'),
+        },
+        empty: {
+          borderRadius: 20,
+          padding: 28,
+          alignItems: 'center',
+          backgroundColor: isDark ? colors.surfaceElevated : '#fff',
+          borderWidth: isDark ? 1 : 0,
+          borderColor: colors.border,
+          marginBottom: 12,
+          ...theme.shadow.soft,
+        },
+        emptyText: {
+          marginTop: 10,
+          textAlign: 'center',
+          fontSize: 14,
+          lineHeight: 20,
+          color: colors.muted,
+          ...fontStyle('medium'),
+        },
         more: {
           marginTop: 4,
-          borderRadius: theme.radius.md,
+          marginBottom: 8,
+          borderRadius: 14,
           borderWidth: 1,
-          paddingVertical: 12,
+          borderColor: isDark ? colors.border : colors.borderSubtle,
+          paddingVertical: 13,
           alignItems: 'center',
+          backgroundColor: isDark ? colors.surfaceElevated : '#fff',
+        },
+        postsWrap: {
+          marginHorizontal: -theme.spacing.md,
         },
       }),
-    [],
+    [colors, isDark],
   );
 
   return (
-    <View style={[styles.section, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-      <Text style={[styles.title, { color: colors.heading }, fontStyle('bold')]}>Posts</Text>
-      <Text style={[styles.subtitle, { color: colors.muted }]}>
-        {loading && posts.length === 0
-          ? 'Loading activity…'
-          : total === 1
-            ? '1 post'
-            : `${total} posts`}
-      </Text>
+    <View style={{ marginBottom: 8 }}>
+      <View style={styles.head}>
+        <Text style={styles.title}>Activity</Text>
+        <Text style={styles.count}>
+          {loading && posts.length === 0
+            ? '…'
+            : total === 1
+              ? '1 post'
+              : `${total} posts`}
+        </Text>
+      </View>
 
       {error ? (
-        <Text style={{ color: '#dc2626', fontSize: 13, marginBottom: 8 }}>{error}</Text>
+        <Text style={{ color: colors.error, fontSize: 13, marginBottom: 8 }}>{error}</Text>
       ) : null}
 
       {loading && posts.length === 0 ? (
-        <ActivityIndicator color={colors.blue} style={{ marginVertical: 16 }} />
+        <ActivityIndicator color={colors.blue} style={{ marginVertical: 20 }} />
       ) : null}
-
-      {posts.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          onChange={(next) => setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))}
-          onRemove={(id) => {
-            setPosts((prev) => prev.filter((p) => p.id !== id));
-            setTotal((n) => Math.max(0, n - 1));
-          }}
-        />
-      ))}
 
       {!loading && !error && posts.length === 0 ? (
-        <Text style={[styles.empty, { color: colors.muted }]}>{emptyMessage}</Text>
+        <View style={styles.empty}>
+          <Ionicons name="newspaper-outline" size={24} color={colors.blue} />
+          <Text style={styles.emptyText}>{emptyMessage}</Text>
+        </View>
       ) : null}
+
+      <View style={styles.postsWrap}>
+        {posts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onChange={(next) => setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))}
+            onRemove={(id) => {
+              setPosts((prev) => prev.filter((p) => p.id !== id));
+              setTotal((n) => Math.max(0, n - 1));
+            }}
+          />
+        ))}
+      </View>
 
       {hasMore ? (
         <Pressable
           disabled={loading}
           onPress={() => void load(page + 1, true)}
-          style={[styles.more, { borderColor: colors.border, opacity: loading ? 0.6 : 1 }]}
+          style={[styles.more, { opacity: loading ? 0.6 : 1 }]}
         >
           <Text style={{ color: colors.heading, ...fontStyle('semibold'), fontSize: 13 }}>
             {loading ? 'Loading…' : 'Show more posts'}

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 import { MessageAttachmentContent } from '@/components/messages/message-attachment-content';
@@ -5,28 +6,19 @@ import { formatMessageTime } from '@/lib/message-format';
 import type { MessageItem } from '@/lib/messages';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
-import { theme } from '@/lib/theme';
+
+/** Lime-green accent for timestamp labels (reference chat UI), brand-aware in light mode. */
+function timeAccent(isDark: boolean, blue: string) {
+  return isDark ? '#b8e62e' : blue;
+}
 
 export function MessageDayDivider({ label }: { label: string }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const accent = timeAccent(isDark, colors.blue);
 
   return (
     <View style={styles.dayWrap}>
-      <View style={[styles.dayLine, { backgroundColor: colors.border }]} />
-      <Text
-        style={[
-          styles.dayLabel,
-          {
-            color: colors.muted,
-            backgroundColor: colors.surfaceElevated,
-            borderColor: colors.border,
-          },
-          fontStyle('semibold'),
-        ]}
-      >
-        {label}
-      </Text>
-      <View style={[styles.dayLine, { backgroundColor: colors.border }]} />
+      <Text style={[styles.dayLabel, { color: accent }, fontStyle('semibold')]}>{label}</Text>
     </View>
   );
 }
@@ -51,84 +43,112 @@ export function MessageBubble({
     message.body.trim().length > 0 &&
     !(message.attachmentUrl && message.body.trim().startsWith('📎'));
 
-  const marginTop = isFirstInGroup ? 10 : 3;
-  const marginBottom = isLastInGroup ? 4 : 0;
+  const marginTop = isFirstInGroup ? 14 : 4;
+  const hasAttachment = Boolean(message.attachmentUrl && message.attachmentFileName);
+  const read = Boolean(message.readAt);
+  const accent = timeAccent(isDark, colors.blue);
 
-  const incomingBubbleStyle = {
-    backgroundColor: colors.surfaceElevated,
-    borderColor: isDark ? colors.border : `${colors.border}`,
+  // Pill-style bubbles — soft rounded chat style from the reference UI.
+  const bubbleCorners = {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderBottomLeftRadius: message.isMine ? 22 : isLastInGroup ? 8 : 22,
+    borderBottomRightRadius: message.isMine ? (isLastInGroup ? 8 : 22) : 22,
   };
 
-  const outgoingBubbleStyle = {
-    backgroundColor: colors.blue,
-  };
-
-  const bubbleCorners = message.isMine
-    ? {
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: isLastInGroup ? 6 : 18,
-      }
-    : {
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: isLastInGroup ? 6 : 18,
-        borderBottomRightRadius: 18,
-      };
+  const outgoingBg = isDark ? 'rgba(63, 116, 204, 0.42)' : colors.blue;
+  const incomingBg = isDark ? 'rgba(28, 36, 52, 0.92)' : '#ffffff';
+  const bodyColor = message.isMine
+    ? isDark
+      ? '#f5f8ff'
+      : '#ffffff'
+    : isDark
+      ? '#f0f4fa'
+      : colors.heading;
+  const metaColor = message.isMine
+    ? isDark
+      ? 'rgba(230, 238, 255, 0.7)'
+      : 'rgba(255,255,255,0.78)'
+    : colors.muted;
 
   const bubble = (
     <View
       style={[
         styles.bubble,
         bubbleCorners,
-        message.isMine ? outgoingBubbleStyle : incomingBubbleStyle,
+        {
+          marginTop,
+          backgroundColor: message.isMine ? outgoingBg : incomingBg,
+          borderColor: message.isMine
+            ? isDark
+              ? 'rgba(99, 140, 210, 0.35)'
+              : 'transparent'
+            : isDark
+              ? 'rgba(80, 96, 120, 0.45)'
+              : 'rgba(15,28,51,0.06)',
+          borderWidth: StyleSheet.hairlineWidth,
+        },
         message.isMine ? styles.bubbleMine : styles.bubbleTheirs,
-        { marginTop, marginBottom, borderWidth: message.isMine ? 0 : 1 },
       ]}
     >
-      {showBody ? (
-        <Text
-          style={[
-            styles.body,
-            { color: message.isMine ? '#fff' : colors.heading },
-            message.isMine ? fontStyle('regular') : fontStyle('regular'),
-          ]}
-        >
-          {message.body}
+      {!message.isMine && isFirstInGroup ? (
+        <Text style={[styles.senderName, { color: accent }, fontStyle('semibold')]} numberOfLines={1}>
+          {senderName}
         </Text>
       ) : null}
 
-      {message.attachmentUrl && message.attachmentFileName ? (
+      {showBody ? (
+        <Text style={[styles.body, { color: bodyColor }, fontStyle('regular')]}>{message.body}</Text>
+      ) : null}
+
+      {hasAttachment ? (
         <MessageAttachmentContent
-          url={message.attachmentUrl}
-          fileName={message.attachmentFileName}
+          url={message.attachmentUrl!}
+          fileName={message.attachmentFileName!}
           mimeType={message.attachmentMimeType}
           isMine={message.isMine}
         />
       ) : null}
 
-      <Text
-        style={[
-          styles.time,
-          { color: message.isMine ? 'rgba(255,255,255,0.78)' : colors.muted },
-          fontStyle('medium'),
-        ]}
-      >
-        {formatMessageTime(message.createdAt)}
-      </Text>
+      <View style={[styles.metaRow, !showBody && !hasAttachment ? { marginTop: 2 } : null]}>
+        <Text style={[styles.time, { color: metaColor }, fontStyle('medium')]}>
+          {formatMessageTime(message.createdAt)}
+        </Text>
+        {message.isMine ? (
+          <Ionicons
+            name={read ? 'checkmark-done' : 'checkmark'}
+            size={13}
+            color={
+              read
+                ? isDark
+                  ? '#b8e62e'
+                  : 'rgba(255,255,255,0.95)'
+                : metaColor
+            }
+            style={styles.check}
+          />
+        ) : null}
+      </View>
     </View>
   );
 
   if (message.isMine) {
-    return <View style={[styles.row, styles.rowMine, { marginBottom: isLastInGroup ? 2 : 0 }]}>{bubble}</View>;
+    return <View style={[styles.row, styles.rowMine]}>{bubble}</View>;
   }
 
   return (
-    <View style={[styles.row, styles.rowTheirs, { marginBottom: isLastInGroup ? 2 : 0 }]}>
+    <View style={[styles.row, styles.rowTheirs]}>
       <View style={styles.avatarSlot}>
         {showAvatar ? (
-          <View style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+          <View
+            style={[
+              styles.avatar,
+              {
+                borderColor: isDark ? 'rgba(80, 96, 120, 0.6)' : '#fff',
+                backgroundColor: isDark ? colors.surface : `${colors.blue}14`,
+              },
+            ]}
+          >
             {senderAvatarUrl ? (
               <Image source={{ uri: senderAvatarUrl }} style={styles.avatarImg} contentFit="cover" />
             ) : (
@@ -146,26 +166,14 @@ export function MessageBubble({
 
 const styles = StyleSheet.create({
   dayWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginVertical: 14,
-    paddingHorizontal: 4,
-  },
-  dayLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    opacity: 0.9,
+    alignItems: 'flex-start',
+    marginTop: 18,
+    marginBottom: 6,
+    paddingLeft: 4,
   },
   dayLabel: {
-    fontSize: 10,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: theme.radius.full,
-    borderWidth: 1,
-    overflow: 'hidden',
+    fontSize: 12,
+    letterSpacing: 0.3,
   },
   row: {
     flexDirection: 'row',
@@ -179,15 +187,16 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   avatarSlot: {
-    width: 32,
+    width: 34,
     alignItems: 'center',
     justifyContent: 'flex-end',
+    paddingBottom: 2,
   },
   avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -205,21 +214,33 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   bubbleMine: {
-    borderColor: 'transparent',
     alignSelf: 'flex-end',
-    ...theme.shadow.soft,
+    maxWidth: '84%',
   },
   bubbleTheirs: {
     alignSelf: 'flex-start',
-    ...theme.shadow.card,
+  },
+  senderName: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 4,
   },
   body: {
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 21,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 3,
+    marginTop: 5,
   },
   time: {
     fontSize: 10,
-    marginTop: 6,
-    alignSelf: 'flex-end',
+    lineHeight: 13,
+  },
+  check: {
+    marginTop: 0.5,
   },
 });

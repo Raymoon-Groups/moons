@@ -1,5 +1,15 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import {
   CertificationListEditor,
   EducationListEditor,
@@ -7,20 +17,15 @@ import {
   TagListEditor,
   WorkExperienceListEditor,
 } from '@/components/profile/profile-editors';
-import { ProfilePhotoUpload, type PickedImage } from '@/components/profile/photo-upload';
+import { EditProfileHero } from '@/components/profile/edit-profile-hero';
+import { type PickedImage } from '@/components/profile/photo-upload';
+import { ProfileSuccessModal } from '@/components/profile/profile-success-modal';
 import { ResumeUpload, type PickedResume } from '@/components/profile/resume-upload';
-import { SectionCard } from '@/components/profile/section-card';
 import { SelectField } from '@/components/profile/select-field';
-import {
-  Card,
-  ErrorText,
-  FieldLabel,
-  InfoText,
-  Input,
-  PrimaryButton,
-  Screen,
-} from '@/components/ui';
+import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
+import { ErrorText } from '@/components/ui';
 import { ApiError, authDelete, authFetch, authUpload } from '@/lib/api';
+import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import {
   CTC_OPTIONS,
@@ -32,6 +37,7 @@ import {
   sanitizeEducations,
   sanitizeWorkExperiences,
 } from '@/lib/profile-sanitize';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type {
@@ -41,6 +47,65 @@ import type {
   WorkExperienceEntry,
 } from '@/lib/types';
 
+function FormField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  editable = true,
+  multiline = false,
+  maxLength,
+  keyboardType,
+  showCounter = false,
+}: {
+  label: string;
+  value: string;
+  onChangeText?: (v: string) => void;
+  placeholder?: string;
+  editable?: boolean;
+  multiline?: boolean;
+  maxLength?: number;
+  keyboardType?: 'default' | 'phone-pad' | 'email-address';
+  showCounter?: boolean;
+}) {
+  const { colors, isDark } = useTheme();
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <View style={styles.field}>
+      <Text style={[styles.fieldLabel, { color: colors.muted }, fontStyle('semibold')]}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.muted}
+        editable={editable}
+        multiline={multiline}
+        maxLength={maxLength}
+        keyboardType={keyboardType}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[
+          styles.input,
+          multiline && styles.inputMultiline,
+          {
+            color: colors.heading,
+            backgroundColor: isDark ? colors.surface : '#fff',
+            borderColor: focused ? colors.blue : isDark ? colors.border : '#E5E7EB',
+            opacity: editable ? 1 : 0.7,
+          },
+          fontStyle('regular'),
+        ]}
+      />
+      {showCounter && maxLength ? (
+        <Text style={[styles.counter, { color: colors.muted }, fontStyle('medium')]}>
+          {value.length}/{maxLength}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 export function CandidateProfileEdit({
   profile: initial,
   onSaved,
@@ -48,7 +113,8 @@ export function CandidateProfileEdit({
   profile: Profile;
   onSaved: (profile: Profile) => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const tabBarBottomPad = useTabScreenPadding(12);
   const [profile, setProfile] = useState(initial);
   const [fullName, setFullName] = useState(initial.fullName ?? '');
   const [phone, setPhone] = useState(initial.phone ?? '');
@@ -82,67 +148,59 @@ export function CandidateProfileEdit({
   const [pendingRemovePhoto, setPendingRemovePhoto] = useState(false);
   const [pendingResume, setPendingResume] = useState<PickedResume | null>(null);
   const [pendingRemoveResume, setPendingRemoveResume] = useState(false);
-  const [photoSaving, setPhotoSaving] = useState(false);
-  const [resumeSaving, setResumeSaving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
   const [photoKey, setPhotoKey] = useState(0);
 
   const displayName = fullName.trim() || profile.email.split('@')[0];
+  const handle = `@${profile.email.split('@')[0]}`;
 
-  const headerStyles = useMemo(
-    () =>
-      StyleSheet.create({
-        completion: {
-          fontSize: 13,
-          color: colors.muted,
-          marginBottom: theme.spacing.md,
-          ...fontStyle('regular'),
-        },
-        completionValue: { color: colors.blue, ...fontStyle('bold') },
-        emailHint: { color: colors.muted, marginBottom: 8 },
-      }),
-    [colors],
-  );
+  const avatarUrl = useMemo(() => {
+    if (pendingRemovePhoto) return null;
+    if (pendingPhoto?.uri) return pendingPhoto.uri;
+    if (!profile.avatarUrl) return null;
+    return `${resolveAssetUrl(profile.avatarUrl)}?v=${new Date(profile.updatedAt).getTime()}&k=${photoKey}`;
+  }, [pendingPhoto, pendingRemovePhoto, profile.avatarUrl, profile.updatedAt, photoKey]);
 
-  async function refreshAfterUpload() {
-    const saved = await authFetch<Profile>('/profiles/me');
-    setProfile(saved);
-    onSaved(saved);
-    setInfo('Saved successfully.');
-  }
+  const pageBg = isDark ? colors.background : '#F3F4F6';
+  const cardBg = isDark ? colors.surfaceElevated : '#fff';
 
-  async function savePhotoOnly() {
-    if (!pendingPhoto && !pendingRemovePhoto) return;
-    setPhotoSaving(true);
-    setError('');
-    try {
-      if (pendingRemovePhoto) {
-        await authDelete('/profiles/me/avatar');
-      } else if (pendingPhoto) {
-        const formData = new FormData();
-        formData.append('avatar', {
-          uri: pendingPhoto.uri,
-          name: pendingPhoto.name,
-          type: pendingPhoto.type,
-        } as unknown as Blob);
-        await authUpload('/profiles/me/avatar', formData);
-      }
-      setPendingPhoto(null);
-      setPendingRemovePhoto(false);
-      setPhotoKey((k) => k + 1);
-      await refreshAfterUpload();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save photo');
-    } finally {
-      setPhotoSaving(false);
+  async function pickPhoto() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setError('Photo library permission is required');
+      return;
     }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.9,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    const mime = asset.mimeType ?? 'image/jpeg';
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(mime)) {
+      setError('Only JPG, PNG or WEBP images are allowed');
+      return;
+    }
+    if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
+      setError('Image must be 2 MB or smaller');
+      return;
+    }
+    setError('');
+    setPendingRemovePhoto(false);
+    setPendingPhoto({
+      uri: asset.uri,
+      name: asset.fileName ?? 'avatar.jpg',
+      type: mime,
+    });
   }
 
   async function saveResumeOnly() {
     if (!pendingResume && !pendingRemoveResume) return;
-    setResumeSaving(true);
+    setSaving(true);
     setError('');
     try {
       if (pendingRemoveResume) {
@@ -158,17 +216,18 @@ export function CandidateProfileEdit({
       }
       setPendingResume(null);
       setPendingRemoveResume(false);
-      await refreshAfterUpload();
+      const saved = await authFetch<Profile>('/profiles/me');
+      setProfile(saved);
+      onSaved(saved);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save resume');
     } finally {
-      setResumeSaving(false);
+      setSaving(false);
     }
   }
 
   async function handleSave() {
     setError('');
-    setInfo('');
     setSaving(true);
     try {
       await authFetch<Profile>('/profiles/me', {
@@ -226,7 +285,7 @@ export function CandidateProfileEdit({
       setPendingResume(null);
       setPendingRemoveResume(false);
       setPhotoKey((k) => k + 1);
-      setInfo('Profile saved successfully.');
+      setShowSuccess(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save profile');
     } finally {
@@ -235,154 +294,296 @@ export function CandidateProfileEdit({
   }
 
   return (
-    <Screen>
-      <Text style={headerStyles.completion}>
-        Profile completion:{' '}
-        <Text style={headerStyles.completionValue}>{profile.completionPercent}%</Text>
-      </Text>
+    <View style={[styles.root, { backgroundColor: pageBg }]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={[styles.completion, { color: colors.muted }, fontStyle('medium')]}>
+            Profile completion{' '}
+            <Text style={[{ color: colors.blue }, fontStyle('bold')]}>{profile.completionPercent}%</Text>
+          </Text>
 
-      <SectionCard title="Profile photo">
-        <ProfilePhotoUpload
-          key={photoKey}
-          profile={profile}
-          displayName={displayName}
-          saving={photoSaving || saving}
-          onPick={(file, remove) => {
-            setPendingPhoto(file);
-            setPendingRemovePhoto(remove);
-          }}
-          onRemove={() => setPendingRemovePhoto(true)}
-          onSave={savePhotoOnly}
-          onError={setError}
-        />
-      </SectionCard>
+          <EditProfileHero
+            displayName={displayName}
+            handle={handle}
+            imageUrl={avatarUrl}
+            onPressCamera={() => void pickPhoto()}
+          />
 
-      <SectionCard title="Personal info">
-        <FieldLabel>Full name</FieldLabel>
-        <Input value={fullName} onChangeText={setFullName} />
-        <FieldLabel>Phone</FieldLabel>
-        <Input value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <FieldLabel>Email</FieldLabel>
-        <Input value={profile.email} editable={false} style={headerStyles.emailHint} />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg, padding: 0, overflow: 'hidden' }, theme.shadow.soft]}>
+            <Text
+              style={[
+                styles.cardTitle,
+                { color: colors.heading, paddingHorizontal: 16, paddingTop: 16 },
+                fontStyle('bold'),
+              ]}
+            >
+              Cover photo
+            </Text>
+            <CoverPhotoBanner
+              bannerUrl={profile.bannerUrl ?? null}
+              updatedAt={profile.updatedAt}
+              editable
+              onUpdated={(nextUrl, updatedAt) => {
+                setProfile((prev) => ({
+                  ...prev,
+                  bannerUrl: nextUrl,
+                  updatedAt,
+                }));
+                onSaved({
+                  ...profile,
+                  bannerUrl: nextUrl,
+                  updatedAt,
+                });
+              }}
+            />
+          </View>
 
-      <SectionCard title="Location">
-        <FieldLabel>Current city</FieldLabel>
-        <Input value={location} onChangeText={setLocation} placeholder="City or remote" />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <FormField label="Name" value={fullName} onChangeText={setFullName} placeholder="Your full name" />
+            <FormField label="Email" value={profile.email} editable={false} />
+            <FormField
+              label="Phone"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="Phone number"
+              keyboardType="phone-pad"
+            />
+            <FormField
+              label="Location"
+              value={location}
+              onChangeText={setLocation}
+              placeholder="City or remote"
+            />
+            <FormField
+              label="Headline"
+              value={headline}
+              onChangeText={setHeadline}
+              placeholder="e.g. Software Engineer"
+            />
+            <FormField
+              label="Bio"
+              value={summary}
+              onChangeText={setSummary}
+              placeholder="Write a short bio about yourself"
+              multiline
+              maxLength={500}
+              showCounter
+            />
+          </View>
 
-      <SectionCard title="Career profile">
-        <FieldLabel>Current designation</FieldLabel>
-        <Input value={headline} onChangeText={setHeadline} placeholder="e.g. Software Engineer" />
-        <FieldLabel>Current company</FieldLabel>
-        <Input value={currentCompany} onChangeText={setCurrentCompany} />
-        <SelectField
-          label="Total experience"
-          value={experienceYears}
-          options={EXPERIENCE_OPTIONS}
-          onChange={setExperienceYears}
-        />
-        <SelectField
-          label="Notice period"
-          value={noticePeriod}
-          options={NOTICE_OPTIONS.map((o) => ({ label: o, value: o }))}
-          onChange={setNoticePeriod}
-        />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <Text style={[styles.cardTitle, { color: colors.heading }, fontStyle('bold')]}>Career</Text>
+            <FormField
+              label="Current company"
+              value={currentCompany}
+              onChangeText={setCurrentCompany}
+              placeholder="Company name"
+            />
+            <SelectField
+              label="Total experience"
+              value={experienceYears}
+              options={EXPERIENCE_OPTIONS}
+              onChange={setExperienceYears}
+            />
+            <SelectField
+              label="Notice period"
+              value={noticePeriod}
+              options={NOTICE_OPTIONS.map((o) => ({ label: o, value: o }))}
+              onChange={setNoticePeriod}
+            />
+          </View>
 
-      <SectionCard title="Salary details">
-        <SelectField
-          label="Current CTC"
-          value={currentCtc}
-          options={CTC_OPTIONS.map((o) => ({ label: o, value: o }))}
-          onChange={setCurrentCtc}
-        />
-        <SelectField
-          label="Expected CTC"
-          value={expectedCtc}
-          options={CTC_OPTIONS.map((o) => ({ label: o, value: o }))}
-          onChange={setExpectedCtc}
-        />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <Text style={[styles.cardTitle, { color: colors.heading }, fontStyle('bold')]}>Salary</Text>
+            <SelectField
+              label="Current CTC"
+              value={currentCtc}
+              options={CTC_OPTIONS.map((o) => ({ label: o, value: o }))}
+              onChange={setCurrentCtc}
+            />
+            <SelectField
+              label="Expected CTC"
+              value={expectedCtc}
+              options={CTC_OPTIONS.map((o) => ({ label: o, value: o }))}
+              onChange={setExpectedCtc}
+            />
+          </View>
 
-      <SectionCard title="Resume">
-        <ResumeUpload
-          profile={profile}
-          pendingFile={pendingResume}
-          pendingRemove={pendingRemoveResume}
-          saving={resumeSaving || saving}
-          onPick={(file) => {
-            setPendingResume(file);
-            setPendingRemoveResume(false);
-          }}
-          onRemove={() => {
-            setPendingResume(null);
-            setPendingRemoveResume(true);
-          }}
-          onSave={saveResumeOnly}
-          onError={setError}
-        />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <Text style={[styles.cardTitle, { color: colors.heading }, fontStyle('bold')]}>Resume</Text>
+            <ResumeUpload
+              profile={profile}
+              pendingFile={pendingResume}
+              pendingRemove={pendingRemoveResume}
+              saving={saving}
+              onPick={(file) => {
+                setPendingResume(file);
+                setPendingRemoveResume(false);
+              }}
+              onRemove={() => {
+                setPendingResume(null);
+                setPendingRemoveResume(true);
+              }}
+              onSave={() => void saveResumeOnly()}
+              onError={setError}
+            />
+          </View>
 
-      <SectionCard title="Employment history">
-        <WorkExperienceListEditor value={workExperiences} onChange={setWorkExperiences} />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <Text style={[styles.cardTitle, { color: colors.heading }, fontStyle('bold')]}>
+              Employment history
+            </Text>
+            <WorkExperienceListEditor value={workExperiences} onChange={setWorkExperiences} />
+          </View>
 
-      <SectionCard title="Education">
-        <EducationListEditor value={educations} onChange={setEducations} />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <Text style={[styles.cardTitle, { color: colors.heading }, fontStyle('bold')]}>Education</Text>
+            <EducationListEditor value={educations} onChange={setEducations} />
+          </View>
 
-      <SectionCard title="Key skills">
-        <SkillsEditor value={skills} onChange={setSkills} />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <Text style={[styles.cardTitle, { color: colors.heading }, fontStyle('bold')]}>Skills</Text>
+            <SkillsEditor value={skills} onChange={setSkills} />
+          </View>
 
-      <SectionCard title="Certifications">
-        <CertificationListEditor value={certifications} onChange={setCertifications} />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <Text style={[styles.cardTitle, { color: colors.heading }, fontStyle('bold')]}>
+              Certifications
+            </Text>
+            <CertificationListEditor value={certifications} onChange={setCertifications} />
+          </View>
 
-      <SectionCard title="Job preferences">
-        <TagListEditor
-          label="Preferred roles"
-          placeholder="e.g. Frontend Developer"
-          value={preferredRoles}
-          onChange={setPreferredRoles}
-        />
-        <TagListEditor
-          label="Preferred locations"
-          placeholder="e.g. Bangalore"
-          value={preferredLocations}
-          onChange={setPreferredLocations}
-        />
-        <TagListEditor
-          label="Preferred industries"
-          placeholder="e.g. IT Services"
-          value={preferredIndustries}
-          onChange={setPreferredIndustries}
-        />
-      </SectionCard>
+          <View style={[styles.card, { backgroundColor: cardBg }, theme.shadow.soft]}>
+            <Text style={[styles.cardTitle, { color: colors.heading }, fontStyle('bold')]}>
+              Job preferences
+            </Text>
+            <TagListEditor
+              label="Preferred roles"
+              placeholder="e.g. Frontend Developer"
+              value={preferredRoles}
+              onChange={setPreferredRoles}
+            />
+            <TagListEditor
+              label="Preferred locations"
+              placeholder="e.g. Bangalore"
+              value={preferredLocations}
+              onChange={setPreferredLocations}
+            />
+            <TagListEditor
+              label="Preferred industries"
+              placeholder="e.g. IT Services"
+              value={preferredIndustries}
+              onChange={setPreferredIndustries}
+            />
+          </View>
 
-      <SectionCard title="Bio">
-        <FieldLabel>Summary</FieldLabel>
-        <Input
-          value={summary}
-          onChangeText={setSummary}
-          multiline
-          maxLength={2000}
-          style={{ minHeight: 120, textAlignVertical: 'top' }}
-          placeholder="Tell recruiters about your experience and goals…"
-        />
-        <Text style={{ fontSize: 11, color: colors.muted, textAlign: 'right', marginTop: 4 }}>
-          {summary.length}/2000
-        </Text>
-      </SectionCard>
+          {error ? (
+            <View style={styles.errorWrap}>
+              <ErrorText>{error}</ErrorText>
+            </View>
+          ) : null}
 
-      <Card>
-        {error ? <ErrorText>{error}</ErrorText> : null}
-        {info ? <InfoText>{info}</InfoText> : null}
-        <PrimaryButton label={saving ? 'Saving…' : 'Save profile'} onPress={handleSave} loading={saving} />
-      </Card>
+          <View style={{ height: 24 }} />
+        </ScrollView>
 
-      <View style={{ height: 32 }} />
-    </Screen>
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: pageBg,
+              paddingBottom: tabBarBottomPad,
+              borderTopColor: isDark ? colors.border : '#E5E7EB',
+            },
+          ]}
+        >
+          <Pressable
+            onPress={() => void handleSave()}
+            disabled={saving}
+            style={[
+              styles.updateBtn,
+              { backgroundColor: colors.blue, opacity: saving ? 0.7 : 1 },
+              theme.shadow.button,
+            ]}
+          >
+            <Text style={[styles.updateText, fontStyle('bold')]}>
+              {saving ? 'Updating…' : 'Update'}
+            </Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+
+      <ProfileSuccessModal visible={showSuccess} onClose={() => setShowSuccess(false)} />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  scroll: {
+    padding: 16,
+    paddingTop: 12,
+  },
+  completion: {
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+  },
+  cardTitle: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  field: {
+    marginBottom: 12,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+  },
+  inputMultiline: {
+    minHeight: 110,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+  },
+  counter: {
+    fontSize: 11,
+    textAlign: 'right',
+    marginTop: 6,
+  },
+  errorWrap: {
+    marginBottom: 8,
+  },
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  updateBtn: {
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  updateText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+});

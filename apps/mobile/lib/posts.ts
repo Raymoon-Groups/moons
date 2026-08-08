@@ -102,6 +102,18 @@ export function deleteComment(postId: string, commentId: string) {
   return authDelete<{ success: boolean }>(`/posts/${postId}/comments/${commentId}`);
 }
 
+export function hideComment(postId: string, commentId: string) {
+  return authFetch<PostCommentItem>(`/posts/${postId}/comments/${commentId}/hide`, {
+    method: 'POST',
+  });
+}
+
+export function unhideComment(postId: string, commentId: string) {
+  return authFetch<PostCommentItem>(`/posts/${postId}/comments/${commentId}/unhide`, {
+    method: 'POST',
+  });
+}
+
 export function sharePost(postId: string, body?: string) {
   return authFetch<FeedPost>(`/posts/${postId}/share`, {
     method: 'POST',

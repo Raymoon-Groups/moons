@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ProtectedPhotoViewer } from '@/components/profile/protected-avatar-viewer';
 import { authDelete, authUpload } from '@/lib/api';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
@@ -22,6 +23,7 @@ export function CoverPhotoBanner({
 }) {
   const { colors } = useTheme();
   const [uploading, setUploading] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [localBanner, setLocalBanner] = useState(bannerUrl);
   const [cacheVersion, setCacheVersion] = useState(updatedAt ?? '');
 
@@ -45,6 +47,7 @@ export function CoverPhotoBanner({
           top: 12,
           flexDirection: 'row',
           gap: 8,
+          zIndex: 2,
         },
         btn: {
           flexDirection: 'row',
@@ -63,6 +66,7 @@ export function CoverPhotoBanner({
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: 'rgba(0,0,0,0.25)',
+          zIndex: 3,
         },
       }),
     [colors],
@@ -140,7 +144,14 @@ export function CoverPhotoBanner({
   return (
     <View style={styles.wrap}>
       {displayUrl ? (
-        <Image source={{ uri: displayUrl }} style={styles.image} contentFit="cover" />
+        <Pressable
+          onPress={() => setViewerOpen(true)}
+          style={StyleSheet.absoluteFill}
+          accessibilityRole="imagebutton"
+          accessibilityLabel="View cover photo"
+        >
+          <Image source={{ uri: displayUrl }} style={styles.image} contentFit="cover" />
+        </Pressable>
       ) : null}
       {editable ? (
         <View style={styles.actions}>
@@ -159,6 +170,14 @@ export function CoverPhotoBanner({
         <View style={styles.overlay}>
           <ActivityIndicator color="#fff" />
         </View>
+      ) : null}
+      {displayUrl ? (
+        <ProtectedPhotoViewer
+          visible={viewerOpen}
+          uri={displayUrl}
+          variant="cover"
+          onClose={() => setViewerOpen(false)}
+        />
       ) : null}
     </View>
   );

@@ -178,13 +178,19 @@ export function ProfileNetworkSection() {
         ) : (
           <CardGrid>
             {visitors.map((item, index) => (
-              <div key={`${item.viewer.userId}-${index}`}>
-                <PersonCard
-                  person={item.viewer}
-                  variant={item.viewer.connectionStatus === 'ACCEPTED' ? 'network' : 'discovery'}
-                  onUpdated={load}
-                />
-                <p className="mt-1 px-1 text-[10px] text-moons-muted">
+              <div
+                key={`${item.viewer.userId}-${index}`}
+                className="flex h-full flex-col"
+              >
+                {/* Keep PersonCard's h-full inside this flex child so it doesn't cover the date */}
+                <div className="min-h-0 flex-1">
+                  <PersonCard
+                    person={item.viewer}
+                    variant={item.viewer.connectionStatus === 'ACCEPTED' ? 'network' : 'discovery'}
+                    onUpdated={load}
+                  />
+                </div>
+                <p className="mt-2 shrink-0 px-1 pb-0.5 text-[11px] leading-snug text-moons-muted">
                   Viewed{' '}
                   {new Date(item.viewedAt).toLocaleDateString('en-IN', {
                     day: 'numeric',

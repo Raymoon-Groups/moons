@@ -17,13 +17,12 @@ import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
 import { createPost, type LocalMediaFile } from '@/lib/posts';
 import { useTheme } from '@/lib/theme-context';
-import { theme } from '@/lib/theme';
 
 const MAX_BODY = 3000;
 
 export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void }) {
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [body, setBody] = useState('');
   const [files, setFiles] = useState<LocalMediaFile[]>([]);
@@ -32,79 +31,104 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
   const avatar = resolveAssetUrl(user?.avatarUrl ?? null);
   const initial = (user?.fullName?.[0] || user?.email?.[0] || '?').toUpperCase();
   const canPost = (body.trim().length > 0 || files.length > 0) && !posting;
+  const hairline = isDark ? colors.border : colors.borderSubtle;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        card: {
-          backgroundColor: colors.surfaceElevated,
-          borderRadius: theme.radius.xl,
+        shell: {
+          marginHorizontal: 16,
+          marginBottom: 10,
+          borderRadius: 20,
           borderWidth: 1,
-          borderColor: colors.border,
-          padding: 14,
-          marginBottom: 14,
-          ...theme.shadow.soft,
+          borderColor: hairline,
+          backgroundColor: colors.surfaceElevated,
+          overflow: 'hidden',
+          shadowColor: '#0f1c33',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: isDark ? 0.28 : 0.07,
+          shadowRadius: 16,
+          elevation: 3,
         },
-        row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+        body: {
+          padding: 16,
+        },
+        row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
         avatar: {
-          width: 42,
-          height: 42,
-          borderRadius: 21,
-          backgroundColor: `${colors.blue}18`,
+          width: 46,
+          height: 46,
+          borderRadius: 16,
+          backgroundColor: isDark ? `${colors.blue}22` : `${colors.blue}14`,
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
         },
-        avatarImg: { width: 42, height: 42, borderRadius: 21 },
+        avatarImg: { width: 46, height: 46, borderRadius: 16 },
         avatarInitial: { color: colors.blue, fontSize: 16, ...fontStyle('bold') },
         prompt: {
           flex: 1,
-          borderRadius: 999,
+          borderRadius: 14,
           borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.surface,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
+          borderColor: hairline,
+          backgroundColor: isDark ? colors.surface : colors.surface,
+          paddingHorizontal: 14,
+          paddingVertical: 13,
         },
-        promptText: { color: colors.muted, fontSize: 14 },
-        iconBtn: {
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: `${colors.blue}14`,
+        promptText: {
+          color: colors.muted,
+          fontSize: 14,
+          ...fontStyle('medium'),
         },
         name: { color: colors.heading, fontSize: 15, ...fontStyle('bold') },
-        meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
+        audience: {
+          color: colors.muted,
+          fontSize: 12,
+          marginTop: 2,
+        },
         input: {
-          minHeight: 96,
-          marginTop: 12,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: theme.radius.md,
-          padding: 14,
+          minHeight: 100,
+          marginTop: 14,
           color: colors.heading,
-          backgroundColor: colors.surface,
+          fontSize: 16,
+          lineHeight: 24,
           textAlignVertical: 'top',
-          fontSize: 15,
-          lineHeight: 22,
+        },
+        quickRow: {
+          flexDirection: 'row',
+          gap: 8,
+          marginTop: 12,
+        },
+        chip: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 9,
+          borderRadius: 12,
+          backgroundColor: isDark ? colors.surface : `${colors.blue}0C`,
+          borderWidth: 1,
+          borderColor: hairline,
+        },
+        chipLabel: {
+          color: colors.foreground,
+          fontSize: 13,
+          ...fontStyle('semibold'),
         },
         thumb: {
-          width: 84,
-          height: 84,
-          borderRadius: theme.radius.sm,
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
+          width: 86,
+          height: 86,
+          borderRadius: 12,
+          backgroundColor: isDark ? colors.surface : colors.surfaceHover,
           overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: hairline,
         },
         thumbImg: { width: '100%', height: '100%' },
         thumbVideo: { flex: 1, alignItems: 'center', justifyContent: 'center' },
         removeThumb: {
           position: 'absolute',
-          top: 4,
-          right: 4,
+          top: 6,
+          right: 6,
           width: 22,
           height: 22,
           borderRadius: 11,
@@ -115,11 +139,10 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
         footer: {
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 14,
+          marginTop: 12,
           paddingTop: 12,
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: colors.border,
+          borderTopColor: hairline,
           gap: 10,
         },
         attachBtn: {
@@ -127,28 +150,30 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
           alignItems: 'center',
           gap: 6,
           paddingVertical: 8,
-          paddingHorizontal: 10,
-          borderRadius: 999,
-          backgroundColor: `${colors.blue}12`,
         },
-        attachText: { color: colors.blue, fontSize: 13, ...fontStyle('semibold') },
+        attachText: { color: colors.muted, fontSize: 13, ...fontStyle('semibold') },
         counter: { color: colors.muted, fontSize: 11 },
         postBtn: {
           backgroundColor: colors.blue,
-          borderRadius: 999,
-          paddingHorizontal: 20,
+          borderRadius: 12,
+          paddingHorizontal: 18,
           paddingVertical: 10,
-          ...theme.shadow.button,
         },
         postText: { color: '#fff', fontSize: 14, ...fontStyle('bold') },
         cancelText: { color: colors.muted, fontSize: 13, ...fontStyle('semibold') },
       }),
-    [colors],
+    [colors, hairline, isDark],
   );
 
-  async function pickMedia() {
+  async function pickMedia(mode: 'all' | 'images' | 'videos' = 'all') {
+    const mediaTypes =
+      mode === 'images'
+        ? (['images'] as const)
+        : mode === 'videos'
+          ? (['videos'] as const)
+          : (['images', 'videos'] as const);
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
+      mediaTypes: [...mediaTypes],
       allowsMultipleSelection: true,
       quality: 0.85,
       selectionLimit: 10,
@@ -180,6 +205,12 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
     }
   }
 
+  function cancel() {
+    setExpanded(false);
+    setBody('');
+    setFiles([]);
+  }
+
   const avatarNode = (
     <View style={styles.avatar}>
       {avatar ? (
@@ -192,94 +223,110 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
 
   if (!expanded) {
     return (
-      <View style={styles.card}>
-        <View style={styles.row}>
-          {avatarNode}
-          <Pressable style={styles.prompt} onPress={() => setExpanded(true)}>
-            <Text style={styles.promptText}>Share an update…</Text>
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={() => void pickMedia()} accessibilityLabel="Add photo or video">
-            <Ionicons name="image-outline" size={20} color={colors.blue} />
-          </Pressable>
+      <View style={styles.shell}>
+        <View style={styles.body}>
+          <View style={styles.row}>
+            {avatarNode}
+            <Pressable
+              style={styles.prompt}
+              onPress={() => setExpanded(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Create a post"
+            >
+              <Text style={styles.promptText}>What's new with you?</Text>
+            </Pressable>
+          </View>
+          <View style={styles.quickRow}>
+            <Pressable style={styles.chip} onPress={() => void pickMedia('images')}>
+              <Ionicons name="image-outline" size={16} color={colors.blue} />
+              <Text style={styles.chipLabel}>Photo</Text>
+            </Pressable>
+            <Pressable style={styles.chip} onPress={() => void pickMedia('videos')}>
+              <Ionicons name="videocam-outline" size={16} color={colors.blue} />
+              <Text style={styles.chipLabel}>Video</Text>
+            </Pressable>
+            <Pressable style={styles.chip} onPress={() => setExpanded(true)}>
+              <Ionicons name="create-outline" size={16} color={colors.blue} />
+              <Text style={styles.chipLabel}>Write</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        {avatarNode}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{user?.fullName || 'MoonsJob member'}</Text>
-          <Text style={styles.meta}>Sharing with your network</Text>
+    <View style={styles.shell}>
+      <View style={styles.body}>
+        <View style={styles.row}>
+          {avatarNode}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{user?.fullName || 'MoonsJob member'}</Text>
+            <Text style={styles.audience}>Visible to your network</Text>
+          </View>
+          <Pressable onPress={cancel} hitSlop={8} accessibilityLabel="Close composer">
+            <Ionicons name="close" size={22} color={colors.muted} />
+          </Pressable>
         </View>
-      </View>
 
-      <TextInput
-        value={body}
-        onChangeText={(text) => setBody(text.slice(0, MAX_BODY))}
-        placeholder="What's on your mind?"
-        placeholderTextColor={colors.muted}
-        multiline
-        autoFocus
-        style={styles.input}
-      />
+        <TextInput
+          value={body}
+          onChangeText={(text) => setBody(text.slice(0, MAX_BODY))}
+          placeholder="Share an update with your network…"
+          placeholderTextColor={colors.muted}
+          multiline
+          autoFocus
+          style={styles.input}
+        />
 
-      {files.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingTop: 12 }}
-        >
-          {files.map((file, index) => (
-            <View key={`${file.uri}-${index}`} style={styles.thumb}>
-              {file.mimeType?.startsWith('video') ? (
-                <View style={styles.thumbVideo}>
-                  <Ionicons name="videocam-outline" size={22} color={colors.muted} />
-                </View>
-              ) : (
-                <Image source={{ uri: file.uri }} style={styles.thumbImg} resizeMode="cover" />
-              )}
-              <Pressable
-                style={styles.removeThumb}
-                hitSlop={6}
-                onPress={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
-                accessibilityLabel="Remove attachment"
-              >
-                <Ionicons name="close" size={14} color="#fff" />
-              </Pressable>
-            </View>
-          ))}
-        </ScrollView>
-      ) : null}
-
-      <View style={styles.footer}>
-        <Pressable style={styles.attachBtn} onPress={() => void pickMedia()}>
-          <Ionicons name="image-outline" size={17} color={colors.blue} />
-          <Text style={styles.attachText}>Photo / video</Text>
-        </Pressable>
-        <View style={{ flex: 1 }} />
-        {body.length > MAX_BODY - 300 ? (
-          <Text style={styles.counter}>{MAX_BODY - body.length}</Text>
+        {files.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+          >
+            {files.map((file, index) => (
+              <View key={`${file.uri}-${index}`} style={styles.thumb}>
+                {file.mimeType?.startsWith('video') ? (
+                  <View style={styles.thumbVideo}>
+                    <Ionicons name="videocam-outline" size={22} color={colors.muted} />
+                  </View>
+                ) : (
+                  <Image source={{ uri: file.uri }} style={styles.thumbImg} resizeMode="cover" />
+                )}
+                <Pressable
+                  style={styles.removeThumb}
+                  hitSlop={6}
+                  onPress={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
+                  accessibilityLabel="Remove attachment"
+                >
+                  <Ionicons name="close" size={14} color="#fff" />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
         ) : null}
-        <Pressable
-          onPress={() => {
-            setExpanded(false);
-            setBody('');
-            setFiles([]);
-          }}
-          style={{ paddingHorizontal: 8, paddingVertical: 10 }}
-        >
-          <Text style={styles.cancelText}>Cancel</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => void submit()}
-          disabled={!canPost}
-          style={[styles.postBtn, !canPost && { opacity: 0.5 }]}
-        >
-          <Text style={styles.postText}>{posting ? 'Posting…' : 'Post'}</Text>
-        </Pressable>
+
+        <View style={styles.footer}>
+          <Pressable style={styles.attachBtn} onPress={() => void pickMedia('all')}>
+            <Ionicons name="images-outline" size={18} color={colors.muted} />
+            <Text style={styles.attachText}>Media</Text>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          {body.length > MAX_BODY - 300 ? (
+            <Text style={styles.counter}>{MAX_BODY - body.length}</Text>
+          ) : null}
+          <Pressable onPress={cancel} style={{ paddingHorizontal: 6, paddingVertical: 10 }}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void submit()}
+            disabled={!canPost}
+            style={[styles.postBtn, !canPost && { opacity: 0.45 }]}
+          >
+            <Text style={styles.postText}>{posting ? 'Posting…' : 'Post'}</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );

@@ -1,6 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { AttachmentPickerModal } from '@/components/messages/attachment-picker-modal';
 import type { MessageAttachment } from '@/lib/messages';
 import { fontStyle } from '@/lib/font-style';
@@ -15,7 +23,7 @@ export function MessageComposeField({
   onSubmit,
   sending,
   editable = true,
-  placeholder = 'Write a message…',
+  placeholder = 'Type here',
   inputId,
   onFocus,
 }: {
@@ -30,79 +38,111 @@ export function MessageComposeField({
   inputId?: string;
   onFocus?: () => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
   const canSend = Boolean(value.trim() || attachment);
+  const enabled = editable && !sending;
+
+  const shellBg = isDark ? 'rgba(32, 42, 60, 0.95)' : '#eef2f7';
+  const shellBorder = isDark ? 'rgba(90, 108, 140, 0.35)' : 'rgba(15,28,51,0.06)';
+  const actionBg = isDark ? 'rgba(40, 52, 72, 0.98)' : colors.blue;
 
   function handleAttach() {
-    if (!editable || sending) return;
+    if (!enabled) return;
     setPickerOpen(true);
   }
 
   return (
     <View style={styles.wrap}>
       {attachment ? (
-        <View style={[styles.preview, { backgroundColor: `${colors.blue}12`, borderColor: `${colors.blue}33` }]}>
-          <Ionicons name="attach" size={16} color={colors.blue} />
-          <Text numberOfLines={1} style={[styles.previewName, { color: colors.heading }, fontStyle('medium')]}>
+        <View
+          style={[
+            styles.preview,
+            {
+              backgroundColor: isDark ? 'rgba(32, 42, 60, 0.95)' : `${colors.blue}10`,
+              borderColor: isDark ? 'rgba(90, 108, 140, 0.35)' : `${colors.blue}28`,
+            },
+          ]}
+        >
+          <View style={[styles.previewIcon, { backgroundColor: `${colors.blue}22` }]}>
+            <Ionicons name="document-attach" size={14} color={colors.blue} />
+          </View>
+          <Text
+            numberOfLines={1}
+            style={[styles.previewName, { color: colors.heading }, fontStyle('medium')]}
+          >
             {attachment.name}
           </Text>
-          <Pressable onPress={() => onAttachmentChange(null)} hitSlop={8}>
-            <Text style={[{ color: colors.muted, fontSize: 12 }, fontStyle('semibold')]}>Remove</Text>
+          <Pressable
+            onPress={() => onAttachmentChange(null)}
+            hitSlop={10}
+            accessibilityLabel="Remove attachment"
+          >
+            <Ionicons name="close-circle" size={20} color={colors.muted} />
           </Pressable>
         </View>
       ) : null}
 
       <View style={styles.row}>
-        <Pressable
-          disabled={!editable || sending}
-          onPress={handleAttach}
+        <View
           style={[
-            styles.attachBtn,
+            styles.inputShell,
             {
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              opacity: editable && !sending ? 1 : 0.45,
-            },
-          ]}
-          accessibilityLabel="Attach file"
-        >
-          <Ionicons name="attach" size={20} color={colors.muted} />
-        </Pressable>
-
-        <TextInput
-          nativeID={inputId}
-          value={value}
-          onChangeText={onChange}
-          onFocus={onFocus}
-          placeholder={placeholder}
-          placeholderTextColor={colors.muted}
-          editable={editable && !sending}
-          multiline
-          textAlignVertical="center"
-          style={[
-            styles.input,
-            { color: colors.heading, borderColor: colors.border, backgroundColor: colors.surface },
-          ]}
-        />
-
-        <Pressable
-          disabled={!editable || sending || !canSend}
-          onPress={onSubmit}
-          style={[
-            styles.sendBtn,
-            {
-              backgroundColor: colors.blue,
-              opacity: editable && canSend && !sending ? 1 : 0.45,
+              borderColor: shellBorder,
+              backgroundColor: shellBg,
+              opacity: enabled ? 1 : 0.55,
             },
           ]}
         >
-          {sending ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Ionicons name="send" size={18} color="#fff" />
-          )}
-        </Pressable>
+          <TextInput
+            nativeID={inputId}
+            value={value}
+            onChangeText={onChange}
+            onFocus={onFocus}
+            placeholder={placeholder}
+            placeholderTextColor={colors.muted}
+            editable={enabled}
+            multiline
+            textAlignVertical="center"
+            style={[styles.input, { color: colors.heading }, fontStyle('regular')]}
+          />
+        </View>
+
+        {canSend ? (
+          <Pressable
+            disabled={!enabled}
+            onPress={onSubmit}
+            style={[
+              styles.actionBtn,
+              {
+                backgroundColor: enabled ? colors.blue : actionBg,
+                opacity: enabled ? 1 : 0.55,
+              },
+            ]}
+            accessibilityLabel="Send message"
+          >
+            {sending ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name="send" size={17} color="#fff" style={styles.sendIcon} />
+            )}
+          </Pressable>
+        ) : (
+          <Pressable
+            disabled={!enabled}
+            onPress={handleAttach}
+            style={[
+              styles.actionBtn,
+              {
+                backgroundColor: isDark ? actionBg : colors.blue,
+                opacity: enabled ? 1 : 0.45,
+              },
+            ]}
+            accessibilityLabel="Attach file"
+          >
+            <Ionicons name="add" size={24} color="#fff" />
+          </Pressable>
+        )}
       </View>
 
       <AttachmentPickerModal
@@ -119,41 +159,48 @@ const styles = StyleSheet.create({
   preview: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     borderWidth: 1,
     borderRadius: theme.radius.md,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  previewName: { flex: 1, fontSize: 12 },
+  previewIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewName: { flex: 1, fontSize: 13 },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 10,
   },
-  attachBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: 'center',
+  inputShell: {
+    flex: 1,
+    minHeight: 48,
+    maxHeight: 120,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 18,
     justifyContent: 'center',
   },
   input: {
-    flex: 1,
-    minHeight: 44,
     maxHeight: 120,
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'ios' ? 13 : 10,
     fontSize: 15,
+    lineHeight: 20,
   },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  actionBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sendIcon: {
+    marginLeft: 2,
   },
 });

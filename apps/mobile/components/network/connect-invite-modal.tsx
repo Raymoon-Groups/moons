@@ -36,7 +36,9 @@ export function ConnectInviteModal({
     setLoading(true);
     setError('');
     try {
-      const result = await sendConnectionRequest(userId, message.trim() || undefined);
+      const result = await sendConnectionRequest(userId, message.trim() || undefined, {
+        fullName,
+      });
       notifyConnectionsRefresh();
       onSent(result.id);
       setMessage('');

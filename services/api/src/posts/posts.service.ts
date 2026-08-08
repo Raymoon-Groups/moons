@@ -70,6 +70,7 @@ export class PostsService {
       body: string;
       createdAt: Date;
       authorId: string;
+      hiddenAt?: Date | null;
       attachmentUrl?: string | null;
       attachmentFileName?: string | null;
       attachmentMimeType?: string | null;
@@ -87,6 +88,7 @@ export class PostsService {
       createdAt: comment.createdAt.toISOString(),
       author: this.mapAuthor(comment.author),
       isMine: comment.authorId === viewerId,
+      isHidden: Boolean(comment.hiddenAt),
       attachmentUrl: comment.attachmentUrl ?? null,
       attachmentFileName: comment.attachmentFileName ?? null,
       attachmentMimeType: comment.attachmentMimeType ?? null,
@@ -249,7 +251,7 @@ export class PostsService {
         include: { user: { include: { profile: true } } },
       }),
       this.prisma.postComment.findMany({
-        where: { postId: rootId, deletedAt: null },
+        where: { postId: rootId, deletedAt: null, hiddenAt: null },
         orderBy: { createdAt: 'desc' },
         take: 3,
         include: { author: { include: { profile: true } } },
@@ -609,16 +611,24 @@ export class PostsService {
     await this.getPost(viewerId, postId);
     const take = Math.min(Math.max(limit, 1), 50);
     const skip = (Math.max(page, 1) - 1) * take;
+    const isPostOwner = target.authorId === viewerId;
+
+    // Everyone except the post owner only sees non-hidden comments.
+    const where = {
+      postId: target.id,
+      deletedAt: null as null,
+      ...(isPostOwner ? {} : { hiddenAt: null as null }),
+    };
 
     const [items, total] = await Promise.all([
       this.prisma.postComment.findMany({
-        where: { postId: target.id, deletedAt: null },
+        where,
         orderBy: { createdAt: 'asc' },
         skip,
         take,
         include: { author: { include: { profile: true } } },
       }),
-      this.prisma.postComment.count({ where: { postId: target.id, deletedAt: null } }),
+      this.prisma.postComment.count({ where }),
     ]);
 
     return {
@@ -718,22 +728,93 @@ export class PostsService {
     });
     if (!comment) throw new NotFoundException('Comment not found');
 
-    if (target.authorId !== userId) {
-      throw new ForbiddenException('Only the post author can delete comments');
+    if (target.authorId !== userId && comment.authorId !== userId) {
+      throw new ForbiddenException('You cannot delete this comment');
     }
+
+    // Hidden comments are already excluded from public commentCount.
+    const shouldDecrementCount = !comment.hiddenAt;
 
     await this.prisma.$transaction([
       this.prisma.postComment.update({
         where: { id: commentId },
         data: { deletedAt: new Date() },
       }),
-      this.prisma.post.update({
-        where: { id: target.id },
-        data: { commentCount: { decrement: 1 } },
-      }),
+      ...(shouldDecrementCount
+        ? [
+            this.prisma.post.update({
+              where: { id: target.id },
+              data: { commentCount: { decrement: 1 } },
+            }),
+          ]
+        : []),
     ]);
 
     return { success: true };
+  }
+
+  /** Post owner hides a comment — invisible to everyone else until unhidden. */
+  async hideComment(userId: string, postId: string, commentId: string) {
+    const target = await this.resolveEngagementTarget(postId);
+    if (target.authorId !== userId) {
+      throw new ForbiddenException('Only the post author can hide comments');
+    }
+
+    const comment = await this.prisma.postComment.findFirst({
+      where: { id: commentId, postId: target.id, deletedAt: null },
+      include: { author: { include: { profile: true } } },
+    });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.hiddenAt) {
+      return this.mapComment(comment, userId);
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.postComment.update({
+        where: { id: commentId },
+        data: { hiddenAt: new Date() },
+        include: { author: { include: { profile: true } } },
+      });
+      await tx.post.update({
+        where: { id: target.id },
+        data: { commentCount: { decrement: 1 } },
+      });
+      return row;
+    });
+
+    return this.mapComment(updated, userId);
+  }
+
+  /** Post owner restores a previously hidden comment for everyone. */
+  async unhideComment(userId: string, postId: string, commentId: string) {
+    const target = await this.resolveEngagementTarget(postId);
+    if (target.authorId !== userId) {
+      throw new ForbiddenException('Only the post author can unhide comments');
+    }
+
+    const comment = await this.prisma.postComment.findFirst({
+      where: { id: commentId, postId: target.id, deletedAt: null },
+      include: { author: { include: { profile: true } } },
+    });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (!comment.hiddenAt) {
+      return this.mapComment(comment, userId);
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.postComment.update({
+        where: { id: commentId },
+        data: { hiddenAt: null },
+        include: { author: { include: { profile: true } } },
+      });
+      await tx.post.update({
+        where: { id: target.id },
+        data: { commentCount: { increment: 1 } },
+      });
+      return row;
+    });
+
+    return this.mapComment(updated, userId);
   }
 
   async sharePost(userId: string, postId: string, body?: string) {

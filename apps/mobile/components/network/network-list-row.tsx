@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NetworkUserCard } from '@moons/shared';
 import { ConnectInviteModal } from '@/components/network/connect-invite-modal';
@@ -27,22 +27,31 @@ export function NetworkListRow({
   onUpdated,
   showConnect = true,
   isLast = false,
+  variant = 'compact',
 }: {
   person: NetworkUserCard;
   onConnectionChange?: (userId: string, update: ConnectionUpdate) => void;
   onUpdated?: () => void;
   showConnect?: boolean;
   isLast?: boolean;
+  /** `detail` = richer row for the connections page */
+  variant?: 'compact' | 'detail';
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const [local, setLocal] = useState(person);
 
+  useEffect(() => {
+    setLocal(person);
+  }, [person]);
+
   const avatar = resolveAvatarUrl(local.avatarUrl);
   const name = local.fullName?.trim() || 'Professional';
   const subtitle = local.headline || local.currentCompany || 'Professional';
+  const company = local.currentCompany && local.headline ? local.currentCompany : local.location || '';
+  const detail = variant === 'detail';
 
   function apply(update: ConnectionUpdate) {
     setLocal((prev) => ({
@@ -89,6 +98,33 @@ export function NetworkListRow({
 
   function renderActions() {
     if (local.connectionStatus === 'ACCEPTED') {
+      if (detail) {
+        return (
+          <View style={styles.detailActions}>
+            <Pressable
+              onPress={() => void openMessage()}
+              style={[styles.iconBtn, { backgroundColor: colors.blue }]}
+              accessibilityLabel="Message"
+            >
+              <Ionicons name="chatbubble" size={16} color="#fff" />
+            </Pressable>
+            <Pressable
+              onPress={openProfile}
+              style={[
+                styles.iconBtn,
+                {
+                  backgroundColor: isDark ? colors.surface : colors.surfaceElevated,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+              ]}
+              accessibilityLabel="View profile"
+            >
+              <Ionicons name="person-outline" size={16} color={colors.heading} />
+            </Pressable>
+          </View>
+        );
+      }
       return (
         <Pressable
           onPress={() => void openMessage()}
@@ -106,7 +142,7 @@ export function NetworkListRow({
             disabled={loading}
             onPress={() =>
               void run(
-                () => acceptConnection(local.connectionId!),
+                () => acceptConnection(local.connectionId!, { fullName: local.fullName }),
                 { connectionId: local.connectionId!, connectionStatus: 'ACCEPTED', connectionDirection: null },
               )
             }
@@ -163,13 +199,26 @@ export function NetworkListRow({
   }
 
   return (
-    <View style={[styles.row, { borderBottomColor: colors.border }, isLast && styles.rowLast]}>
+    <View
+      style={[
+        styles.row,
+        detail && styles.rowDetail,
+        isLast && styles.rowLast,
+        !isLast && { borderBottomColor: colors.border },
+      ]}
+    >
       <Pressable onPress={openProfile} style={styles.profileTap}>
-        <View style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+        <View
+          style={[
+            styles.avatar,
+            detail && styles.avatarDetail,
+            { borderColor: colors.border, backgroundColor: colors.surface },
+          ]}
+        >
           {avatar ? (
             <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
           ) : (
-            <Text style={[fontStyle('bold'), { fontSize: 18, color: colors.heading }]}>
+            <Text style={[fontStyle('bold'), { fontSize: detail ? 18 : 16, color: colors.heading }]}>
               {name.charAt(0).toUpperCase()}
             </Text>
           )}
@@ -178,11 +227,16 @@ export function NetworkListRow({
           <Text numberOfLines={1} style={[{ color: colors.heading, fontSize: 15 }, fontStyle('bold')]}>
             {name}
           </Text>
-          <Text numberOfLines={1} style={[{ color: colors.muted, fontSize: 13, marginTop: 2 }, fontStyle('regular')]}>
+          <Text numberOfLines={1} style={[{ color: colors.muted, fontSize: 12, marginTop: 2 }]}>
             {subtitle}
           </Text>
+          {detail && company ? (
+            <Text numberOfLines={1} style={[{ color: colors.silver, fontSize: 11, marginTop: 2 }]}>
+              {company}
+            </Text>
+          ) : null}
           {local.connectionStatus === 'PENDING' && local.connectionDirection === 'received' ? (
-            <Text style={[{ color: colors.muted, fontSize: 12, marginTop: 4 }, fontStyle('regular')]}>
+            <Text style={[{ color: colors.muted, fontSize: 12, marginTop: 4 }]}>
               Sent you a connection request
             </Text>
           ) : null}
@@ -215,8 +269,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 2,
     gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  rowDetail: {
+    paddingVertical: 14,
+    paddingHorizontal: 4,
   },
   rowLast: {
     borderBottomWidth: 0,
@@ -229,20 +288,37 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  avatarDetail: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   avatarImg: { width: '100%', height: '100%' },
   copy: { flex: 1, minWidth: 0 },
   actions: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    minWidth: 92,
+    flexShrink: 0,
+  },
+  detailActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionStack: { gap: 6, alignItems: 'stretch' },
   actionBtn: {

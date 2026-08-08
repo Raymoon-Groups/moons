@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/theme-context';
 
-export function ThemeToggle({ size = 36 }: { size?: number }) {
+export function ThemeToggle({ size = 36, bare = false }: { size?: number; bare?: boolean }) {
   const { colors, isDark, toggleTheme } = useTheme();
 
   return (
@@ -16,8 +16,9 @@ export function ThemeToggle({ size = 36 }: { size?: number }) {
           width: size,
           height: size,
           borderRadius: size / 2,
-          borderColor: colors.border,
-          backgroundColor: colors.surfaceElevated,
+          borderColor: bare ? 'transparent' : colors.border,
+          borderWidth: bare ? 0 : 1,
+          backgroundColor: bare ? 'transparent' : colors.surfaceElevated,
           opacity: pressed ? 0.85 : 1,
         },
       ]}
@@ -35,6 +36,5 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
 });

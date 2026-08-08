@@ -1,18 +1,16 @@
 import { router } from 'expo-router';
-import { useState, useMemo } from 'react';
-import { Text, StyleSheet } from 'react-native';
-import { AuthLayout } from '@/components/auth-layout';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { AuthField, AuthLayout, AuthPasswordField } from '@/components/auth-layout';
 import {
   ErrorText,
-  FieldLabel,
   InfoText,
-  Input,
   LinkText,
-  PasswordInput,
   PrimaryButton,
   SecondaryButton,
 } from '@/components/ui';
 import { ApiError, forgotPasswordRequest, resetPasswordRequest } from '@/lib/api';
+import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 
 type Step = 'email' | 'reset';
@@ -31,7 +29,9 @@ export default function ForgotPasswordScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        hint: { color: colors.muted, fontSize: 14, marginBottom: 8 },
+        hint: { color: colors.muted, fontSize: 14, marginBottom: 8, lineHeight: 20 },
+        footer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+        footerText: { color: colors.muted, fontSize: 14, ...fontStyle('regular') },
       }),
     [colors],
   );
@@ -66,37 +66,53 @@ export default function ForgotPasswordScreen() {
 
   return (
     <AuthLayout
-      title="Reset your password"
-      subtitle="We'll send a verification code to your email."
-      footer={<LinkText onPress={() => router.push('/login')}>Back to login</LinkText>}
+      variant="forgot"
+      title={step === 'email' ? 'Forget Password' : 'Reset Password'}
+      subtitle={
+        step === 'email'
+          ? "Don't worry, it happens. Please enter the email associated with your MoonsJob account."
+          : `Enter the code sent to ${email} and choose a new password.`
+      }
+      footer={
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>You remember your password? </Text>
+          <LinkText onPress={() => router.push('/login')}>Sign in</LinkText>
+        </View>
+      }
     >
       {step === 'email' ? (
         <>
-          <FieldLabel>Email</FieldLabel>
-          <Input
+          <AuthField
+            icon="mail-outline"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="you@email.com"
+            placeholder="Email address"
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton
-            label={loading ? 'Sending…' : 'Send reset code'}
+            label={loading ? 'Sending…' : 'Send OTP'}
             onPress={handleSendReset}
             loading={loading}
           />
         </>
       ) : (
         <>
-          <Text style={styles.hint}>Enter the code sent to {email}</Text>
-          <FieldLabel>Verification code</FieldLabel>
-          <Input value={otp} onChangeText={setOtp} keyboardType="number-pad" placeholder="123456" />
-          <FieldLabel>New password</FieldLabel>
-          <PasswordInput value={password} onChangeText={setPassword} placeholder="New password" />
-          <FieldLabel>Confirm password</FieldLabel>
-          <PasswordInput
+          <AuthField
+            icon="keypad-outline"
+            value={otp}
+            onChangeText={setOtp}
+            keyboardType="number-pad"
+            placeholder="Verification code"
+          />
+          <AuthPasswordField
+            value={password}
+            onChangeText={setPassword}
+            placeholder="New password"
+          />
+          <AuthPasswordField
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm password"
@@ -113,4 +129,3 @@ export default function ForgotPasswordScreen() {
     </AuthLayout>
   );
 }
-

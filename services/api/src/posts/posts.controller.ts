@@ -156,6 +156,24 @@ export class PostsController {
     return this.posts.deleteComment(user.sub, id, commentId);
   }
 
+  @Post(':id/comments/:commentId/hide')
+  hideComment(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+  ) {
+    return this.posts.hideComment(user.sub, id, commentId);
+  }
+
+  @Post(':id/comments/:commentId/unhide')
+  unhideComment(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+  ) {
+    return this.posts.unhideComment(user.sub, id, commentId);
+  }
+
   @Post(':id/share')
   share(
     @CurrentUser() user: JwtPayload,

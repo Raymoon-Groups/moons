@@ -15,21 +15,34 @@ export function formatMessageTime(iso: string) {
 
 export function formatConversationTime(iso: string) {
   const date = new Date(iso);
-  const now = new Date();
-  const sameDay =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
-  if (sameDay) {
+  const now = Date.now();
+  const diffMs = Math.max(0, now - date.getTime());
+  const minutes = Math.floor(diffMs / 60000);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} min${minutes === 1 ? '' : 's'}`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    const today = new Date();
+    const sameDay =
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
+    if (sameDay && hours < 6) {
+      return `${hours} hr${hours === 1 ? '' : 's'}`;
+    }
     return date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
   }
-  const yesterday = new Date(now);
+
+  const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const isYesterday =
     date.getDate() === yesterday.getDate() &&
     date.getMonth() === yesterday.getMonth() &&
     date.getFullYear() === yesterday.getFullYear();
   if (isYesterday) return 'Yesterday';
+
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 

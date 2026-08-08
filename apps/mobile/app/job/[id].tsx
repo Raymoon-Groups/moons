@@ -1,6 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,23 +20,91 @@ import {
 } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { CompanyAvatar } from '@/components/company-avatar';
-import { Chip } from '@/components/status-badge';
+import { EmptyState } from '@/components/portal-ui';
+import { SuccessModal } from '@/components/success-modal';
 import { PrimaryButton, FieldLabel, Input, SecondaryButton } from '@/components/ui';
 import { apiFetch, authFetch, authUpload } from '@/lib/api';
+import { resolveAssetUrl } from '@/lib/assets';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
-import { formatEmploymentType, formatPostedAgo } from '@/lib/format';
+import {
+  formatEmploymentType,
+  formatExperienceLevel,
+  formatPostedAgo,
+  formatPostedLabel,
+} from '@/lib/format';
 import { stripHtml } from '@/lib/html-text';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { JobListing, Profile } from '@/lib/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BOTTOM_PILL_TAB_BAR_HEIGHT } from '@/components/bottom-pill-tab-bar';
 
 type Step = 'questions' | 'preview';
 
+function formatExperienceYears(
+  min?: number | null,
+  max?: number | null,
+): string | null {
+  if (min == null && max == null) return null;
+  if (min === 0 && (max == null || max === 0)) return 'Fresher';
+  if (min != null && max != null && min !== max) return `${min}–${max} yrs`;
+  if (min != null) return `${min}+ yrs`;
+  return `Up to ${max} yrs`;
+}
+
+/** Split a job post into description + responsibilities when headings exist. */
+function splitJobSpec(raw: string | null | undefined): {
+  description: string;
+  responsibilities: string | null;
+} {
+  const text = stripHtml(raw);
+  if (!text) return { description: '', responsibilities: null };
+
+  const heading =
+    /\n?\s*((key\s+)?responsibilities|what you.?ll do|your responsibilities|role responsibilities|duties\s*&?\s*responsibilities)\s*:?\s*\n+/i;
+  const match = text.match(heading);
+  if (match?.index != null && match.index > 20) {
+    const description = text.slice(0, match.index).trim();
+    const responsibilities = text.slice(match.index + match[0].length).trim();
+    if (description && responsibilities) {
+      return { description, responsibilities };
+    }
+  }
+
+  const paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  if (paragraphs.length >= 2) {
+    return {
+      description: paragraphs.slice(0, -1).join('\n\n'),
+      responsibilities: paragraphs[paragraphs.length - 1],
+    };
+  }
+
+  return { description: text, responsibilities: null };
+}
+
+function bulletLines(text: string): string[] {
+  const lines = text
+    .split(/\n+/)
+    .map((l) => l.replace(/^[\s•\-\*\u2022]+/, '').trim())
+    .filter(Boolean);
+  if (lines.length >= 2) return lines;
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 18);
+}
+
 export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = useTabScreenPadding(24);
+  // Sticky apply sits above the floating tab pill.
+  const applyBarPad = BOTTOM_PILL_TAB_BAR_HEIGHT + Math.max(insets.bottom, 10);
   const [job, setJob] = useState<JobListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [applied, setApplied] = useState(false);
@@ -50,52 +119,261 @@ export default function JobDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState('');
+  const [showApplySuccess, setShowApplySuccess] = useState(false);
 
   const questions = useMemo(
     () => [...(job?.screeningQuestions ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
     [job?.screeningQuestions],
   );
 
+  const spec = useMemo(() => splitJobSpec(job?.description), [job?.description]);
+  const logoUrl = resolveAssetUrl(job?.companyLogoUrl);
+
+  const cardBg = isDark ? colors.surfaceElevated : '#E6F0EC';
+  const softBlue = isDark ? colors.surfaceElevated : '#E8EEF6';
+  const whiteCard = isDark ? colors.surfaceElevated : '#ffffff';
+  const tagBg = isDark ? colors.surface : '#ffffff';
+  const tagText = isDark ? colors.foreground : '#4a5568';
+  const statBg = isDark ? colors.surface : '#ffffff';
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
         center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-        container: { padding: theme.spacing.md, paddingBottom: 40 },
+        page: { flex: 1 },
+        container: {
+          paddingHorizontal: theme.spacing.md,
+          paddingTop: theme.spacing.sm,
+          paddingBottom: bottomPadding + applyBarPad + 24,
+        },
+        loadingText: { marginTop: 12, color: colors.muted, ...fontStyle('medium') },
         hero: {
-          backgroundColor: colors.surfaceElevated,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
+          backgroundColor: cardBg,
+          borderRadius: 22,
+          padding: 18,
+          borderWidth: isDark ? 1 : 0,
           borderColor: colors.border,
-          padding: theme.spacing.lg,
           marginBottom: theme.spacing.md,
-          ...theme.shadow.card,
         },
+        heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+        heroMain: { flex: 1, minWidth: 0 },
         title: {
-          marginTop: 14,
-          fontSize: 24,
-          ...fontStyle('extrabold'),
+          fontSize: 20,
+          lineHeight: 26,
           color: colors.heading,
-          lineHeight: 30,
+          ...fontStyle('extrabold'),
         },
-        company: { marginTop: 6, fontSize: 16, ...fontStyle('semibold'), color: colors.foreground },
-        meta: { marginTop: 10, fontSize: 13, color: colors.muted, lineHeight: 20 },
-        section: {
-          backgroundColor: colors.surfaceElevated,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
+        companyPress: {
+          marginTop: 6,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          alignSelf: 'flex-start',
+        },
+        company: {
+          fontSize: 14,
+          color: colors.blue,
+          ...fontStyle('semibold'),
+        },
+        locationRow: {
+          marginTop: 6,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+        },
+        location: {
+          flex: 1,
+          fontSize: 13,
+          color: colors.muted,
+          ...fontStyle('medium'),
+        },
+        tags: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 8,
+          marginTop: 14,
+        },
+        tag: {
+          backgroundColor: tagBg,
+          borderRadius: theme.radius.full,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
+        },
+        tagText: {
+          fontSize: 12,
+          color: tagText,
+          ...fontStyle('semibold'),
+        },
+        statsRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 8,
+          marginTop: 16,
+        },
+        statCard: {
+          flexGrow: 1,
+          flexBasis: '30%',
+          minWidth: '28%',
+          borderRadius: 14,
+          backgroundColor: statBg,
+          paddingVertical: 12,
+          paddingHorizontal: 10,
+          gap: 4,
+          borderWidth: isDark ? StyleSheet.hairlineWidth : 0,
           borderColor: colors.border,
-          padding: theme.spacing.lg,
-          marginBottom: theme.spacing.lg,
+        },
+        statIconRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+        statLabel: {
+          fontSize: 10,
+          color: colors.muted,
+          ...fontStyle('semibold'),
+        },
+        statValue: {
+          fontSize: 13,
+          color: colors.heading,
+          lineHeight: 17,
+          ...fontStyle('bold'),
+        },
+        salaryBand: {
+          marginTop: 14,
+          borderRadius: 16,
+          backgroundColor: isDark ? `${colors.blue}18` : 'rgba(255,255,255,0.72)',
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        },
+        salaryLabel: {
+          fontSize: 12,
+          color: colors.muted,
+          ...fontStyle('medium'),
+        },
+        salaryValue: {
+          flex: 1,
+          textAlign: 'right',
+          fontSize: 16,
+          color: colors.heading,
+          ...fontStyle('bold'),
+        },
+        sectionCard: {
+          backgroundColor: whiteCard,
+          borderRadius: 22,
+          padding: 18,
+          marginBottom: theme.spacing.md,
+          borderWidth: isDark ? 1 : StyleSheet.hairlineWidth,
+          borderColor: isDark ? colors.border : 'rgba(15,28,51,0.06)',
+        },
+        sectionLabel: {
+          fontSize: 12,
+          letterSpacing: 0.8,
+          textTransform: 'uppercase',
+          color: colors.muted,
+          marginBottom: 10,
+          ...fontStyle('bold'),
         },
         sectionTitle: {
-          fontSize: 16,
-          ...fontStyle('extrabold'),
+          fontSize: 18,
           color: colors.heading,
+          marginBottom: 12,
+          ...fontStyle('extrabold'),
+        },
+        bodyText: {
+          fontSize: 15,
+          lineHeight: 24,
+          color: isDark ? colors.foreground : '#3d4a5c',
+          ...fontStyle('regular'),
+        },
+        bodyGap: { marginTop: 12 },
+        bulletRow: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 10,
           marginBottom: 10,
         },
-        description: { fontSize: 15, lineHeight: 24, color: colors.foreground },
-        hint: { marginTop: 8, color: colors.muted, fontSize: 13 },
-        error: { color: colors.error, textAlign: 'center' },
+        bulletDot: {
+          width: 7,
+          height: 7,
+          borderRadius: 4,
+          marginTop: 8,
+          backgroundColor: colors.blue,
+        },
+        bulletText: {
+          flex: 1,
+          fontSize: 15,
+          lineHeight: 23,
+          color: isDark ? colors.foreground : '#3d4a5c',
+          ...fontStyle('regular'),
+        },
+        highlightCard: {
+          backgroundColor: softBlue,
+          borderRadius: 22,
+          padding: 16,
+          marginBottom: theme.spacing.md,
+          borderWidth: isDark ? 1 : 0,
+          borderColor: colors.border,
+        },
+        highlightTitle: {
+          fontSize: 15,
+          color: colors.heading,
+          marginBottom: 12,
+          ...fontStyle('bold'),
+        },
+        highlightRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          marginBottom: 10,
+        },
+        highlightIcon: {
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: isDark ? colors.surface : '#ffffff',
+        },
+        highlightText: {
+          flex: 1,
+          fontSize: 14,
+          color: colors.heading,
+          ...fontStyle('semibold'),
+        },
+        applyBar: {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: theme.spacing.md,
+          paddingTop: 12,
+          paddingBottom: applyBarPad,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: isDark ? colors.border : 'rgba(15,28,51,0.06)',
+          backgroundColor: isDark ? colors.surfaceElevated : '#ffffff',
+          ...theme.shadow.soft,
+        },
+        appliedBadge: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          borderRadius: theme.radius.full,
+          paddingVertical: 14,
+          backgroundColor: isDark ? 'rgba(22,163,74,0.16)' : '#dcfce7',
+        },
+        appliedText: {
+          color: isDark ? colors.success : '#15803d',
+          fontSize: 15,
+          ...fontStyle('bold'),
+        },
+        applyHint: {
+          textAlign: 'center',
+          fontSize: 13,
+          color: colors.muted,
+          marginBottom: 10,
+          ...fontStyle('medium'),
+        },
         backdrop: {
           flex: 1,
           backgroundColor: 'rgba(0,0,0,0.4)',
@@ -180,10 +458,29 @@ export default function JobDetailScreen() {
           borderTopColor: colors.border,
         },
         footerBtn: { flex: 1 },
-        errorBox: { marginTop: 10, color: colors.error, fontSize: 13 },
       }),
-    [colors],
+    [
+      applyBarPad,
+      bottomPadding,
+      cardBg,
+      colors,
+      isDark,
+      softBlue,
+      statBg,
+      tagBg,
+      tagText,
+      whiteCard,
+    ],
   );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: job?.title?.trim() || 'Job details',
+      headerStyle: {
+        backgroundColor: isDark ? colors.surfaceElevated : '#ffffff',
+      },
+    });
+  }, [navigation, job?.title, colors.surfaceElevated, isDark]);
 
   useEffect(() => {
     if (!id) return;
@@ -271,7 +568,7 @@ export default function JobDetailScreen() {
 
   function goToPreview() {
     for (const q of questions) {
-      if (q.required && !(answers[q.id]?.trim())) {
+      if (q.required && !answers[q.id]?.trim()) {
         Alert.alert('Missing answer', `Please answer: ${q.prompt}`);
         return;
       }
@@ -282,7 +579,7 @@ export default function JobDetailScreen() {
   async function handleSubmit() {
     if (!id || !job) return;
     for (const q of questions) {
-      if (q.required && !(answers[q.id]?.trim())) {
+      if (q.required && !answers[q.id]?.trim()) {
         Alert.alert('Missing answer', `Please answer: ${q.prompt}`);
         setStep('questions');
         return;
@@ -313,7 +610,7 @@ export default function JobDetailScreen() {
       });
       setApplied(true);
       setApplyOpen(false);
-      Alert.alert('Applied', 'Your application was submitted successfully.');
+      setShowApplySuccess(true);
     } catch (err) {
       Alert.alert('Could not apply', err instanceof Error ? err.message : 'Try again');
     } finally {
@@ -326,6 +623,7 @@ export default function JobDetailScreen() {
       <AppScreen>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.blue} />
+          <Text style={styles.loadingText}>Loading job details…</Text>
         </View>
       </AppScreen>
     );
@@ -334,8 +632,12 @@ export default function JobDetailScreen() {
   if (!job) {
     return (
       <AppScreen>
-        <View style={styles.center}>
-          <Text style={styles.error}>{error || 'Job not found'}</Text>
+        <View style={{ flex: 1, padding: theme.spacing.md, justifyContent: 'center' }}>
+          <EmptyState
+            icon="briefcase-outline"
+            title="Job not found"
+            message={error || 'This role may have been closed or removed.'}
+          />
         </View>
       </AppScreen>
     );
@@ -343,43 +645,227 @@ export default function JobDetailScreen() {
 
   const canApply = user?.role === UserRole.CANDIDATE;
   const questionCount = questions.length;
+  const descriptionParagraphs = spec.description
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const experienceLabel = formatExperienceYears(job.minExperienceYears, job.maxExperienceYears);
+  const experienceLevel = formatExperienceLevel(job.minExperienceYears, job.maxExperienceYears);
+  const typeLabel = formatEmploymentType(job.employmentType);
+
+  const tags = Array.from(
+    new Set(
+      [
+        typeLabel,
+        experienceLevel,
+        experienceLabel,
+        job.location?.split(',')[0]?.trim(),
+        formatPostedAgo(job.createdAt),
+      ].filter((t): t is string => Boolean(t?.trim())),
+    ),
+  );
+
+  const salaryDisplay = job.salaryRange?.trim() || 'Salary not listed';
+  const responsibilityItems = spec.responsibilities ? bulletLines(spec.responsibilities) : [];
+
+  const highlights: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [];
+  if (typeLabel) highlights.push({ icon: 'briefcase-outline', text: typeLabel });
+  if (job.location?.trim()) {
+    highlights.push({ icon: 'location-outline', text: job.location.trim() });
+  }
+  if (experienceLabel) highlights.push({ icon: 'school-outline', text: experienceLabel });
+  if (job.createdAt) {
+    highlights.push({ icon: 'time-outline', text: formatPostedLabel(job.createdAt) });
+  }
 
   return (
     <AppScreen>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        style={[styles.page, { backgroundColor: isDark ? colors.background : '#ffffff' }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.hero}>
-          <CompanyAvatar name={job.companyName} size={56} />
-          <Text style={styles.title}>{job.title}</Text>
-          <Text style={styles.company}>{job.companyName}</Text>
-          <Chip label={formatEmploymentType(job.employmentType)} />
-          <Text style={styles.meta}>
-            {[job.location, job.salaryRange, formatPostedAgo(job.createdAt)].filter(Boolean).join(' · ')}
-          </Text>
+          <View style={styles.heroTop}>
+            <CompanyAvatar name={job.companyName} size={60} imageUrl={logoUrl} />
+            <View style={styles.heroMain}>
+              <Text style={styles.title}>{job.title}</Text>
+              {job.recruiterId ? (
+                <Pressable
+                  onPress={() => router.push(`/companies/${job.recruiterId}` as never)}
+                  style={styles.companyPress}
+                  hitSlop={6}
+                >
+                  <Text style={styles.company} numberOfLines={1}>
+                    {job.companyName}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.blue} />
+                </Pressable>
+              ) : (
+                <Text style={[styles.company, { color: colors.heading, marginTop: 6 }]}>
+                  {job.companyName}
+                </Text>
+              )}
+              {job.location ? (
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={13} color={colors.muted} />
+                  <Text style={styles.location} numberOfLines={2}>
+                    {job.location}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          {tags.length > 0 ? (
+            <View style={styles.tags}>
+              {tags.map((tag, index) => (
+                <View key={`${index}-${tag}`} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          <View style={styles.salaryBand}>
+            <Text style={styles.salaryLabel}>Compensation</Text>
+            <Text style={styles.salaryValue} numberOfLines={1}>
+              {salaryDisplay}
+            </Text>
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <View style={styles.statIconRow}>
+                <Ionicons name="briefcase-outline" size={14} color={colors.blue} />
+                <Text style={styles.statLabel}>Type</Text>
+              </View>
+              <Text style={styles.statValue} numberOfLines={2}>
+                {typeLabel}
+              </Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statIconRow}>
+                <Ionicons name="school-outline" size={14} color={colors.blue} />
+                <Text style={styles.statLabel}>Experience</Text>
+              </View>
+              <Text style={styles.statValue} numberOfLines={2}>
+                {experienceLabel || experienceLevel || 'Not specified'}
+              </Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statIconRow}>
+                <Ionicons name="time-outline" size={14} color={colors.blue} />
+                <Text style={styles.statLabel}>Posted</Text>
+              </View>
+              <Text style={styles.statValue} numberOfLines={2}>
+                {formatPostedAgo(job.createdAt)}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About the role</Text>
-          <Text style={styles.description}>{stripHtml(job.description)}</Text>
-        </View>
+        {highlights.length > 0 ? (
+          <View style={styles.highlightCard}>
+            <Text style={styles.highlightTitle}>Role snapshot</Text>
+            {highlights.map((item, index) => (
+              <View key={`${index}-${item.text}`} style={styles.highlightRow}>
+                <View style={styles.highlightIcon}>
+                  <Ionicons name={item.icon} size={16} color={colors.blue} />
+                </View>
+                <Text style={styles.highlightText}>{item.text}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
+        {descriptionParagraphs.length > 0 ? (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionLabel}>Overview</Text>
+            <Text style={styles.sectionTitle}>Job description</Text>
+            {descriptionParagraphs.map((paragraph, index) => (
+              <Text
+                key={`desc-${index}`}
+                style={[styles.bodyText, index > 0 ? styles.bodyGap : null]}
+              >
+                {paragraph}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
+        {responsibilityItems.length > 0 ? (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionLabel}>Role</Text>
+            <Text style={styles.sectionTitle}>Responsibilities</Text>
+            {responsibilityItems.map((item, index) => (
+              <View key={`resp-${index}`} style={styles.bulletRow}>
+                <View style={styles.bulletDot} />
+                <Text style={styles.bulletText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {job.recruiterId ? (
+          <Pressable
+            onPress={() => router.push(`/companies/${job.recruiterId}` as never)}
+            style={({ pressed }) => [
+              styles.sectionCard,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                opacity: pressed ? 0.94 : 1,
+              },
+            ]}
+          >
+            <CompanyAvatar name={job.companyName} size={48} imageUrl={logoUrl} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[styles.sectionLabel, { marginBottom: 4 }]}>About employer</Text>
+              <Text style={[styles.sectionTitle, { marginBottom: 0, fontSize: 16 }]} numberOfLines={1}>
+                {job.companyName}
+              </Text>
+              <Text style={[styles.bodyText, { marginTop: 4, fontSize: 13 }]} numberOfLines={1}>
+                View company profile & open roles
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.blue} />
+          </Pressable>
+        ) : null}
+      </ScrollView>
+
+      <View style={styles.applyBar}>
         {canApply ? (
           applied ? (
-            <Text style={styles.hint}>You have already applied to this job.</Text>
+            <View style={styles.appliedBadge}>
+              <Ionicons name="checkmark-circle" size={18} color={isDark ? colors.success : '#15803d'} />
+              <Text style={styles.appliedText}>Application submitted</Text>
+            </View>
           ) : (
             <>
-              <PrimaryButton label="Apply now" onPress={() => void openApply()} />
               {questionCount > 0 ? (
-                <Text style={styles.hint}>
-                  This employer asks {questionCount} question{questionCount === 1 ? '' : 's'} after
-                  you click Apply.
+                <Text style={styles.applyHint}>
+                  Includes {questionCount} screening question{questionCount === 1 ? '' : 's'}
                 </Text>
               ) : null}
+              <PrimaryButton label="Apply now" onPress={() => void openApply()} />
             </>
           )
         ) : (
-          <Text style={styles.hint}>Sign in as a jobseeker to apply for this role.</Text>
+          <>
+            <Text style={styles.applyHint}>
+              {user
+                ? 'Only jobseeker accounts can apply for this role.'
+                : 'Sign in as a jobseeker to apply for this role.'}
+            </Text>
+            {!user ? (
+              <PrimaryButton label="Sign in to apply" onPress={() => router.push('/login' as never)} />
+            ) : null}
+          </>
         )}
-      </ScrollView>
+      </View>
 
       <Modal visible={applyOpen} animationType="slide" transparent onRequestClose={() => setApplyOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => !submitting && setApplyOpen(false)}>
@@ -585,6 +1071,22 @@ export default function JobDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <SuccessModal
+        visible={showApplySuccess}
+        onClose={() => setShowApplySuccess(false)}
+        title="Application submitted"
+        message={
+          job
+            ? `Your application for ${job.title} at ${job.companyName} was submitted successfully.`
+            : 'Your application was submitted successfully.'
+        }
+        primaryLabel="Got it"
+        secondaryLabel="My applications"
+        onSecondary={() => router.push('/(tabs)/applications')}
+        variant="success"
+        icon="briefcase-outline"
+      />
     </AppScreen>
   );
 }

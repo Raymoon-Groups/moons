@@ -12,9 +12,12 @@ export function isStaleConnectionInviteError(err: unknown): boolean {
   return err.status === 400 && /no longer pending/i.test(err.message);
 }
 
-export async function acceptConnectionInvite(connectionId: string) {
+export async function acceptConnectionInvite(
+  connectionId: string,
+  meta?: { fullName?: string | null },
+) {
   try {
-    await acceptConnection(connectionId);
+    await acceptConnection(connectionId, meta);
   } catch (err) {
     if (!isStaleConnectionInviteError(err)) throw err;
   }

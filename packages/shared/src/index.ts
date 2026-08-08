@@ -19,6 +19,15 @@ export {
   isValidPassword,
 } from './password';
 
+export {
+  MAX_MESSAGE_ATTACHMENT_BYTES,
+  MAX_MESSAGE_ATTACHMENT_LABEL,
+  MESSAGE_ATTACHMENT_ACCEPT,
+  MESSAGE_ATTACHMENT_MIME_TYPES,
+  isMessageAttachmentTooLarge,
+  messageAttachmentTooLargeMessage,
+} from './message-attachments';
+
 export enum JobStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',
@@ -114,6 +123,8 @@ export interface PostCommentItem {
   createdAt: string;
   author: PostAuthor;
   isMine: boolean;
+  /** Post owner hid this comment — not visible to other members. */
+  isHidden?: boolean;
   attachmentUrl?: string | null;
   attachmentFileName?: string | null;
   attachmentMimeType?: string | null;

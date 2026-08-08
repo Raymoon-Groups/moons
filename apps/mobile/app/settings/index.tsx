@@ -56,6 +56,12 @@ export default function SettingsScreen() {
         colors={colors}
       />
       <MenuLink
+        label="Saved jobs"
+        subtitle="Roles you bookmarked while browsing"
+        onPress={() => router.push('/saved-jobs')}
+        colors={colors}
+      />
+      <MenuLink
         label="My network"
         subtitle="Connections, pending requests & visitors"
         onPress={() => router.push('/profile/network')}

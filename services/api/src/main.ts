@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -18,6 +19,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
   app.use(cookieParser());
+  app.useGlobalFilters(new MulterExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

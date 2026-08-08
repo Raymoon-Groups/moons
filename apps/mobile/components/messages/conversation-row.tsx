@@ -1,18 +1,60 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ConversationPreview } from '@/lib/messages';
 import { truncateMessagePreview } from '@/lib/messages';
 import { formatConversationTime } from '@/lib/message-format';
 import { resolveAvatarUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
-import { theme } from '@/lib/theme';
 
-function previewText(conversation: ConversationPreview) {
-  if (!conversation.lastMessage) return 'No messages yet';
-  const prefix = conversation.lastMessage.isMine ? 'You: ' : '';
-  return `${prefix}${truncateMessagePreview(conversation.lastMessage.body, 72)}`;
+type PreviewKind = {
+  icon: keyof typeof Ionicons.glyphMap | null;
+  text: string;
+  showSentChecks: boolean;
+};
+
+function buildPreview(conversation: ConversationPreview): PreviewKind {
+  const last = conversation.lastMessage;
+  if (!last) {
+    return { icon: null, text: 'No messages yet', showSentChecks: false };
+  }
+
+  const isMine = last.isMine;
+  const body = last.body.trim();
+
+  if (body.startsWith('📎')) {
+    const fileName = body.replace(/^📎\s*/, '').trim();
+    const lower = fileName.toLowerCase();
+    if (/\.(png|jpe?g|gif|webp|heic|bmp)$/.test(lower)) {
+      return { icon: 'camera-outline', text: 'Photo', showSentChecks: isMine };
+    }
+    if (/\.(mp4|mov|webm|m4v|mkv)$/.test(lower)) {
+      return { icon: 'document-outline', text: fileName || 'Video', showSentChecks: isMine };
+    }
+    if (/\.(m4a|mp3|wav|aac|ogg|caf)$/.test(lower)) {
+      return { icon: 'mic-outline', text: fileName || 'Audio', showSentChecks: isMine };
+    }
+    return {
+      icon: 'document-outline',
+      text: fileName || 'Document',
+      showSentChecks: isMine,
+    };
+  }
+
+  return {
+    icon: null,
+    text: truncateMessagePreview(body, 60),
+    showSentChecks: isMine,
+  };
+}
+
+/** Soft presence: recent activity (no real presence API). */
+function isRecentlyActive(conversation: ConversationPreview) {
+  const iso = conversation.lastMessage?.createdAt || conversation.updatedAt;
+  if (!iso) return false;
+  const mins = (Date.now() - new Date(iso).getTime()) / 60000;
+  return mins >= 0 && mins < 25;
 }
 
 export function ConversationRow({
@@ -22,92 +64,119 @@ export function ConversationRow({
   conversation: ConversationPreview;
   onPress: () => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const person = conversation.otherUser;
   const avatar = resolveAvatarUrl(person.avatarUrl);
   const name = person.fullName?.trim() || 'Professional';
   const unread = conversation.unreadCount > 0;
-  const preview = previewText(conversation);
+  const preview = buildPreview(conversation);
+  const time = conversation.lastMessage
+    ? formatConversationTime(conversation.lastMessage.createdAt)
+    : formatConversationTime(conversation.updatedAt);
+  const online = isRecentlyActive(conversation);
+
+  const previewColor = unread ? colors.foreground : colors.muted;
+  const checkColor = unread ? colors.muted : colors.blue;
+  const pressedBg = isDark ? colors.surfaceHover : `${colors.blue}0c`;
+  const unreadRowBg = isDark ? `${colors.blue}12` : `${colors.blue}08`;
+  const avatarBg = isDark ? colors.surface : `${colors.blue}14`;
+  const onlineBorder = isDark ? colors.background : '#ffffff';
 
   return (
     <Pressable
       onPress={onPress}
-      android_ripple={{ color: `${colors.blue}14`, borderless: false }}
+      android_ripple={{ color: `${colors.blue}18`, borderless: false }}
       style={({ pressed }) => [
-        styles.card,
-        {
-          backgroundColor: colors.surfaceElevated,
-          borderColor: unread ? `${colors.blue}40` : colors.border,
-        },
-        pressed && styles.pressed,
+        styles.row,
+        unread && { backgroundColor: unreadRowBg },
+        pressed && { backgroundColor: pressedBg },
       ]}
     >
-      {unread ? <View style={[styles.unreadStripe, { backgroundColor: colors.blue }]} /> : null}
-
-      <View style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-        {avatar ? (
-          <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
-        ) : (
-          <Text style={[styles.avatarLetter, { color: colors.blue }, fontStyle('bold')]}>
-            {name.charAt(0).toUpperCase()}
-          </Text>
-        )}
+      <View style={styles.avatarWrap}>
+        <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
+          ) : (
+            <Text style={[styles.avatarLetter, { color: colors.blue }, fontStyle('bold')]}>
+              {name.charAt(0).toUpperCase()}
+            </Text>
+          )}
+        </View>
+        {online ? (
+          <View
+            style={[
+              styles.onlineDot,
+              {
+                backgroundColor: '#22c55e',
+                borderColor: onlineBorder,
+              },
+            ]}
+          />
+        ) : null}
       </View>
 
-      <View style={styles.copy}>
-        <View style={styles.topRow}>
+      <View style={styles.center}>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.name,
+            { color: colors.heading },
+            unread ? fontStyle('bold') : fontStyle('semibold'),
+          ]}
+        >
+          {name}
+        </Text>
+
+        <View style={styles.previewRow}>
+          {preview.showSentChecks ? (
+            <Ionicons
+              name="checkmark-done"
+              size={16}
+              color={checkColor}
+              style={styles.checkIcon}
+            />
+          ) : null}
+          {preview.icon ? (
+            <Ionicons
+              name={preview.icon}
+              size={15}
+              color={previewColor}
+              style={styles.previewIcon}
+            />
+          ) : null}
           <Text
             numberOfLines={1}
             style={[
-              styles.name,
-              { color: colors.heading },
-              unread ? fontStyle('bold') : fontStyle('semibold'),
+              styles.preview,
+              { color: previewColor },
+              unread ? fontStyle('medium') : fontStyle('regular'),
             ]}
           >
-            {name}
+            {preview.text}
           </Text>
-          {conversation.lastMessage ? (
-            <Text
-              style={[
-                styles.time,
-                { color: unread ? colors.blue : colors.muted },
-                fontStyle('medium'),
-              ]}
-            >
-              {formatConversationTime(conversation.lastMessage.createdAt)}
-            </Text>
-          ) : null}
         </View>
-
-        {person.headline ? (
-          <Text numberOfLines={1} style={[styles.headline, { color: colors.muted }]}>
-            {person.headline}
-          </Text>
-        ) : null}
-
-        <Text
-          numberOfLines={2}
-          style={[
-            styles.preview,
-            { color: unread ? colors.foreground : colors.muted },
-            unread ? fontStyle('semibold') : fontStyle('regular'),
-          ]}
-        >
-          {preview}
-        </Text>
       </View>
 
-      <View style={styles.trailing}>
+      <View style={styles.meta}>
+        <Text
+          style={[
+            styles.time,
+            {
+              color: unread ? colors.blue : colors.muted,
+            },
+            fontStyle('medium'),
+          ]}
+        >
+          {time}
+        </Text>
         {unread ? (
-          conversation.unreadCount > 1 ? (
-            <View style={[styles.badge, { backgroundColor: colors.blue }]}>
-              <Text style={[styles.badgeText, fontStyle('bold')]}>{conversation.unreadCount}</Text>
-            </View>
-          ) : (
-            <View style={[styles.unreadDot, { backgroundColor: colors.blue }]} />
-          )
+          <View style={[styles.badge, { backgroundColor: '#ef4444' }]}>
+            <Text style={[styles.badgeText, fontStyle('bold')]}>
+              {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+            </Text>
+          </View>
         ) : (
-          <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ opacity: 0.45 }} />
+          <View style={styles.badgeSpacer} />
         )}
       </View>
     </Pressable>
@@ -115,82 +184,76 @@ export function ConversationRow({
 }
 
 const styles = StyleSheet.create({
-  card: {
-    width: '100%',
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    paddingLeft: 16,
-    marginBottom: 10,
-    overflow: 'hidden',
-    ...(Platform.OS === 'ios' ? theme.shadow.soft : { elevation: 0 }),
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 76,
   },
-  pressed: {
-    opacity: 0.96,
-  },
-  unreadStripe: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
+  avatarWrap: {
+    width: 56,
+    height: 56,
+    flexShrink: 0,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 1,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    flexShrink: 0,
   },
   avatarImg: { width: '100%', height: '100%' },
-  avatarLetter: { fontSize: 18 },
-  copy: {
+  avatarLetter: { fontSize: 22 },
+  onlineDot: {
+    position: 'absolute',
+    top: 1,
+    right: 1,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    borderWidth: 2,
+  },
+  center: {
     flex: 1,
     minWidth: 0,
     justifyContent: 'center',
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    gap: 5,
+    paddingRight: 4,
   },
   name: {
-    flex: 1,
     fontSize: 16,
-    lineHeight: 20,
+    lineHeight: 21,
   },
-  time: {
-    fontSize: 11,
-    flexShrink: 0,
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 0,
   },
-  headline: {
-    marginTop: 2,
-    fontSize: 12,
-    lineHeight: 16,
-    ...fontStyle('regular'),
+  checkIcon: {
+    marginRight: 4,
+  },
+  previewIcon: {
+    marginRight: 4,
   },
   preview: {
-    marginTop: 4,
+    flex: 1,
     fontSize: 14,
-    lineHeight: 19,
+    lineHeight: 18,
   },
-  trailing: {
-    width: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+  meta: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    alignSelf: 'stretch',
+    paddingVertical: 2,
+    minWidth: 48,
+    gap: 8,
   },
-  unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  time: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   badge: {
     minWidth: 22,
@@ -200,8 +263,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  badgeSpacer: {
+    height: 22,
+  },
   badgeText: {
     color: '#fff',
     fontSize: 11,
+    lineHeight: 13,
   },
 });

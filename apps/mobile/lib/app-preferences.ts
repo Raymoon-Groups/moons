@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const INTRO_SEEN_KEY = 'moons_intro_seen';
+const INTRO_SEEN_KEY = 'moons_intro_seen_v2';
 const isWeb = Platform.OS === 'web';
 
 async function getItem(key: string): Promise<string | null> {

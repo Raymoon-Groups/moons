@@ -87,7 +87,12 @@ export default function FeedScreen() {
         <FlatList
           data={posts}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: bottomPadding }}
+          style={{ backgroundColor: colors.background }}
+          contentContainerStyle={{
+            paddingTop: 10,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -104,9 +109,11 @@ export default function FeedScreen() {
             />
           }
           ListHeaderComponent={
-            <FeedComposer
-              onPosted={(created) => setPosts((prev) => dedupePosts([created, ...prev]))}
-            />
+            <View style={{ paddingBottom: 4 }}>
+              <FeedComposer
+                onPosted={(created) => setPosts((prev) => dedupePosts([created, ...prev]))}
+              />
+            </View>
           }
           renderItem={({ item }) => (
             <PostCard
@@ -123,23 +130,25 @@ export default function FeedScreen() {
                 <PostSkeleton />
               </View>
             ) : (
-              <EmptyState
-                icon="newspaper-outline"
-                title="Your feed is quiet"
-                message="Share the first update with your network, or connect with more people to see their posts here."
-              />
+              <View style={{ paddingHorizontal: 24, paddingTop: 32 }}>
+                <EmptyState
+                  icon="newspaper-outline"
+                  title="Nothing in your feed yet"
+                  message="Create a post or connect with more people to start seeing updates here."
+                />
+              </View>
             )
           }
           ListFooterComponent={
             loadingMore ? (
-              <ActivityIndicator color={colors.blue} style={{ marginVertical: 18 }} />
+              <ActivityIndicator color={colors.blue} style={{ marginVertical: 22 }} />
             ) : posts.length > 0 && !hasMore ? (
               <Text
                 style={{
                   color: colors.muted,
                   fontSize: 12,
                   textAlign: 'center',
-                  marginTop: 6,
+                  marginTop: 14,
                   marginBottom: 10,
                   ...fontStyle('semibold'),
                 }}

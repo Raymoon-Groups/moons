@@ -1,8 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useMemo } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
-import { UserRole, getPasswordValidationErrors, isRecruiterCompanyEmail, PASSWORD_REQUIREMENTS_MESSAGE, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
-import { AuthLayout } from '@/components/auth-layout';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import {
+  UserRole,
+  getPasswordValidationErrors,
+  isRecruiterCompanyEmail,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+  RECRUITER_COMPANY_EMAIL_MESSAGE,
+} from '@moons/shared';
+import { AuthField, AuthLayout, AuthPasswordField } from '@/components/auth-layout';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
 import { RolePicker } from '@/components/role-picker';
 import {
@@ -10,15 +16,14 @@ import {
   ErrorText,
   FieldLabel,
   InfoText,
-  Input,
   LinkText,
-  PasswordInput,
   PrimaryButton,
   SecondaryButton,
 } from '@/components/ui';
 import { ApiError, NetworkError, resendRegisterOtp, sendRegisterOtp, verifyRegisterOtp } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { getPostAuthPath } from '@/lib/auth-redirect';
+import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 
 type Step = 'credentials' | 'otp';
@@ -43,7 +48,15 @@ export default function RegisterScreen() {
     () =>
       StyleSheet.create({
         otpHint: { color: colors.muted, fontSize: 14, marginBottom: 8, lineHeight: 20 },
-        footer: { flexDirection: 'row', justifyContent: 'center' },
+        legal: {
+          color: colors.muted,
+          fontSize: 12,
+          lineHeight: 18,
+          textAlign: 'center',
+          marginBottom: 4,
+          ...fontStyle('regular'),
+        },
+        footer: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
         footerText: { color: colors.muted, fontSize: 14 },
       }),
     [colors],
@@ -128,12 +141,17 @@ export default function RegisterScreen() {
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Register free to browse jobs, apply in one click, and get noticed by recruiters."
+      variant="signup"
+      title={step === 'credentials' ? 'Sign Up' : 'Verify email'}
+      subtitle={
+        step === 'credentials'
+          ? 'Use proper information to continue on MoonsJob'
+          : `Enter the 6-digit code sent to ${email}`
+      }
       footer={
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already registered? </Text>
-          <LinkText onPress={() => router.push('/login')}>Login</LinkText>
+          <Text style={styles.footerText}>Already have an Account? </Text>
+          <LinkText onPress={() => router.push('/login')}>Sign in</LinkText>
         </View>
       }
     >
@@ -141,37 +159,51 @@ export default function RegisterScreen() {
         <>
           <FieldLabel>I am a</FieldLabel>
           <RolePicker value={role} onChange={setRole} />
-          <FieldLabel>Email</FieldLabel>
-          <Input
+
+          <AuthField
+            icon="mail-outline"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="you@email.com"
+            placeholder="Email address"
           />
-          <FieldLabel>Password</FieldLabel>
-          <PasswordInput value={password} onChangeText={setPassword} placeholder="e.g. Welcome@1" />
-          <Text style={[styles.otpHint, { marginTop: 6, marginBottom: 0 }]}>
-            {PASSWORD_REQUIREMENTS_MESSAGE}
+
+          <AuthPasswordField
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+          />
+
+          <Text style={[styles.otpHint, { marginTop: 0 }]}>{PASSWORD_REQUIREMENTS_MESSAGE}</Text>
+
+          <Text style={styles.legal}>
+            By signing up, you agree to our Terms & Conditions and Privacy Policy.
           </Text>
+
           {passwordErrors.length > 0 ? (
             <ErrorText>{passwordErrors.map((item) => `• ${item}`).join('\n')}</ErrorText>
           ) : null}
           {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
-          <PrimaryButton label={loading ? 'Sending code…' : 'Continue'} onPress={handleSendOtp} loading={loading} />
-          <Divider />
+
+          <PrimaryButton
+            label={loading ? 'Sending code…' : 'Create Account'}
+            onPress={handleSendOtp}
+            loading={loading}
+          />
+
+          <Divider label="Or Continue with" />
           <GoogleSignInButton role={role} />
         </>
       ) : (
         <>
-          <Text style={styles.otpHint}>Enter the 6-digit code sent to {email}</Text>
-          <FieldLabel>Verification code</FieldLabel>
-          <Input
+          <AuthField
+            icon="keypad-outline"
             value={otp}
             onChangeText={(text) => setOtp(text.replace(/\D/g, '').slice(0, 6))}
             keyboardType="number-pad"
-            placeholder="123456"
+            placeholder="Verification code"
             maxLength={6}
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
@@ -188,4 +220,3 @@ export default function RegisterScreen() {
     </AuthLayout>
   );
 }
-

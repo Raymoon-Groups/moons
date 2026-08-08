@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { MessageAttachment } from '@/lib/messages';
 import {
+  MAX_MESSAGE_ATTACHMENT_LABEL,
   pickMessageDocument,
   pickMessageImage,
   type AttachmentPickError,
@@ -31,13 +32,13 @@ const OPTIONS: PickerOption[] = [
   {
     id: 'image',
     title: 'Photo library',
-    subtitle: 'JPG, PNG, GIF, or WEBP',
+    subtitle: `JPG, PNG, GIF, or WEBP · max ${MAX_MESSAGE_ATTACHMENT_LABEL}`,
     icon: 'images-outline',
   },
   {
     id: 'document',
     title: 'Document',
-    subtitle: 'PDF, Word, or plain text',
+    subtitle: `PDF, Word, or text · max ${MAX_MESSAGE_ATTACHMENT_LABEL}`,
     icon: 'document-text-outline',
   },
 ];
@@ -106,7 +107,7 @@ export function AttachmentPickerModal({
             </View>
             <Text style={[styles.title, { color: colors.heading }, fontStyle('bold')]}>Attach a file</Text>
             <Text style={[styles.subtitle, { color: colors.muted }, fontStyle('regular')]}>
-              Share a photo or document with your message. Max size 10 MB.
+              Share a photo or document with your message. Max size {MAX_MESSAGE_ATTACHMENT_LABEL}.
             </Text>
           </LinearGradient>
 

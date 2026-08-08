@@ -53,7 +53,7 @@ export function ConnectionInvitesBanner() {
   async function handleAccept(connectionId: string) {
     setLoadingId(connectionId);
     try {
-      await acceptConnectionInvite(connectionId);
+      await acceptConnectionInvite(connectionId, { fullName: name });
       setInvites((prev) => prev.filter((i) => i.id !== connectionId));
     } catch {
       setInvites((prev) => prev.filter((i) => i.id !== connectionId));

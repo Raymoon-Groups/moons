@@ -1,14 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SelectField } from '@/components/profile/select-field';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SuggestionsList } from '@/components/jobs/suggestions-list';
-import { EXPERIENCE_FILTER_OPTIONS } from '@/lib/experience-options';
-import {
-  fetchLocationSuggestions,
-  type LocationSuggestion,
-} from '@/lib/location-suggestions';
 import {
   fetchSearchSuggestions,
   type SearchSuggestion,
@@ -19,30 +13,27 @@ import { theme } from '@/lib/theme';
 
 export function JobsSearchHero({
   query,
-  location,
-  experience,
-  jobCount,
   onQueryChange,
-  onLocationChange,
-  onExperienceChange,
   onSearch,
+  onOpenFilters,
 }: {
   query: string;
-  location: string;
-  experience: string;
-  jobCount: number;
   onQueryChange: (v: string) => void;
-  onLocationChange: (v: string) => void;
-  onExperienceChange: (v: string) => void;
   onSearch?: () => void;
+  onOpenFilters?: () => void;
 }) {
   const { colors, isDark } = useTheme();
+  const inputRef = useRef<TextInput>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [queryFocused, setQueryFocused] = useState(false);
-  const [locationFocused, setLocationFocused] = useState(false);
   const [querySuggestions, setQuerySuggestions] = useState<SearchSuggestion[]>([]);
-  const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
   const [loadingQuerySuggestions, setLoadingQuerySuggestions] = useState(false);
-  const [loadingLocationSuggestions, setLoadingLocationSuggestions] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!queryFocused) return;
@@ -69,128 +60,92 @@ export function JobsSearchHero({
     return () => clearTimeout(timer);
   }, [query, queryFocused]);
 
-  useEffect(() => {
-    if (!locationFocused) return;
-
-    const trimmed = location.trim();
-    if (trimmed.length < 2) {
-      setLocationSuggestions([]);
-      setLoadingLocationSuggestions(false);
-      return;
-    }
-
-    setLoadingLocationSuggestions(true);
-    const timer = setTimeout(() => {
-      void fetchLocationSuggestions(trimmed)
-        .then(setLocationSuggestions)
-        .catch(() => setLocationSuggestions([]))
-        .finally(() => setLoadingLocationSuggestions(false));
-    }, 200);
-
-    return () => clearTimeout(timer);
-  }, [location, locationFocused]);
-
   const styles = useMemo(
     () =>
       StyleSheet.create({
         wrap: {
-          marginHorizontal: -theme.spacing.md,
           marginBottom: theme.spacing.md,
-          overflow: 'hidden',
+          zIndex: 2,
         },
-        gradient: {
-          paddingTop: theme.spacing.md,
-          paddingHorizontal: theme.spacing.md,
-          paddingBottom: theme.spacing.lg,
-          backgroundColor: isDark ? `${colors.blue}14` : `${colors.blue}0c`,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-        },
-        topRow: {
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          marginBottom: theme.spacing.md,
-        },
-        eyebrow: {
-          fontSize: 11,
-          letterSpacing: 1.4,
-          textTransform: 'uppercase',
-          color: colors.blue,
-          marginBottom: 6,
-          ...fontStyle('bold'),
-        },
-        title: {
-          fontSize: 26,
-          lineHeight: 32,
-          color: colors.heading,
-          ...fontStyle('extrabold'),
-        },
-        subtitle: {
-          marginTop: 6,
-          fontSize: 14,
-          lineHeight: 20,
-          color: colors.muted,
-          ...fontStyle('regular'),
-        },
-        statPill: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 6,
-          backgroundColor: isDark ? `${colors.blue}20` : `${colors.blue}14`,
-          borderRadius: theme.radius.full,
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-          borderWidth: 1,
-          borderColor: `${colors.blue}33`,
-        },
-        statText: { fontSize: 12, color: colors.blue, ...fontStyle('bold') },
-        searchCard: {
-          backgroundColor: colors.surfaceElevated,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: colors.border,
-          padding: theme.spacing.md,
-          ...theme.shadow.card,
-        },
-        field: {
+        row: {
           flexDirection: 'row',
           alignItems: 'center',
           gap: 10,
-          backgroundColor: colors.surface,
-          borderRadius: theme.radius.md,
-          borderWidth: 1,
-          borderColor: colors.border,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+        },
+        field: {
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          minHeight: 50,
+          backgroundColor: isDark ? colors.surfaceElevated : '#f4f7fb',
+          borderRadius: 999,
+          borderWidth: 1.5,
+          borderColor: isDark ? colors.border : 'rgba(15,28,51,0.06)',
+          paddingLeft: 8,
+          paddingRight: 14,
+          paddingVertical: 6,
         },
         fieldFocused: {
           borderColor: colors.blue,
+          backgroundColor: isDark ? colors.surface : '#ffffff',
+        },
+        searchIcon: {
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: isDark ? `${colors.blue}22` : `${colors.blue}14`,
         },
         input: {
           flex: 1,
           fontSize: 15,
-          color: colors.foreground,
-          padding: 0,
+          lineHeight: 20,
+          color: colors.heading,
+          paddingVertical: 8,
+          paddingHorizontal: 0,
           ...fontStyle('regular'),
         },
-        fieldWrap: { marginBottom: 10 },
-        searchBtn: {
-          flexDirection: 'row',
+        clearBtn: {
+          width: 28,
+          height: 28,
+          borderRadius: 14,
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 8,
-          backgroundColor: colors.blue,
-          borderRadius: theme.radius.md,
-          paddingVertical: 13,
-          marginTop: 4,
+          backgroundColor: isDark ? colors.surface : 'rgba(15,28,51,0.06)',
         },
-        searchBtnText: { color: '#fff', fontSize: 15, ...fontStyle('bold') },
+        filterBtn: {
+          width: 50,
+          height: 50,
+          borderRadius: 25,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.blue,
+          shadowColor: colors.blue,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.28,
+          shadowRadius: 10,
+          elevation: 4,
+        },
       }),
     [colors, isDark],
   );
 
+  function focusInput() {
+    if (blurTimerRef.current) {
+      clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null;
+    }
+    setQueryFocused(true);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
   function selectQuerySuggestion(item: SearchSuggestion) {
+    if (blurTimerRef.current) {
+      clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null;
+    }
     setQueryFocused(false);
     setQuerySuggestions([]);
     Keyboard.dismiss();
@@ -206,116 +161,93 @@ export function JobsSearchHero({
     onSearch?.();
   }
 
-  function selectLocationSuggestion(item: LocationSuggestion) {
-    setLocationFocused(false);
-    setLocationSuggestions([]);
-    Keyboard.dismiss();
-    onLocationChange(item.name);
-    onSearch?.();
-  }
-
   const showQuerySuggestions =
     queryFocused && (loadingQuerySuggestions || querySuggestions.length > 0 || query.trim().length < 2);
-  const showLocationSuggestions =
-    locationFocused &&
-    location.trim().length >= 2 &&
-    (loadingLocationSuggestions || locationSuggestions.length > 0);
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.gradient}>
-        <View style={styles.topRow}>
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={styles.eyebrow}>Job search</Text>
-            <Text style={styles.title}>Find your next role</Text>
-            <Text style={styles.subtitle}>Discover openings from top companies across India</Text>
+      <View style={styles.row}>
+        <Pressable
+          onPress={focusInput}
+          style={[styles.field, queryFocused && styles.fieldFocused]}
+        >
+          <View style={styles.searchIcon} pointerEvents="none">
+            <Ionicons name="search" size={16} color={colors.blue} />
           </View>
-          <View style={styles.statPill}>
-            <Ionicons name="briefcase" size={14} color={colors.blue} />
-            <Text style={styles.statText}>{jobCount > 0 ? `${jobCount}+` : '—'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.searchCard}>
-          <View style={styles.fieldWrap}>
-            <View style={[styles.field, queryFocused && styles.fieldFocused]}>
-              <Ionicons name="search" size={18} color={colors.blue} />
-              <TextInput
-                value={query}
-                onChangeText={onQueryChange}
-                placeholder="Role, company, or keyword"
-                placeholderTextColor={colors.muted}
-                style={styles.input}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-                onFocus={() => setQueryFocused(true)}
-                onBlur={() => setTimeout(() => setQueryFocused(false), 250)}
-                onSubmitEditing={onSearch}
-              />
-            </View>
-            <SuggestionsList
-              visible={showQuerySuggestions}
-              loading={loadingQuerySuggestions}
-              items={querySuggestions}
-              onSelect={selectQuerySuggestion}
-              emptyMessage="No matching roles or companies"
-              renderItem={(item) => ({
-                title: item.label,
-                subtitle: item.meta,
-                icon:
-                  item.type === 'job'
-                    ? 'briefcase-outline'
-                    : item.type === 'company'
-                      ? 'business-outline'
-                      : 'sparkles-outline',
-              })}
-            />
-          </View>
-
-          <View style={styles.fieldWrap}>
-            <View style={[styles.field, locationFocused && styles.fieldFocused]}>
-              <Ionicons name="location-outline" size={18} color={colors.blue} />
-              <TextInput
-                value={location}
-                onChangeText={onLocationChange}
-                placeholder="City or location"
-                placeholderTextColor={colors.muted}
-                style={styles.input}
-                autoCapitalize="words"
-                returnKeyType="search"
-                onFocus={() => setLocationFocused(true)}
-                onBlur={() => setTimeout(() => setLocationFocused(false), 250)}
-                onSubmitEditing={onSearch}
-              />
-            </View>
-            <SuggestionsList
-              visible={showLocationSuggestions}
-              loading={loadingLocationSuggestions}
-              items={locationSuggestions}
-              onSelect={selectLocationSuggestion}
-              emptyMessage="No locations found"
-              renderItem={(item) => ({
-                title: item.name,
-                subtitle: item.state,
-                icon: 'location-outline',
-              })}
-            />
-          </View>
-
-          <SelectField
-            label="Experience level"
-            value={experience}
-            options={EXPERIENCE_FILTER_OPTIONS}
-            onChange={onExperienceChange}
-            placeholder="Any experience"
+          <TextInput
+            ref={inputRef}
+            value={query}
+            onChangeText={onQueryChange}
+            placeholder="Search jobs, companies…"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="off"
+            textContentType="none"
+            returnKeyType="search"
+            blurOnSubmit={false}
+            showSoftInputOnFocus
+            editable
+            onFocus={() => {
+              if (blurTimerRef.current) {
+                clearTimeout(blurTimerRef.current);
+                blurTimerRef.current = null;
+              }
+              setQueryFocused(true);
+            }}
+            onBlur={() => {
+              blurTimerRef.current = setTimeout(() => setQueryFocused(false), 180);
+            }}
+            onSubmitEditing={onSearch}
+            accessibilityLabel="Search jobs"
           />
-          <Pressable onPress={onSearch} style={styles.searchBtn}>
-            <Ionicons name="sparkles" size={18} color="#fff" />
-            <Text style={styles.searchBtnText}>Search jobs</Text>
+          {query.length > 0 ? (
+            <Pressable
+              onPress={() => {
+                onQueryChange('');
+                focusInput();
+              }}
+              style={styles.clearBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={6}
+            >
+              <Ionicons name="close" size={14} color={colors.muted} />
+            </Pressable>
+          ) : null}
+        </Pressable>
+
+        {onOpenFilters ? (
+          <Pressable
+            onPress={onOpenFilters}
+            style={styles.filterBtn}
+            accessibilityRole="button"
+            accessibilityLabel="More filters"
+            hitSlop={4}
+          >
+            <Ionicons name="options-outline" size={20} color="#fff" />
           </Pressable>
-        </View>
+        ) : null}
       </View>
+
+      <SuggestionsList
+        visible={showQuerySuggestions}
+        loading={loadingQuerySuggestions}
+        items={querySuggestions}
+        onSelect={selectQuerySuggestion}
+        emptyMessage="No matching roles or companies"
+        renderItem={(item) => ({
+          title: item.label,
+          subtitle: item.meta,
+          icon:
+            item.type === 'job'
+              ? 'briefcase-outline'
+              : item.type === 'company'
+                ? 'business-outline'
+                : 'sparkles-outline',
+        })}
+      />
     </View>
   );
 }

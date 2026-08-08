@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState, useMemo } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { UserRole } from '@moons/shared';
-import { AuthLayout } from '@/components/auth-layout';
+import { AuthField, AuthLayout, AuthPasswordField } from '@/components/auth-layout';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
 import { RolePicker } from '@/components/role-picker';
 import {
@@ -10,9 +10,7 @@ import {
   ErrorText,
   FieldLabel,
   InfoText,
-  Input,
   LinkText,
-  PasswordInput,
   PrimaryButton,
 } from '@/components/ui';
 import { ApiError, NetworkError } from '@/lib/api';
@@ -20,6 +18,7 @@ import { API_URL } from '@/lib/api-url';
 import { checkApiReachable } from '@/lib/api-health';
 import { useAuth } from '@/lib/auth-context';
 import { getPostAuthPath } from '@/lib/auth-redirect';
+import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 
 export default function LoginScreen() {
@@ -49,7 +48,7 @@ export default function LoginScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        forgotRow: { alignItems: 'flex-end', marginTop: 4 },
+        forgotRow: { alignItems: 'flex-end', marginTop: -4, marginBottom: 4 },
         googleHint: { marginTop: 8, fontSize: 13, lineHeight: 18, color: colors.warning },
         apiBanner: {
           backgroundColor: colors.errorBg,
@@ -62,7 +61,7 @@ export default function LoginScreen() {
         apiBannerText: { color: colors.error, fontSize: 13, lineHeight: 19 },
         apiBannerHint: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 6 },
         footer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-        footerText: { color: colors.muted, fontSize: 14 },
+        footerText: { color: colors.muted, fontSize: 14, ...fontStyle('regular') },
       }),
     [colors],
   );
@@ -88,22 +87,23 @@ export default function LoginScreen() {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Log in to find jobs, track applications, and manage your profile."
+      variant="signin"
+      title="Sign In"
+      subtitle="Enter a valid email & password to continue on MoonsJob"
       footer={
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Text style={styles.footerText}>Haven't any account? </Text>
           <LinkText onPress={() => router.push('/register')}>Sign up</LinkText>
         </View>
       }
     >
-      {params.reset === 'success' ? <InfoText>Password reset successfully. You can now sign in.</InfoText> : null}
+      {params.reset === 'success' ? (
+        <InfoText>Password reset successfully. You can now sign in.</InfoText>
+      ) : null}
 
       {apiOnline === false ? (
         <View style={styles.apiBanner}>
-          <Text style={styles.apiBannerText}>
-            API server is not reachable at {API_URL}
-          </Text>
+          <Text style={styles.apiBannerText}>API server is not reachable at {API_URL}</Text>
           <Text style={styles.apiBannerHint}>
             {__DEV__
               ? 'Run pnpm api (or pnpm mobile) on your computer, then reload. Phone and PC must be on the same Wi‑Fi.'
@@ -112,20 +112,23 @@ export default function LoginScreen() {
         </View>
       ) : null}
 
-      <FieldLabel>Email</FieldLabel>
-      <Input
+      <AuthField
+        icon="mail-outline"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        placeholder="you@email.com"
+        placeholder="Email address"
       />
 
-      <FieldLabel>Password</FieldLabel>
-      <PasswordInput value={password} onChangeText={setPassword} placeholder="Your password" />
+      <AuthPasswordField
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Password"
+      />
 
       <View style={styles.forgotRow}>
-        <LinkText onPress={() => router.push('/forgot-password')}>Forgot password?</LinkText>
+        <LinkText onPress={() => router.push('/forgot-password')}>Forget password</LinkText>
       </View>
 
       {error ? <ErrorText>{error}</ErrorText> : null}
@@ -138,13 +141,11 @@ export default function LoginScreen() {
 
       <PrimaryButton label={loading ? 'Signing in…' : 'Login'} onPress={handleSubmit} loading={loading} />
 
-      <Divider />
+      <Divider label="Or Continue with" />
 
       <FieldLabel>I am a</FieldLabel>
       <RolePicker value={googleRole} onChange={setGoogleRole} />
       <GoogleSignInButton role={googleRole} />
-
     </AuthLayout>
   );
 }
-

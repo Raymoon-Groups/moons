@@ -1,8 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import * as Linking from 'expo-linking';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { downloadMessageAttachment } from '@/lib/download-message-attachment';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
@@ -25,22 +33,37 @@ export function AttachmentViewerModal({
   const insets = useSafeAreaInsets();
   const href = resolveAssetUrl(url) ?? url;
   const isImage = mimeType?.startsWith('image/');
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState('');
 
-  async function openExternally() {
-    try {
-      await Linking.openURL(href);
-    } catch {
-      // ignore
+  async function handleDownload() {
+    if (downloading) return;
+    setDownloading(true);
+    setError('');
+    const result = await downloadMessageAttachment({ url, fileName, mimeType });
+    setDownloading(false);
+    if (!result.ok) {
+      setError(result.message);
     }
   }
 
+  function handleClose() {
+    if (downloading) return;
+    setError('');
+    onClose();
+  }
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <View style={styles.root}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close preview" />
+        <Pressable style={styles.backdrop} onPress={handleClose} accessibilityLabel="Close preview" />
 
         <View style={[styles.toolbar, { paddingTop: insets.top + 8 }]}>
-          <Pressable onPress={onClose} style={[styles.iconBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]}>
+          <Pressable
+            onPress={handleClose}
+            disabled={downloading}
+            style={[styles.iconBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]}
+          >
             <Ionicons name="close" size={22} color="#fff" />
           </Pressable>
         </View>
@@ -57,7 +80,7 @@ export function AttachmentViewerModal({
                 {fileName}
               </Text>
               <Text style={[{ color: colors.muted, fontSize: 13, marginTop: 8, textAlign: 'center' }, fontStyle('regular')]}>
-                Tap below to open this file on your device.
+                Download this file to open or save it on your device.
               </Text>
             </View>
           )}
@@ -67,12 +90,25 @@ export function AttachmentViewerModal({
           <Text numberOfLines={2} style={[styles.fileName, fontStyle('medium')]}>
             {fileName}
           </Text>
+          {error ? (
+            <Text style={[{ color: '#fda4af', fontSize: 12, textAlign: 'center' }, fontStyle('medium')]}>
+              {error}
+            </Text>
+          ) : null}
           <Pressable
-            onPress={() => void openExternally()}
-            style={[styles.openBtn, { backgroundColor: colors.blue }]}
+            onPress={() => void handleDownload()}
+            disabled={downloading}
+            style={[styles.downloadBtn, { backgroundColor: colors.blue, opacity: downloading ? 0.75 : 1 }]}
+            accessibilityLabel="Download file"
           >
-            <Ionicons name="open-outline" size={18} color="#fff" />
-            <Text style={[{ color: '#fff', fontSize: 15 }, fontStyle('semibold')]}>Open file</Text>
+            {downloading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name="download-outline" size={18} color="#fff" />
+            )}
+            <Text style={[{ color: '#fff', fontSize: 15 }, fontStyle('semibold')]}>
+              {downloading ? 'Opening…' : 'Download'}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -134,7 +170,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
   },
-  openBtn: {
+  downloadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

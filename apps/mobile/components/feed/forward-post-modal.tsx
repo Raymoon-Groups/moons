@@ -13,21 +13,12 @@ import {
 } from 'react-native';
 import type { FeedPost } from '@moons/shared';
 import { resolveAssetUrl } from '@/lib/assets';
-import { API_ORIGIN } from '@/lib/config';
 import { fontStyle } from '@/lib/font-style';
 import { notifyMessagesRefresh, sendMessageToUser } from '@/lib/messages';
 import { fetchConnections, type ConnectionListItem } from '@/lib/network';
+import { postSharePreview } from '@/lib/post-share';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
-
-function webAppBaseUrl() {
-  const configured = process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, '');
-  if (configured) return configured;
-  if (/localhost|127\.0\.0\.1|192\.168\.|10\.0\.2\.2/.test(API_ORIGIN)) {
-    return 'http://localhost:3000';
-  }
-  return 'https://moonsjob.com';
-}
 
 export function ForwardPostModal({
   visible,
@@ -149,14 +140,12 @@ export function ForwardPostModal({
     if (selected.size === 0) return;
     setSending(true);
     setError('');
-    const link = `${webAppBaseUrl()}/dashboard?post=${post.id}`;
-    const author = post.author.fullName?.trim() || 'a MoonsJob member';
-    const preview = post.body.trim()
-      ? post.body.trim().slice(0, 120)
-      : post.media.length
-        ? 'Shared a photo/video'
-        : 'Shared a post';
-    const message = [note.trim() || `Forwarded a post from ${author}`, preview, link]
+    const shared = postSharePreview(post);
+    const message = [
+      note.trim() || `Shared a post from ${shared.author}`,
+      shared.preview,
+      shared.url,
+    ]
       .filter(Boolean)
       .join('\n\n');
 
@@ -195,7 +184,7 @@ export function ForwardPostModal({
         >
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Text style={[{ color: colors.heading, fontSize: 17 }, fontStyle('bold')]}>
-              Forward post
+              Send to connection
             </Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <Text style={{ color: colors.muted, ...fontStyle('semibold') }}>Close</Text>
@@ -228,7 +217,7 @@ export function ForwardPostModal({
             <ActivityIndicator color={colors.blue} style={{ marginVertical: 32 }} />
           ) : connections.length === 0 ? (
             <Text style={{ color: colors.muted, textAlign: 'center', marginVertical: 32, paddingHorizontal: 24 }}>
-              No connections yet. Connect with people to forward posts.
+              No connections yet. Connect with people to share posts.
             </Text>
           ) : (
             <FlatList
@@ -306,9 +295,9 @@ export function ForwardPostModal({
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Ionicons name="arrow-redo-outline" size={18} color="#fff" />
+                  <Ionicons name="send-outline" size={18} color="#fff" />
                   <Text style={{ color: '#fff', ...fontStyle('semibold') }}>
-                    {selected.size ? `Forward to ${selected.size}` : 'Select connections'}
+                    {selected.size ? `Send to ${selected.size}` : 'Select connections'}
                   </Text>
                 </>
               )}

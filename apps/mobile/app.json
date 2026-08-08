@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.moonsjob.app"
+      "bundleIdentifier": "com.moonsjob.app",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["whatsapp", "whatsapp-business"]
+      }
     },
     "android": {
       "adaptiveIcon": {

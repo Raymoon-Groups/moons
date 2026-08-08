@@ -11,19 +11,13 @@ import { extname, join } from 'path';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { publicDisplayName, ProfileWithUser } from '../network/network.utils';
+import {
+  ALLOWED_MESSAGE_ATTACHMENT_MIME,
+  MAX_MESSAGE_ATTACHMENT_BYTES,
+  messageAttachmentTooLargeMessage,
+} from './message-attachment.limits';
 
 const MESSAGE_ATTACHMENT_DIR = join(process.cwd(), 'uploads', 'message-attachments');
-const MAX_MESSAGE_ATTACHMENT_BYTES = 10 * 1024 * 1024;
-const ALLOWED_MESSAGE_ATTACHMENT_MIME = new Set([
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'text/plain',
-]);
 
 type MessageFile = { buffer: Buffer; mimetype: string; originalname: string; size: number };
 
@@ -61,7 +55,7 @@ export class MessagesService {
       );
     }
     if (file.size > MAX_MESSAGE_ATTACHMENT_BYTES) {
-      throw new BadRequestException('Attachment must be 10 MB or smaller');
+      throw new BadRequestException(messageAttachmentTooLargeMessage());
     }
 
     if (!existsSync(MESSAGE_ATTACHMENT_DIR)) {

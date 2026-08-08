@@ -1,5 +1,6 @@
 import type { NetworkStats, NetworkUserCard } from '@moons/shared';
 import { authFetch } from '@/lib/api';
+import { notifyInviteAccepted, notifyInviteSent, notifyConnectionRemoved } from '@/lib/connection-success-events';
 
 export interface Paginated<T> {
   items: T[];
@@ -94,15 +95,27 @@ export function fetchNetworkProfile(userId: string) {
   return authFetch<NetworkProfileResponse>(`/network/profiles/${userId}`);
 }
 
-export function sendConnectionRequest(toUserId: string, message?: string) {
+export function sendConnectionRequest(
+  toUserId: string,
+  message?: string,
+  meta?: { fullName?: string | null },
+) {
   return authFetch<{ id: string }>('/network/connections/request', {
     method: 'POST',
     body: JSON.stringify({ toUserId, message }),
+  }).then((result) => {
+    notifyInviteSent(meta?.fullName);
+    return result;
   });
 }
 
-export function acceptConnection(connectionId: string) {
-  return authFetch(`/network/connections/${connectionId}/accept`, { method: 'POST' });
+export function acceptConnection(connectionId: string, meta?: { fullName?: string | null }) {
+  return authFetch(`/network/connections/${connectionId}/accept`, { method: 'POST' }).then(
+    (result) => {
+      notifyInviteAccepted(meta?.fullName);
+      return result;
+    },
+  );
 }
 
 export function rejectConnection(connectionId: string) {
@@ -113,6 +126,9 @@ export function cancelConnection(connectionId: string) {
   return authFetch(`/network/connections/${connectionId}/cancel`, { method: 'POST' });
 }
 
-export function removeConnection(userId: string) {
-  return authFetch(`/network/connections/user/${userId}`, { method: 'DELETE' });
+export function removeConnection(userId: string, meta?: { fullName?: string | null }) {
+  return authFetch(`/network/connections/user/${userId}`, { method: 'DELETE' }).then((result) => {
+    notifyConnectionRemoved(meta?.fullName);
+    return result;
+  });
 }

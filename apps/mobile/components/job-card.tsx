@@ -3,224 +3,205 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EmploymentType } from '@moons/shared';
 import { CompanyAvatar } from './company-avatar';
-import { formatEmploymentType, formatPostedAgo } from '@/lib/format';
+import {
+  formatEmploymentType,
+  formatExperienceLevel,
+  formatPostedLabel,
+} from '@/lib/format';
 import { stripHtml } from '@/lib/html-text';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
+import { useSavedJobs } from '@/lib/saved-jobs-context';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { JobListing } from '@/lib/types';
 
-function employmentAccent(type: string, colors: { blue: string; success: string; warning: string }) {
-  switch (type) {
-    case EmploymentType.REMOTE:
-      return colors.success;
-    case EmploymentType.INTERNSHIP:
-      return colors.warning;
-    default:
-      return colors.blue;
-  }
-}
+function buildTags(job: JobListing): string[] {
+  const tags: string[] = [];
+  const level = formatExperienceLevel(job.minExperienceYears, job.maxExperienceYears);
+  if (level) tags.push(level);
 
-function isRecentJob(createdAt: string) {
-  const days = (Date.now() - new Date(createdAt).getTime()) / 86_400_000;
-  return days <= 3;
+  if (job.employmentType === EmploymentType.REMOTE) {
+    tags.push('Remote');
+  } else if (job.location?.trim()) {
+    const city = job.location.split(',')[0]?.trim();
+    if (city) tags.push(city.length > 14 ? `${city.slice(0, 12)}…` : city);
+  }
+
+  const type = formatEmploymentType(job.employmentType);
+  if (job.employmentType !== EmploymentType.REMOTE && !tags.includes(type)) {
+    tags.push(type);
+  } else if (job.employmentType === EmploymentType.REMOTE && tags.length < 3) {
+    tags.push('Full-time');
+  }
+
+  return tags.slice(0, 3);
 }
 
 export function JobCard({
   job,
   onPress,
-  showApply = false,
+  showBookmark = false,
 }: {
   job: JobListing;
   onPress: () => void;
+  /** Candidate browse: show save bookmark affordance. */
+  showBookmark?: boolean;
+  /** @deprecated Apply CTA removed from card; kept for call-site compatibility. */
   showApply?: boolean;
 }) {
   const { colors, isDark } = useTheme();
+  const { isSaved, toggle } = useSavedJobs();
   const logoUrl = resolveAssetUrl(job.companyLogoUrl);
-  const accent = employmentAccent(job.employmentType, colors);
-  const recent = isRecentJob(job.createdAt);
+  const saved = isSaved(job.id);
+
+  const cardBg = isDark ? colors.surfaceElevated : '#E6F0EC';
+  const tagBg = isDark ? colors.surface : '#ffffff';
+  const tagText = isDark ? colors.foreground : '#4a5568';
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         card: {
-          backgroundColor: colors.surfaceElevated,
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: colors.border,
+          backgroundColor: cardBg,
+          borderRadius: 22,
           marginBottom: theme.spacing.md,
-          overflow: 'hidden',
-          flexDirection: 'row',
-          ...theme.shadow.card,
+          padding: 16,
+          borderWidth: isDark ? 1 : 0,
+          borderColor: colors.border,
         },
-        pressed: { opacity: 0.95, transform: [{ scale: 0.995 }] },
-        accentBar: { width: 4, backgroundColor: accent },
-        body: { flex: 1, padding: theme.spacing.md },
-        topRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-        avatarRing: {
-          padding: 2,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: `${accent}44`,
-          backgroundColor: isDark ? colors.surface : '#fff',
-        },
-        main: { flex: 1, minWidth: 0 },
-        badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
-        newBadge: {
-          backgroundColor: `${colors.success}18`,
-          borderRadius: theme.radius.full,
-          paddingHorizontal: 8,
-          paddingVertical: 3,
-        },
-        newText: { fontSize: 10, color: colors.success, ...fontStyle('bold') },
-        typeBadge: {
-          backgroundColor: `${accent}18`,
-          borderRadius: theme.radius.full,
-          paddingHorizontal: 8,
-          paddingVertical: 3,
-        },
-        typeText: { fontSize: 10, color: accent, ...fontStyle('bold') },
+        pressed: { opacity: 0.94, transform: [{ scale: 0.995 }] },
+        topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+        titleBlock: { flex: 1, minWidth: 0, paddingRight: 4 },
         title: {
           fontSize: 17,
-          ...fontStyle('extrabold'),
+          lineHeight: 22,
           color: colors.heading,
-          lineHeight: 23,
+          ...fontStyle('bold'),
         },
         company: {
-          marginTop: 4,
-          fontSize: 14,
-          ...fontStyle('semibold'),
-          color: colors.foreground,
+          marginTop: 3,
+          fontSize: 13,
+          color: colors.muted,
+          ...fontStyle('medium'),
         },
-        metaRow: { marginTop: 10, gap: 6 },
-        metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-        metaText: { fontSize: 13, color: colors.muted, ...fontStyle('medium'), flex: 1 },
+        bookmarkBtn: {
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: -4,
+          marginRight: -4,
+        },
+        tags: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 8,
+          marginTop: 14,
+        },
+        tag: {
+          backgroundColor: tagBg,
+          borderRadius: theme.radius.full,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
+        },
+        tagText: {
+          fontSize: 12,
+          color: tagText,
+          ...fontStyle('semibold'),
+        },
         snippet: {
-          marginTop: 10,
+          marginTop: 14,
           fontSize: 13,
           lineHeight: 19,
-          color: colors.muted,
+          color: isDark ? colors.muted : '#5a6575',
           ...fontStyle('regular'),
         },
         footer: {
-          marginTop: theme.spacing.md,
-          paddingTop: theme.spacing.sm,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: colors.border,
+          marginTop: 16,
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           justifyContent: 'space-between',
+          gap: 12,
         },
-        applyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-        applyPill: {
-          backgroundColor: colors.blue,
-          borderRadius: theme.radius.full,
-          paddingHorizontal: 16,
-          paddingVertical: 9,
+        salary: {
+          flex: 1,
+          fontSize: 16,
+          color: colors.heading,
+          ...fontStyle('bold'),
         },
-        applyText: { color: '#fff', fontSize: 13, ...fontStyle('bold') },
-        posted: { fontSize: 11, ...fontStyle('medium'), color: colors.muted },
-        chevron: {
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: colors.surface,
-          alignItems: 'center',
-          justifyContent: 'center',
+        posted: {
+          fontSize: 12,
+          color: colors.muted,
+          ...fontStyle('medium'),
         },
       }),
-    [colors, isDark, accent],
+    [cardBg, colors, isDark, tagBg, tagText],
   );
 
-  const typeLabel = formatEmploymentType(job.employmentType);
-  const experienceLabel =
-    job.minExperienceYears != null
-      ? job.minExperienceYears === 0
-        ? 'Fresher'
-        : `${job.minExperienceYears}+ yrs exp`
-      : null;
+  const tags = buildTags(job);
   const plainDescription = stripHtml(job.description);
-  const snippet = plainDescription.replace(/\s+/g, ' ').trim().slice(0, 100);
+  const snippet = plainDescription.replace(/\s+/g, ' ').trim().slice(0, 110);
+  const companyLine = [job.companyName, job.location?.split(',')[0]?.trim()]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <View style={styles.accentBar} />
-      <View style={styles.body}>
-        <View style={styles.badgeRow}>
-          {recent ? (
-            <View style={styles.newBadge}>
-              <Text style={styles.newText}>NEW</Text>
-            </View>
-          ) : null}
-          <View style={styles.typeBadge}>
-            <Text style={styles.typeText}>{typeLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.topRow}>
-          <View style={styles.avatarRing}>
-            <CompanyAvatar name={job.companyName} size={48} imageUrl={logoUrl} />
-          </View>
-          <View style={styles.main}>
-            <Text style={styles.title} numberOfLines={2}>
-              {job.title}
-            </Text>
-            <Text style={styles.company} numberOfLines={1}>
-              {job.companyName}
-            </Text>
-          </View>
-          <View style={styles.chevron}>
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-          </View>
-        </View>
-
-        <View style={styles.metaRow}>
-          {job.location ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={14} color={colors.blue} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {job.location}
-              </Text>
-            </View>
-          ) : null}
-          {job.salaryRange ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="cash-outline" size={14} color={colors.blue} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {job.salaryRange}
-              </Text>
-            </View>
-          ) : null}
-          {experienceLabel ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="trending-up-outline" size={14} color={colors.blue} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {experienceLabel}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {snippet ? (
-          <Text style={styles.snippet} numberOfLines={2}>
-            {snippet}
-            {plainDescription.length > 100 ? '…' : ''}
+      <View style={styles.topRow}>
+        <CompanyAvatar name={job.companyName} size={48} imageUrl={logoUrl} />
+        <View style={styles.titleBlock}>
+          <Text style={styles.title} numberOfLines={2}>
+            {job.title}
           </Text>
-        ) : null}
-
-        <View style={styles.footer}>
-          {showApply ? (
-            <View style={styles.applyRow}>
-              <View style={styles.applyPill}>
-                <Text style={styles.applyText}>Apply</Text>
-              </View>
-            </View>
-          ) : (
-            <View />
-          )}
-          <Text style={styles.posted}>{formatPostedAgo(job.createdAt)}</Text>
+          <Text style={styles.company} numberOfLines={1}>
+            {companyLine}
+          </Text>
         </View>
+        {showBookmark ? (
+          <Pressable
+            hitSlop={10}
+            onPress={(e) => {
+              // Prevent opening job details when bookmark is pressed.
+              e.stopPropagation?.();
+              void toggle(job);
+            }}
+            style={styles.bookmarkBtn}
+            accessibilityRole="button"
+            accessibilityLabel={saved ? 'Remove from saved jobs' : 'Save job'}
+          >
+            <Ionicons
+              name={saved ? 'bookmark' : 'bookmark-outline'}
+              size={22}
+              color={saved ? colors.blue : colors.heading}
+            />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {tags.length > 0 ? (
+        <View style={styles.tags}>
+          {tags.map((tag, index) => (
+            <View key={`${index}-${tag}`} style={styles.tag}>
+              <Text style={styles.tagText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {snippet ? (
+        <Text style={styles.snippet} numberOfLines={2}>
+          {snippet}
+          {plainDescription.length > 110 ? '…' : ''}
+        </Text>
+      ) : null}
+
+      <View style={styles.footer}>
+        <Text style={styles.salary} numberOfLines={1}>
+          {job.salaryRange?.trim() || 'Salary not listed'}
+        </Text>
+        <Text style={styles.posted}>{formatPostedLabel(job.createdAt)}</Text>
       </View>
     </Pressable>
   );

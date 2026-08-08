@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppScreen } from '@/components/app-screen';
 import { MessageBubble, MessageDayDivider } from '@/components/messages/message-bubble';
 import { MessageComposeField } from '@/components/messages/message-compose-field';
+import { ViewableAvatar } from '@/components/profile/protected-avatar-viewer';
 import {
   acceptConnectionInvite,
   ignoreConnectionInvite,
@@ -101,7 +102,7 @@ export default function MessageThreadScreen() {
   const rows = useMemo(() => buildMessageRows(messages), [messages]);
   const listData = useMemo(() => [...rows].reverse(), [rows]);
   const listInverted = listData.length > 0;
-  const composeBottomPad = Math.max(insets.bottom, 8);
+  const composeBottomPad = Math.max(insets.bottom, 10);
   const stickyOffsetOpened = Math.max(composeBottomPad - theme.spacing.sm, 0);
 
   const onComposeLayout = useCallback((event: LayoutChangeEvent) => {
@@ -316,7 +317,7 @@ export default function MessageThreadScreen() {
     if (!detail?.connectionId) return;
     setInviteLoading(true);
     try {
-      await acceptConnectionInvite(detail.connectionId);
+      await acceptConnectionInvite(detail.connectionId, { fullName: detail.otherUser.fullName });
       await load();
       notifyMessagesRefresh();
     } catch (err) {
@@ -353,6 +354,8 @@ export default function MessageThreadScreen() {
   const avatar = resolveAvatarUrl(person.avatarUrl);
   const name = person.fullName?.trim() || 'Professional';
 
+  const statusLine = person.headline?.trim() || (detail.canReply ? 'Tap to view profile' : 'Not connected yet');
+
   return (
     <AppScreen>
       <View style={styles.flex}>
@@ -360,35 +363,48 @@ export default function MessageThreadScreen() {
           style={[
             styles.header,
             {
-              borderBottomColor: colors.border,
-              backgroundColor: colors.surfaceElevated,
-              paddingTop: insets.top + theme.spacing.xs,
+              borderBottomColor: isDark ? 'rgba(50, 64, 88, 0.6)' : 'rgba(15,28,51,0.06)',
+              backgroundColor: isDark ? '#0d1420' : '#ffffff',
+              paddingTop: insets.top + 6,
             },
           ]}
         >
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={22} color={colors.heading} />
+            <Ionicons name="chevron-back" size={26} color={colors.blue} />
           </Pressable>
-          <Pressable onPress={() => router.push(`/network/${person.userId}` as never)} style={styles.headerMain}>
-            <View style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-              {avatar ? (
-                <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
-              ) : (
-                <Text style={[fontStyle('bold'), { color: colors.heading }]}>
-                  {name.charAt(0).toUpperCase()}
-                </Text>
-              )}
-            </View>
+          <Pressable
+            onPress={() => router.push(`/network/${person.userId}` as never)}
+            style={styles.headerMain}
+            accessibilityLabel={`Open ${name} profile`}
+          >
+            <ViewableAvatar uri={avatar} name={name}>
+              <View
+                style={[
+                  styles.avatar,
+                  {
+                    borderColor: isDark ? colors.border : `${colors.blue}22`,
+                    backgroundColor: isDark ? colors.surface : `${colors.blue}12`,
+                  },
+                ]}
+              >
+                {avatar ? (
+                  <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
+                ) : (
+                  <Text style={[fontStyle('bold'), { color: colors.blue, fontSize: 18 }]}>
+                    {name.charAt(0).toUpperCase()}
+                  </Text>
+                )}
+              </View>
+            </ViewableAvatar>
             <View style={styles.headerCopy}>
-              <Text numberOfLines={1} style={[fontStyle('bold'), { color: colors.heading, fontSize: 16 }]}>
+              <Text numberOfLines={1} style={[fontStyle('bold'), { color: colors.heading, fontSize: 17 }]}>
                 {name}
               </Text>
-              {person.headline ? (
-                <Text numberOfLines={1} style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
-                  {person.headline}
-                </Text>
-              ) : null}
+              <Text numberOfLines={1} style={[styles.headerStatus, { color: colors.muted }, fontStyle('medium')]}>
+                {statusLine}
+              </Text>
             </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
           </Pressable>
         </View>
 
@@ -397,8 +413,8 @@ export default function MessageThreadScreen() {
             style={[
               styles.inviteBar,
               {
-                backgroundColor: `${colors.blue}14`,
-                borderColor: `${colors.blue}33`,
+                backgroundColor: `${colors.blue}12`,
+                borderColor: `${colors.blue}28`,
               },
             ]}
           >
@@ -429,7 +445,7 @@ export default function MessageThreadScreen() {
               style={[
                 styles.chatBody,
                 {
-                  backgroundColor: isDark ? colors.background : `${colors.blue}06`,
+                  backgroundColor: isDark ? '#0a0f18' : '#eef3f9',
                   opacity: rows.length ? fadeAnim : 1,
                 },
               ]}
@@ -486,8 +502,28 @@ export default function MessageThreadScreen() {
                 }}
                 ListEmptyComponent={
                   <View style={styles.emptyThread}>
-                    <Text style={{ color: colors.muted, textAlign: 'center', ...fontStyle('regular') }}>
-                      {detail.canReply ? 'Say hello — your conversation starts here.' : 'Connect to start messaging.'}
+                    <View
+                      style={[
+                        styles.emptyAvatar,
+                        {
+                          backgroundColor: isDark ? colors.surfaceElevated : '#fff',
+                          borderColor: isDark ? colors.border : `${colors.blue}22`,
+                        },
+                      ]}
+                    >
+                      {avatar ? (
+                        <Image source={{ uri: avatar }} style={styles.emptyAvatarImg} contentFit="cover" />
+                      ) : (
+                        <Text style={[fontStyle('bold'), { color: colors.blue, fontSize: 28 }]}>
+                          {name.charAt(0).toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={[styles.emptyTitle, { color: colors.heading }, fontStyle('bold')]}>{name}</Text>
+                    <Text style={[{ color: colors.muted, textAlign: 'center', fontSize: 14, lineHeight: 20 }, fontStyle('regular')]}>
+                      {detail.canReply
+                        ? 'Say hello — your conversation starts here.'
+                        : 'Connect to start messaging.'}
                     </Text>
                   </View>
                 }
@@ -506,8 +542,8 @@ export default function MessageThreadScreen() {
               style={[
                 styles.compose,
                 {
-                  borderTopColor: colors.border,
-                  backgroundColor: colors.surfaceElevated,
+                  borderTopColor: isDark ? 'rgba(50, 64, 88, 0.6)' : 'rgba(15,28,51,0.06)',
+                  backgroundColor: isDark ? '#0d1420' : '#ffffff',
                   paddingBottom: composeBottomPad,
                 },
               ]}
@@ -521,7 +557,7 @@ export default function MessageThreadScreen() {
                 onSubmit={() => void handleSend()}
                 sending={sending}
                 editable={detail.canReply}
-                placeholder={detail.canReply ? 'Write a message…' : 'Connect to reply'}
+                placeholder={detail.canReply ? 'Type here' : 'Connect to reply'}
                 onFocus={() => scrollToLatest(true)}
               />
             </View>
@@ -572,6 +608,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   headerCopy: { flex: 1, minWidth: 0 },
+  headerStatus: {
+    fontSize: 12,
+    marginTop: 1,
+  },
   inviteBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -590,10 +630,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -603,19 +643,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.sm,
     paddingBottom: theme.spacing.md,
+    gap: 2,
   },
   messagesEmptyGrow: {
     flexGrow: 1,
   },
   emptyThread: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     paddingVertical: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  emptyAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  emptyAvatarImg: { width: '100%', height: '100%' },
+  emptyTitle: {
+    fontSize: 18,
+    textAlign: 'center',
   },
   compose: {
     paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.sm,
+    paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   error: {

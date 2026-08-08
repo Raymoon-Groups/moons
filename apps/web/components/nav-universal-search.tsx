@@ -43,12 +43,15 @@ export function NavUniversalSearch({
   className = '',
   stretched = false,
   floating = false,
+  embedded = false,
 }: {
   className?: string;
   /** Full-width pill bar like the header search row */
   stretched?: boolean;
   /** Individual floating surface for the header */
   floating?: boolean;
+  /** Sit inside a parent glass bar — no outer float chrome */
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -156,20 +159,26 @@ export function NavUniversalSearch({
       <form onSubmit={handleSubmit}>
         <div
           className={`flex w-full items-center rounded-full transition focus-within:ring-2 focus-within:ring-moons-blue/15 ${
-            floating
-              ? 'header-float px-5 py-3 sm:px-6 sm:py-3.5'
-              : `border border-border bg-surface-elevated ${stretched ? 'px-4 py-3' : 'px-3 py-1.5'}`
+            embedded
+              ? 'border border-border/60 bg-surface/70 px-2.5 py-1.5'
+              : floating
+                ? 'header-float px-5 py-3 sm:px-6 sm:py-3.5'
+                : `border border-border bg-surface-elevated ${stretched ? 'px-4 py-3' : 'px-3 py-1.5'}`
           }`}
         >
-          <SearchIcon large={floating} />
+          <SearchIcon large={floating && !embedded} />
           <input
             type="search"
             value={query}
             onChange={(e) => updateQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search jobs, skills, companies..."
-            className={`min-w-0 flex-1 bg-transparent px-3 outline-none placeholder:text-moons-muted ${
-              floating ? 'py-0.5 text-[15px] text-foreground' : 'py-0.5 text-sm text-foreground'
+            placeholder={embedded ? 'Search...' : 'Search jobs, skills, companies...'}
+            className={`min-w-0 flex-1 bg-transparent outline-none placeholder:text-moons-muted ${
+              embedded
+                ? 'px-2 py-0.5 text-sm text-foreground'
+                : floating
+                  ? 'px-3 py-0.5 text-[15px] text-foreground'
+                  : 'px-3 py-0.5 text-sm text-foreground'
             }`}
             autoComplete="off"
             role="combobox"

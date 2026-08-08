@@ -6,7 +6,6 @@ import { AttachmentViewerModal } from '@/components/messages/attachment-viewer-m
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
-import { theme } from '@/lib/theme';
 
 export function MessageAttachmentContent({
   url,
@@ -40,7 +39,7 @@ export function MessageAttachmentContent({
               : { borderColor: colors.border, backgroundColor: colors.surface },
           ]}
         >
-          <Ionicons name="attach" size={16} color={isMine ? '#fff' : colors.blue} />
+          <Ionicons name="download-outline" size={16} color={isMine ? '#fff' : colors.blue} />
           <Text
             numberOfLines={1}
             style={[
@@ -51,6 +50,7 @@ export function MessageAttachmentContent({
           >
             {fileName}
           </Text>
+          <Ionicons name="arrow-down-circle-outline" size={18} color={isMine ? 'rgba(255,255,255,0.9)' : colors.blue} />
         </Pressable>
       )}
 
@@ -66,15 +66,15 @@ export function MessageAttachmentContent({
 }
 
 const styles = StyleSheet.create({
-  imageWrap: { marginTop: 8, borderRadius: theme.radius.md, overflow: 'hidden' },
-  image: { width: 220, height: 160, borderRadius: theme.radius.md },
+  imageWrap: { marginTop: 6, borderRadius: 16, overflow: 'hidden' },
+  image: { width: 220, height: 168, borderRadius: 16 },
   fileChip: {
-    marginTop: 8,
+    marginTop: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderRadius: theme.radius.md,
+    borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
     maxWidth: '100%',

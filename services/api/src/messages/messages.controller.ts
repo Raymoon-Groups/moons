@@ -16,7 +16,13 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { OnboardingGuard } from '../common/guards/onboarding.guard';
 import { SendMessageDto } from './dto/send-message.dto';
+import { MAX_MESSAGE_ATTACHMENT_BYTES } from './message-attachment.limits';
 import { MessagesService } from './messages.service';
+
+const attachmentUpload = FileInterceptor('attachment', {
+  storage: memoryStorage(),
+  limits: { fileSize: MAX_MESSAGE_ATTACHMENT_BYTES },
+});
 
 @ApiTags('messages')
 @Controller('messages')
@@ -65,12 +71,7 @@ export class MessagesController {
       },
     },
   })
-  @UseInterceptors(
-    FileInterceptor('attachment', {
-      storage: memoryStorage(),
-      limits: { fileSize: 10 * 1024 * 1024 },
-    }),
-  )
+  @UseInterceptors(attachmentUpload)
   sendMessage(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
@@ -91,12 +92,7 @@ export class MessagesController {
       },
     },
   })
-  @UseInterceptors(
-    FileInterceptor('attachment', {
-      storage: memoryStorage(),
-      limits: { fileSize: 10 * 1024 * 1024 },
-    }),
-  )
+  @UseInterceptors(attachmentUpload)
   sendToUser(
     @CurrentUser() user: JwtPayload,
     @Param('userId') userId: string,

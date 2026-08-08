@@ -4,6 +4,8 @@ import type { CompaniesPage, JobsPage } from '@/lib/types';
 
 export type SearchSuggestionType = 'job' | 'company' | 'person' | 'skill';
 
+export type SearchScope = 'all' | 'job' | 'person' | 'company';
+
 export interface SearchSuggestion {
   type: SearchSuggestionType;
   label: string;
@@ -56,58 +58,104 @@ function matchSkillTerms(query: string, limit = 3): SearchSuggestion[] {
     }));
 }
 
-export async function fetchSearchSuggestions(query: string): Promise<SearchSuggestion[]> {
-  const q = query.trim();
-  if (q.length < 2) return getPopularSuggestions();
-
-  const params = new URLSearchParams({ q, limit: '5' });
-  const companyParams = new URLSearchParams({ q, limit: '4' });
-
-  const [jobsResult, companiesResult, peopleResult] = await Promise.all([
-    apiFetch<JobsPage>(`/jobs?${params}`).catch(() => null),
-    apiFetch<CompaniesPage>(`/jobs/companies?${companyParams}`).catch(() => null),
-    searchProfessionals({ q, limit: 5 }).catch(() => null),
-  ]);
-
-  const jobSuggestions: SearchSuggestion[] = (jobsResult?.items ?? []).slice(0, 4).map((job) => ({
-    type: 'job',
-    label: job.title,
-    meta: [job.companyName, job.location].filter(Boolean).join(' · '),
-    jobId: job.id,
-  }));
-
-  const companySuggestions: SearchSuggestion[] = (companiesResult?.items ?? [])
-    .slice(0, 3)
-    .map((company) => ({
-      type: 'company',
-      label: company.companyName,
-      meta: company.industry ?? `${company.openJobs} open jobs`,
-      recruiterId: company.recruiterId,
-    }));
-
-  const peopleSuggestions: SearchSuggestion[] = (peopleResult?.items ?? [])
-    .slice(0, 4)
-    .map((person) => ({
-      type: 'person',
-      label: person.fullName?.trim() || 'Professional',
-      meta: person.headline || person.currentCompany || undefined,
-      userId: person.userId,
-    }));
-
-  const skillSuggestions = matchSkillTerms(q, 3);
-
+function dedupe(items: SearchSuggestion[]): SearchSuggestion[] {
   const seen = new Set<string>();
-  const combined = [
-    ...peopleSuggestions,
-    ...jobSuggestions,
-    ...companySuggestions,
-    ...skillSuggestions,
-  ].filter((item) => {
+  return items.filter((item) => {
     const key = `${item.type}:${item.label.toLowerCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
 
-  return combined.slice(0, 12);
+async function fetchJobSuggestions(q: string, limit: number): Promise<SearchSuggestion[]> {
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  const jobsResult = await apiFetch<JobsPage>(`/jobs?${params}`).catch(() => null);
+  return (jobsResult?.items ?? []).slice(0, limit).map((job) => ({
+    type: 'job' as const,
+    label: job.title,
+    meta: [job.companyName, job.location].filter(Boolean).join(' · '),
+    jobId: job.id,
+  }));
+}
+
+async function fetchCompanySuggestions(q: string, limit: number): Promise<SearchSuggestion[]> {
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  const companiesResult = await apiFetch<CompaniesPage>(`/jobs/companies?${params}`).catch(
+    () => null,
+  );
+  return (companiesResult?.items ?? []).slice(0, limit).map((company) => ({
+    type: 'company' as const,
+    label: company.companyName,
+    meta: company.industry ?? `${company.openJobs} open jobs`,
+    recruiterId: company.recruiterId,
+  }));
+}
+
+async function fetchPeopleSuggestions(q: string, limit: number): Promise<SearchSuggestion[]> {
+  const peopleResult = await searchProfessionals({ q, limit }).catch(() => null);
+  return (peopleResult?.items ?? []).slice(0, limit).map((person) => ({
+    type: 'person' as const,
+    label: person.fullName?.trim() || 'Professional',
+    meta: person.headline || person.currentCompany || undefined,
+    userId: person.userId,
+  }));
+}
+
+/**
+ * Fetch universal search suggestions, scoped so Jobs / People / Companies
+ * each load a full list for that tab instead of a tiny shared slice.
+ */
+export async function fetchSearchSuggestions(
+  query: string,
+  scope: SearchScope = 'all',
+): Promise<SearchSuggestion[]> {
+  const q = query.trim();
+  if (q.length < 2) return getPopularSuggestions();
+
+  if (scope === 'job') {
+    const [jobs, skills] = await Promise.all([
+      fetchJobSuggestions(q, 20),
+      Promise.resolve(matchSkillTerms(q, 4)),
+    ]);
+    return dedupe([...jobs, ...skills]);
+  }
+
+  if (scope === 'person') {
+    return dedupe(await fetchPeopleSuggestions(q, 20));
+  }
+
+  if (scope === 'company') {
+    return dedupe(await fetchCompanySuggestions(q, 20));
+  }
+
+  const [jobs, companies, people] = await Promise.all([
+    fetchJobSuggestions(q, 8),
+    fetchCompanySuggestions(q, 6),
+    fetchPeopleSuggestions(q, 8),
+  ]);
+  const skills = matchSkillTerms(q, 3);
+
+  // Balanced “All” list: jobs, people, companies, keywords — not people-only at the top.
+  return dedupe([...jobs, ...people, ...companies, ...skills]).slice(0, 24);
+}
+
+/** Client-side filter when a full “all” payload is already loaded. */
+export function filterSuggestionsByScope(
+  items: SearchSuggestion[],
+  scope: SearchScope,
+  opts?: { isPopular?: boolean },
+): SearchSuggestion[] {
+  if (scope === 'all') return items;
+
+  // Popular list is keyword chips — keep them for All / Jobs only.
+  if (opts?.isPopular) {
+    if (scope === 'job') return items;
+    return [];
+  }
+
+  if (scope === 'job') {
+    return items.filter((item) => item.type === 'job' || item.type === 'skill');
+  }
+  return items.filter((item) => item.type === scope);
 }

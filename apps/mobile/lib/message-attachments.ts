@@ -1,19 +1,19 @@
+import {
+  MAX_MESSAGE_ATTACHMENT_BYTES,
+  MAX_MESSAGE_ATTACHMENT_LABEL,
+  MESSAGE_ATTACHMENT_MIME_TYPES,
+  isMessageAttachmentTooLarge,
+  messageAttachmentTooLargeMessage,
+} from '@moons/shared';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import type { MessageAttachment } from '@/lib/messages';
 
-export const MAX_MESSAGE_ATTACHMENT_BYTES = 10 * 1024 * 1024;
-
-export const MESSAGE_ATTACHMENT_MIME_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'text/plain',
-] as const;
+export {
+  MAX_MESSAGE_ATTACHMENT_BYTES,
+  MAX_MESSAGE_ATTACHMENT_LABEL,
+  MESSAGE_ATTACHMENT_MIME_TYPES,
+};
 
 export type AttachmentPickError = {
   title: string;
@@ -21,10 +21,10 @@ export type AttachmentPickError = {
 };
 
 function validateSize(size: number | undefined): AttachmentPickError | null {
-  if (size != null && size > MAX_MESSAGE_ATTACHMENT_BYTES) {
+  if (size != null && isMessageAttachmentTooLarge(size)) {
     return {
       title: 'File too large',
-      message: 'Attachments must be 10 MB or smaller. Choose a smaller file.',
+      message: messageAttachmentTooLargeMessage(),
     };
   }
   return null;
@@ -84,7 +84,7 @@ export async function pickMessageImage(): Promise<
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      quality: 0.92,
+      quality: 0.85,
       allowsEditing: false,
     });
     if (result.canceled || !result.assets[0]) return null;

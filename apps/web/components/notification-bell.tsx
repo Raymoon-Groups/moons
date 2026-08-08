@@ -105,9 +105,12 @@ function NotificationDot() {
 export function NotificationBell({
   hasUnread = false,
   className = '',
+  bare = false,
 }: {
   hasUnread?: boolean;
   className?: string;
+  /** Icon-only control without its own floating pill (for mobile glass bar). */
+  bare?: boolean;
 }) {
   const router = useRouter();
   const { user, ready } = useAuth();
@@ -301,7 +304,11 @@ export function NotificationBell({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`header-float relative flex h-11 w-11 shrink-0 items-center justify-center text-heading transition hover:text-moons-blue sm:h-12 sm:w-12 ${className}`}
+        className={`${
+          bare
+            ? 'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-heading transition hover:bg-surface hover:text-moons-blue'
+            : 'header-float relative flex h-11 w-11 shrink-0 items-center justify-center text-heading transition hover:text-moons-blue sm:h-12 sm:w-12'
+        } ${className}`}
         aria-label={`Notifications${showDot ? ', unread' : ''}`}
         aria-expanded={open}
       >

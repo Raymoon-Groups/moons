@@ -1,18 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { LinearGradient } from 'expo-linear-gradient';
 import { UserRole } from '@moons/shared';
 import { router, usePathname, useSegments } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth-context';
 import { useNavIndicators } from '@/lib/nav-indicators';
 import { useTheme } from '@/lib/theme-context';
-import { fontStyle } from '@/lib/font-style';
 
 type PillItem = {
   routeName: string;
   label: string;
-  shortLabel: string;
   icon: keyof typeof Ionicons.glyphMap;
   activeIcon: keyof typeof Ionicons.glyphMap;
   showDot?: boolean;
@@ -21,12 +20,11 @@ type PillItem = {
 function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessagesDot: boolean): PillItem[] {
   if (isRecruiter) {
     return [
-      { routeName: 'index', label: 'Feed', shortLabel: 'Feed', icon: 'home-outline', activeIcon: 'home' },
-      { routeName: 'my-jobs', label: 'Jobs', shortLabel: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
+      { routeName: 'index', label: 'Feed', icon: 'home-outline', activeIcon: 'home' },
+      { routeName: 'my-jobs', label: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
       {
         routeName: 'network',
         label: 'Network',
-        shortLabel: 'Network',
         icon: 'people-outline',
         activeIcon: 'people',
         showDot: showNetworkDot,
@@ -34,7 +32,6 @@ function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessage
       {
         routeName: 'messages',
         label: 'Messages',
-        shortLabel: 'Messages',
         icon: 'chatbubble-outline',
         activeIcon: 'chatbubble',
         showDot: showMessagesDot,
@@ -42,19 +39,17 @@ function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessage
       {
         routeName: 'candidates',
         label: 'Candidates',
-        shortLabel: 'Candidates',
         icon: 'person-add-outline',
         activeIcon: 'person-add',
       },
     ];
   }
   return [
-    { routeName: 'index', label: 'Feed', shortLabel: 'Feed', icon: 'home-outline', activeIcon: 'home' },
-    { routeName: 'jobs', label: 'Jobs', shortLabel: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
+    { routeName: 'index', label: 'Feed', icon: 'home-outline', activeIcon: 'home' },
+    { routeName: 'jobs', label: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
     {
       routeName: 'network',
       label: 'Network',
-      shortLabel: 'Network',
       icon: 'people-outline',
       activeIcon: 'people',
       showDot: showNetworkDot,
@@ -62,7 +57,6 @@ function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessage
     {
       routeName: 'messages',
       label: 'Messages',
-      shortLabel: 'Messages',
       icon: 'chatbubble-outline',
       activeIcon: 'chatbubble',
       showDot: showMessagesDot,
@@ -70,7 +64,6 @@ function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessage
     {
       routeName: 'companies',
       label: 'Companies',
-      shortLabel: 'Companies',
       icon: 'business-outline',
       activeIcon: 'business',
     },
@@ -104,6 +97,10 @@ function resolveActiveRoute(pathname: string, segments: string[], isRecruiter: b
   const path = pathname.toLowerCase();
   const joined = segments.join('/');
 
+  // Profile lives in the header — don't highlight any bottom pill tab.
+  if (path.includes('/profile') || joined.includes('profile') || path.includes('/settings')) {
+    return undefined;
+  }
   if (path.includes('/job') || joined.includes('jobs') || joined.includes('my-jobs') || joined.includes('applications')) {
     return isRecruiter ? 'my-jobs' : 'jobs';
   }
@@ -112,9 +109,6 @@ function resolveActiveRoute(pathname: string, segments: string[], isRecruiter: b
   if (path.includes('/companies') || joined.includes('companies')) return 'companies';
   if (path.includes('/recruiter/candidates') || joined.includes('candidates')) return 'candidates';
   if (path.includes('/recruiter') || joined.includes('recruiter')) return 'my-jobs';
-  if (path.includes('/profile') || joined.includes('profile') || path.includes('/settings')) {
-    return 'index';
-  }
   if (joined.includes('(tabs)') && (segments[1] === 'index' || !segments[1])) return 'index';
   if (joined.endsWith('(tabs)') || path.endsWith('/') || path.includes('/(tabs)')) return 'index';
   return 'index';
@@ -127,24 +121,28 @@ function PillNavigation({
   activeRoute?: string;
   onNavigate: (routeName: string) => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { indicators, showNetworkDot, acknowledgeNetworkBadge } = useNavIndicators();
   const isRecruiter = user?.role === UserRole.RECRUITER;
   const items = getPillItems(isRecruiter, showNetworkDot, indicators.messages);
 
+  const barBg = isDark ? colors.surfaceElevated : '#F7F4F0';
+  const inactiveSlot = isDark ? `${colors.border}88` : 'rgba(255,255,255,0.72)';
+
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}
+      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}
     >
       <View
         style={[
           styles.pill,
           {
-            backgroundColor: '#FFFFFF',
-            borderColor: 'rgba(15, 23, 38, 0.10)',
+            backgroundColor: barBg,
+            borderColor: isDark ? colors.border : 'rgba(15, 23, 38, 0.06)',
+            shadowColor: '#0f172a',
           },
         ]}
       >
@@ -163,39 +161,28 @@ function PillNavigation({
                 accessibilityRole="button"
                 accessibilityLabel={item.label}
                 accessibilityState={{ selected: active }}
-                style={({ pressed }) => [
-                  styles.item,
-                  active && { backgroundColor: `${colors.blue}1f` },
-                  pressed && { opacity: 0.7 },
-                ]}
+                style={({ pressed }) => [styles.item, pressed && { opacity: 0.82 }]}
               >
-                <View style={styles.iconWrap}>
-                  <Ionicons
-                    name={active ? item.activeIcon : item.icon}
-                    size={21}
-                    color={active ? colors.blue : colors.muted}
-                  />
-                  {item.showDot ? (
-                    <View
-                      style={[
-                        styles.dot,
-                        { backgroundColor: colors.blue, borderColor: colors.surfaceElevated },
-                      ]}
-                    />
-                  ) : null}
-                </View>
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.75}
-                  style={[
-                    styles.label,
-                    { color: active ? colors.blue : colors.muted },
-                    active ? fontStyle('bold') : fontStyle('medium'),
-                  ]}
-                >
-                  {item.shortLabel}
-                </Text>
+                {active ? (
+                  <LinearGradient
+                    colors={[colors.blue, '#6b9ae8', colors.blueDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.activeSlot, { shadowColor: colors.blue }]}
+                  >
+                    <Ionicons name={item.activeIcon} size={22} color="#fff" />
+                    {item.showDot ? (
+                      <View style={[styles.dot, styles.dotOnActive, { borderColor: colors.blue }]} />
+                    ) : null}
+                  </LinearGradient>
+                ) : (
+                  <View style={[styles.inactiveSlot, { backgroundColor: inactiveSlot }]}>
+                    <Ionicons name={item.icon} size={22} color={isDark ? colors.muted : '#1a1a1a'} />
+                    {item.showDot ? (
+                      <View style={[styles.dot, { backgroundColor: colors.blue, borderColor: barBg }]} />
+                    ) : null}
+                  </View>
+                )}
               </Pressable>
             );
           })}
@@ -216,10 +203,6 @@ export function BottomPillTabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
-/**
- * Single bottom navigation for every authenticated screen
- * (Feed, Jobs, Network, Messages, Companies, and nested pages).
- */
 const AUTH_OR_GATE_SEGMENTS = new Set([
   'login',
   'register',
@@ -235,9 +218,12 @@ export function PersistentBottomPillNav() {
   const first = routeSegments[0];
 
   if (!ready || !user) return null;
-  // Hide on auth / gate routes only — show on Feed, Jobs, Network, Messages, and every nested page.
   if (!first || AUTH_OR_GATE_SEGMENTS.has(first)) return null;
   if (first === 'index' && (pathname === '/' || pathname === '')) return null;
+  // Hide floating pill inside an open chat thread so the compose box stays visible.
+  if (first === 'messages' && routeSegments.length > 1) return null;
+  // Full-screen search should not sit under the tab pill.
+  if (first === 'search') return null;
 
   const isRecruiter = user.role === UserRole.RECRUITER;
   const activeRoute = resolveActiveRoute(pathname, routeSegments, isRecruiter);
@@ -251,7 +237,7 @@ export function PersistentBottomPillNav() {
 }
 
 /** Approximate height of the floating pill bar (for screen bottom padding). */
-export const BOTTOM_PILL_TAB_BAR_HEIGHT = 76;
+export const BOTTOM_PILL_TAB_BAR_HEIGHT = 78;
 
 const styles = StyleSheet.create({
   wrap: {
@@ -261,52 +247,60 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 1000,
     backgroundColor: 'transparent',
-    paddingHorizontal: 14,
-    paddingTop: 6,
+    paddingHorizontal: 18,
+    paddingTop: 8,
   },
   pill: {
     width: '100%',
-    borderRadius: 999,
+    borderRadius: 28,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 5,
-    overflow: 'hidden',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     width: '100%',
   },
   item: {
     flex: 1,
-    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    paddingHorizontal: 4,
-    paddingVertical: 9,
-    borderRadius: 999,
+    paddingVertical: 2,
   },
-  iconWrap: {
-    position: 'relative',
-    width: 24,
-    height: 24,
+  activeSlot: {
+    width: 56,
+    height: 44,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  inactiveSlot: {
+    width: 46,
+    height: 44,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dot: {
     position: 'absolute',
-    right: -2,
-    top: -2,
+    right: 8,
+    top: 7,
     width: 8,
     height: 8,
     borderRadius: 4,
     borderWidth: 2,
   },
-  label: {
-    fontSize: 10,
-    lineHeight: 13,
-    textAlign: 'center',
-    width: '100%',
-    paddingHorizontal: 2,
+  dotOnActive: {
+    backgroundColor: '#fff',
   },
 });

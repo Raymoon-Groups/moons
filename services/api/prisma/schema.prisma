@@ -369,6 +369,8 @@ model PostComment {
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
   deletedAt            DateTime? @map("deleted_at")
+  /// When set by the post owner, comment is hidden from everyone except the post owner.
+  hiddenAt             DateTime? @map("hidden_at")
 
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   author User @relation("PostCommentsAuthored", fields: [authorId], references: [id], onDelete: Cascade)

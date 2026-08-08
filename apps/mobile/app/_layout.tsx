@@ -7,7 +7,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
 import { IncomingMessageSoundListener } from '@/components/incoming-message-sound-listener';
 import { PersistentBottomPillNav } from '@/components/bottom-pill-tab-bar';
+import { ConnectionSuccessHost } from '@/components/network/connection-success-host';
 import { AuthProvider } from '@/lib/auth-context';
+import { SavedJobsProvider } from '@/lib/saved-jobs-context';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import { useAppFonts } from '@/lib/use-app-fonts';
@@ -37,11 +39,13 @@ function RootStack() {
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="search" options={{ title: 'Search' }} />
+        <Stack.Screen name="search" options={{ headerShown: false }} />
         <Stack.Screen name="network/[userId]" options={{ title: 'Profile' }} />
         <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="job/[id]" options={{ title: 'Job details' }} />
+        <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
         <Stack.Screen name="companies/[recruiterId]" options={{ title: 'Company' }} />
+        <Stack.Screen name="saved-jobs" options={{ title: 'Saved jobs' }} />
         <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
         <Stack.Screen name="settings/security" options={{ title: 'Security' }} />
         <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
@@ -78,11 +82,14 @@ function AppRoot() {
   return (
     <GoogleAuthWrapper>
       <AuthProvider>
-        <IncomingMessageSoundListener />
-        <View style={{ flex: 1 }}>
-          <RootStack />
-          <PersistentBottomPillNav />
-        </View>
+        <SavedJobsProvider>
+          <IncomingMessageSoundListener />
+          <ConnectionSuccessHost />
+          <View style={{ flex: 1 }}>
+            <RootStack />
+            <PersistentBottomPillNav />
+          </View>
+        </SavedJobsProvider>
       </AuthProvider>
     </GoogleAuthWrapper>
   );

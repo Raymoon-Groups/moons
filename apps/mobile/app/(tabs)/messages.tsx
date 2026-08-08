@@ -11,7 +11,9 @@ import {
 import { AppScreen } from '@/components/app-screen';
 import { AuthenticatedScreen } from '@/components/authenticated-screen';
 import { ConversationRow } from '@/components/messages/conversation-row';
-import { EmptyState, ScreenHeader } from '@/components/portal-ui';
+import { InboxFavoritesRow } from '@/components/messages/inbox-favorites-row';
+import { EmptyState } from '@/components/portal-ui';
+import { useAuth } from '@/lib/auth-context';
 import {
   conversationsChanged,
   fetchConversationWithUser,
@@ -25,7 +27,8 @@ import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
 export default function MessagesScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { user } = useAuth();
   const bottomPadding = useTabScreenPadding();
   const params = useLocalSearchParams<{ with?: string; conversation?: string }>();
   const [items, setItems] = useState<ConversationPreview[]>([]);
@@ -131,20 +134,40 @@ export default function MessagesScreen() {
     }, [params.with, params.conversation, openingUserId]),
   );
 
+  const inboxBg = isDark ? colors.background : '#ffffff';
+
   return (
     <AppScreen>
       <AuthenticatedScreen padBottom={false}>
         {openingUserId ? (
-          <View style={styles.openingOverlay}>
+          <View
+            style={[
+              styles.openingOverlay,
+              { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(238,243,249,0.7)' },
+            ]}
+          >
             <ActivityIndicator size="large" color={colors.blue} />
           </View>
         ) : null}
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPadding }]}
+          contentContainerStyle={[
+            styles.list,
+            { paddingBottom: bottomPadding, flexGrow: 1 },
+            items.length === 0 && styles.listEmpty,
+          ]}
+          style={{ backgroundColor: inboxBg }}
           showsVerticalScrollIndicator={false}
           extraData={items}
+          ItemSeparatorComponent={() => (
+            <View
+              style={[
+                styles.separator,
+                { backgroundColor: isDark ? colors.borderSubtle : 'rgba(15,28,51,0.08)' },
+              ]}
+            />
+          )}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -153,10 +176,12 @@ export default function MessagesScreen() {
             />
           }
           ListHeaderComponent={
-            <ScreenHeader
-              eyebrow="Inbox"
-              title="Your conversations"
-              subtitle="Stay in touch with your professional network."
+            <InboxFavoritesRow
+              meName={user?.fullName}
+              meAvatarUrl={user?.avatarUrl}
+              onPressMe={() => router.push('/(tabs)/profile' as never)}
+              conversations={items}
+              onPressConversation={(id) => router.push(`/messages/${id}` as never)}
             />
           }
           renderItem={({ item }) => (
@@ -169,11 +194,13 @@ export default function MessagesScreen() {
             loading ? (
               <ActivityIndicator style={{ marginTop: 48 }} color={colors.blue} />
             ) : (
-              <EmptyState
-                icon="chatbubble-outline"
-                title="No conversations yet"
-                message="Connect with people on Network, then start a conversation from their profile."
-              />
+              <View style={styles.emptyPad}>
+                <EmptyState
+                  icon="chatbubble-outline"
+                  title="No conversations yet"
+                  message="Connect with people on Network, then start a conversation from their profile."
+                />
+              </View>
             )
           }
         />
@@ -184,14 +211,23 @@ export default function MessagesScreen() {
 
 const styles = StyleSheet.create({
   list: {
-    padding: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
+    paddingTop: 0,
+  },
+  listEmpty: {
+    justifyContent: 'center',
+  },
+  emptyPad: {
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.lg,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 84,
   },
   openingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
-    backgroundColor: 'rgba(0,0,0,0.08)',
   },
 });
