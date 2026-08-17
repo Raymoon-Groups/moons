@@ -60,6 +60,7 @@ export default function ProfileScreen() {
   const industryLine = profile?.industry?.trim() || '';
   const locationLine = profile?.location?.trim() || '';
   const metaLine = [industryLine, locationLine].filter(Boolean).join(' · ');
+  const companyName = profile?.currentCompany?.trim() || name;
   const headline =
     profile?.headline?.trim() ||
     profile?.designation?.trim() ||

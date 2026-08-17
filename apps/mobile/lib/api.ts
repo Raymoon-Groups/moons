@@ -172,6 +172,87 @@ export async function authFetch<T>(
   return withAuthRetry((token) => apiFetchRaw<T>(path, { ...options, token }));
 }
 
+async function parseXhrError(xhr: XMLHttpRequest): Promise<ApiError> {
+  let message = 'Request failed';
+  let code: string | undefined;
+  try {
+    const body = JSON.parse(xhr.responseText);
+    let rawMessage: unknown = body.message;
+    if (typeof body.code === 'string') code = body.code;
+
+    if (rawMessage && typeof rawMessage === 'object' && !Array.isArray(rawMessage)) {
+      const nested = rawMessage as Record<string, unknown>;
+      if (typeof nested.message === 'string') rawMessage = nested.message;
+      if (typeof nested.code === 'string') code = nested.code;
+    }
+
+    if (Array.isArray(rawMessage)) rawMessage = rawMessage.join(', ');
+    if (typeof rawMessage === 'string' && rawMessage.trim()) message = rawMessage;
+  } catch {
+    // ignore
+  }
+  return new ApiError(message, xhr.status, code);
+}
+
+function uploadFormDataRaw<T>(
+  path: string,
+  formData: FormData,
+  token: string,
+  onProgress?: (progress: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_URL}${path}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (event) => {
+      if (!onProgress) return;
+      if (event.lengthComputable && event.total > 0) {
+        onProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        if (xhr.status === 204 || !xhr.responseText) {
+          resolve(undefined as T);
+          return;
+        }
+        try {
+          resolve(JSON.parse(xhr.responseText) as T);
+        } catch {
+          reject(new ApiError('Invalid server response', xhr.status));
+        }
+        return;
+      }
+      if (xhr.status === 401) {
+        reject(new ApiError('Unauthorized', 401));
+        return;
+      }
+      void parseXhrError(xhr).then(reject);
+    };
+
+    xhr.onerror = () => {
+      reject(
+        new NetworkError(
+          `Cannot reach the server (${API_URL}). Make sure the API is running (pnpm api) and your phone is on the same Wi‑Fi as this computer.`,
+        ),
+      );
+    };
+
+    xhr.send(formData);
+  });
+}
+
+export async function authUploadWithProgress<T>(
+  path: string,
+  formData: FormData,
+  onProgress?: (progress: number) => void,
+): Promise<T> {
+  return withAuthRetry((token) => uploadFormDataRaw<T>(path, formData, token, onProgress));
+}
+
 export async function authUpload<T>(path: string, formData: FormData): Promise<T> {
   return withAuthRetry((token) =>
     apiFetchRaw<T>(path, { method: 'POST', body: formData, token }),

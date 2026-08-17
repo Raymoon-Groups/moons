@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationType, PostMediaType, Prisma } from '@prisma/client';
+import { ConnectionStatus, NotificationType, PostMediaType, Prisma } from '@prisma/client';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
@@ -406,7 +406,65 @@ export class PostsService {
       include: this.postInclude(userId),
     });
 
+    void this.notifyConnectionsOfNewPost(userId, post.id, text, media);
+
     return this.serializePost(post, userId);
+  }
+
+  private async notifyConnectionsOfNewPost(
+    authorId: string,
+    postId: string,
+    body: string,
+    media: Array<{ type: PostMediaType }>,
+  ) {
+    const [connections, authorProfile, blocked] = await Promise.all([
+      this.prisma.connection.findMany({
+        where: {
+          status: ConnectionStatus.ACCEPTED,
+          OR: [{ fromUserId: authorId }, { toUserId: authorId }],
+        },
+        select: { fromUserId: true, toUserId: true },
+      }),
+      this.prisma.profile.findUnique({ where: { userId: authorId } }),
+      this.getBlockedIds(authorId),
+    ]);
+
+    const recipientIds = connections
+      .map((c) => (c.fromUserId === authorId ? c.toUserId : c.fromUserId))
+      .filter((id) => id !== authorId && !blocked.has(id));
+
+    if (!recipientIds.length) return;
+
+    const name = authorProfile?.fullName?.trim() || 'Your connection';
+    const hasVideo = media.some((item) => item.type === PostMediaType.VIDEO);
+    const hasImage = media.some((item) => item.type === PostMediaType.IMAGE);
+    const trimmedBody = body.trim();
+
+    let notificationBody: string;
+    if (trimmedBody) {
+      const preview = trimmedBody.length > 80 ? `${trimmedBody.slice(0, 80)}…` : trimmedBody;
+      notificationBody = `${name} posted: ${preview}`;
+    } else if (hasVideo) {
+      notificationBody = `${name} shared a new video`;
+    } else if (hasImage) {
+      notificationBody =
+        media.length > 1 ? `${name} shared new photos` : `${name} shared a new photo`;
+    } else {
+      notificationBody = `${name} shared a new update`;
+    }
+
+    await Promise.all(
+      recipientIds.map((userId) =>
+        this.notifications.create({
+          userId,
+          type: NotificationType.POST_CREATED,
+          title: 'New post from your connection',
+          body: notificationBody,
+          linkUrl: `/dashboard?post=${postId}`,
+          metadata: { postId, fromUserId: authorId },
+        }),
+      ),
+    );
   }
 
   async getFeed(userId: string, page = 1, limit = 20) {

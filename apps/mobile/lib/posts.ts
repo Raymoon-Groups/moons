@@ -1,5 +1,6 @@
 import type { FeedPost, PostCommentItem } from '@moons/shared';
-import { authDelete, authFetch, authUpload } from '@/lib/api';
+import { authDelete, authFetch, authUpload, authUploadWithProgress } from '@/lib/api';
+import { prepareUploadFile } from '@/lib/upload-file';
 
 export type FeedPage = {
   items: FeedPost[];
@@ -35,17 +36,19 @@ export function fetchPost(postId: string) {
   return authFetch<FeedPost>(`/posts/${postId}`);
 }
 
-export function createPost(body: string, files: LocalMediaFile[]) {
+export async function createPost(
+  body: string,
+  files: LocalMediaFile[],
+  onProgress?: (progress: number) => void,
+) {
+  onProgress?.(0);
   const form = new FormData();
   if (body.trim()) form.append('body', body.trim());
   for (const file of files) {
-    form.append('media', {
-      uri: file.uri,
-      name: file.name,
-      type: file.mimeType,
-    } as unknown as Blob);
+    const uploadable = await prepareUploadFile(file);
+    form.append('media', uploadable as unknown as Blob);
   }
-  return authUpload<FeedPost>('/posts', form);
+  return authUploadWithProgress<FeedPost>('/posts', form, onProgress);
 }
 
 export function deletePost(postId: string) {
@@ -81,15 +84,12 @@ export function fetchComments(postId: string, page = 1) {
   return authFetch<CommentsPage>(`/posts/${postId}/comments?page=${page}&limit=50`);
 }
 
-export function addComment(postId: string, body: string, attachment?: LocalMediaFile) {
+export async function addComment(postId: string, body: string, attachment?: LocalMediaFile) {
   if (attachment) {
     const form = new FormData();
     if (body.trim()) form.append('body', body.trim());
-    form.append('attachment', {
-      uri: attachment.uri,
-      name: attachment.name,
-      type: attachment.mimeType,
-    } as unknown as Blob);
+    const uploadable = await prepareUploadFile(attachment);
+    form.append('attachment', uploadable as unknown as Blob);
     return authUpload<PostCommentItem>(`/posts/${postId}/comments`, form);
   }
   return authFetch<PostCommentItem>(`/posts/${postId}/comments`, {

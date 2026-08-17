@@ -42,6 +42,7 @@ export function resolveNotificationHref(item: NotificationItem): string | null {
     (item.type === NotificationType.POST_COMMENT ||
       item.type === NotificationType.POST_LIKE ||
       item.type === NotificationType.POST_SHARE ||
+      item.type === NotificationType.POST_CREATED ||
       link.includes('/dashboard') ||
       link.includes('post='))
   ) {

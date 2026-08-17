@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 import type { FeedPost } from '@moons/shared';
+import { SuccessModal } from '@/components/success-modal';
+import { UploadProgressModal } from '@/components/upload-progress-modal';
 import { resolveAssetUrl } from '@/lib/assets';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -20,6 +22,52 @@ import { useTheme } from '@/lib/theme-context';
 
 const MAX_BODY = 3000;
 
+type PostSuccessState = {
+  title: string;
+  message: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+function getPostSuccessState(files: LocalMediaFile[]): PostSuccessState {
+  if (!files.length) {
+    return {
+      title: 'Posted',
+      message: 'Your update was shared successfully.',
+      icon: 'checkmark-circle-outline',
+    };
+  }
+
+  const hasVideo = files.some((file) => file.mimeType?.startsWith('video'));
+  if (hasVideo) {
+    return {
+      title: 'Uploaded successfully',
+      message: 'Your video was uploaded and posted to your feed.',
+      icon: 'videocam-outline',
+    };
+  }
+
+  if (files.length > 1) {
+    return {
+      title: 'Uploaded successfully',
+      message: 'Your photos were uploaded and posted to your feed.',
+      icon: 'images-outline',
+    };
+  }
+
+  return {
+    title: 'Uploaded successfully',
+    message: 'Your photo was uploaded and posted to your feed.',
+    icon: 'image-outline',
+  };
+}
+
+function getUploadLabel(files: LocalMediaFile[]): string {
+  if (!files.length) return 'Posting update';
+  if (files.some((file) => file.mimeType?.startsWith('video'))) return 'Uploading video';
+  if (files.length > 1) return 'Uploading photos';
+  return 'Uploading photo';
+}
+
 export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void }) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
@@ -27,6 +75,9 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
   const [body, setBody] = useState('');
   const [files, setFiles] = useState<LocalMediaFile[]>([]);
   const [posting, setPosting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadLabel, setUploadLabel] = useState('Uploading');
+  const [success, setSuccess] = useState<PostSuccessState | null>(null);
 
   const avatar = resolveAssetUrl(user?.avatarUrl ?? null);
   const initial = (user?.fullName?.[0] || user?.email?.[0] || '?').toUpperCase();
@@ -192,13 +243,19 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
   async function submit() {
     if (!canPost) return;
     setPosting(true);
+    const attachedFiles = files;
+    setUploadLabel(getUploadLabel(attachedFiles));
+    setUploadProgress(0);
     try {
-      const created = await createPost(body, files);
+      const created = await createPost(body, attachedFiles, setUploadProgress);
       onPosted(created);
       setBody('');
       setFiles([]);
       setExpanded(false);
+      setUploadProgress(null);
+      setSuccess(getPostSuccessState(attachedFiles));
     } catch (err) {
+      setUploadProgress(null);
       Alert.alert('Error', err instanceof Error ? err.message : 'Could not create post');
     } finally {
       setPosting(false);
@@ -221,9 +278,30 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
     </View>
   );
 
+  const successModal = (
+    <SuccessModal
+      visible={!!success}
+      onClose={() => setSuccess(null)}
+      title={success?.title ?? 'Success'}
+      message={success?.message ?? ''}
+      primaryLabel="Got it"
+      variant="success"
+      icon={success?.icon ?? 'checkmark'}
+    />
+  );
+
+  const progressModal = (
+    <UploadProgressModal
+      visible={uploadProgress !== null}
+      progress={uploadProgress ?? 0}
+      label={uploadLabel}
+    />
+  );
+
   if (!expanded) {
     return (
-      <View style={styles.shell}>
+      <>
+        <View style={styles.shell}>
         <View style={styles.body}>
           <View style={styles.row}>
             {avatarNode}
@@ -251,12 +329,16 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
             </Pressable>
           </View>
         </View>
-      </View>
+        </View>
+        {successModal}
+        {progressModal}
+      </>
     );
   }
 
   return (
-    <View style={styles.shell}>
+    <>
+      <View style={styles.shell}>
       <View style={styles.body}>
         <View style={styles.row}>
           {avatarNode}
@@ -328,6 +410,9 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
           </Pressable>
         </View>
       </View>
-    </View>
+      </View>
+      {successModal}
+      {progressModal}
+    </>
   );
 }

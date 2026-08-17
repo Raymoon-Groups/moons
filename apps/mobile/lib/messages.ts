@@ -1,4 +1,5 @@
 import { authFetch, authUpload } from '@/lib/api';
+import { prepareUploadFile } from '@/lib/upload-file';
 import { emitRefresh } from '@/lib/refresh-events';
 
 /** How often the inbox list refreshes while the Messages tab is open. */
@@ -81,7 +82,7 @@ export function fetchMessages(conversationId: string, page = 1, limit = 100) {
   );
 }
 
-export function sendMessage(
+export async function sendMessage(
   conversationId: string,
   body: string,
   attachment?: MessageAttachment,
@@ -89,11 +90,8 @@ export function sendMessage(
   if (attachment) {
     const formData = new FormData();
     formData.append('body', body);
-    formData.append('attachment', {
-      uri: attachment.uri,
-      name: attachment.name,
-      type: attachment.mimeType ?? 'application/octet-stream',
-    } as unknown as Blob);
+    const uploadable = await prepareUploadFile(attachment);
+    formData.append('attachment', uploadable as unknown as Blob);
     return authUpload<MessageItem>(`/messages/conversations/${conversationId}/messages`, formData);
   }
   return authFetch<MessageItem>(`/messages/conversations/${conversationId}/messages`, {
@@ -102,15 +100,12 @@ export function sendMessage(
   });
 }
 
-export function sendMessageToUser(userId: string, body: string, attachment?: MessageAttachment) {
+export async function sendMessageToUser(userId: string, body: string, attachment?: MessageAttachment) {
   if (attachment) {
     const formData = new FormData();
     formData.append('body', body);
-    formData.append('attachment', {
-      uri: attachment.uri,
-      name: attachment.name,
-      type: attachment.mimeType ?? 'application/octet-stream',
-    } as unknown as Blob);
+    const uploadable = await prepareUploadFile(attachment);
+    formData.append('attachment', uploadable as unknown as Blob);
     return authUpload<MessageItem>(`/messages/with/${userId}`, formData);
   }
   return authFetch<MessageItem>(`/messages/with/${userId}`, {

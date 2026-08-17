@@ -26,6 +26,7 @@ export const BELL_NOTIFICATION_TYPES: NotificationType[] = [
   NotificationType.POST_LIKE,
   NotificationType.POST_COMMENT,
   NotificationType.POST_SHARE,
+  NotificationType.POST_CREATED,
 ];
 
 export interface CreateNotificationInput {
