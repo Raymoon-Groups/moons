@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 import { MessageAttachmentContent } from '@/components/messages/message-attachment-content';
+import { MessageForwardedPost } from '@/components/messages/message-forwarded-post';
+import { extractForwardedPostId } from '@moons/shared';
 import { formatMessageTime } from '@/lib/message-format';
 import type { MessageItem } from '@/lib/messages';
 import { fontStyle } from '@/lib/font-style';
@@ -39,8 +41,10 @@ export function MessageBubble({
   senderAvatarUrl?: string | null;
 }) {
   const { colors, isDark } = useTheme();
+  const forwardedPostId = extractForwardedPostId(message.body);
   const showBody =
     message.body.trim().length > 0 &&
+    !forwardedPostId &&
     !(message.attachmentUrl && message.body.trim().startsWith('📎'));
 
   const marginTop = isFirstInGroup ? 14 : 4;
@@ -97,7 +101,13 @@ export function MessageBubble({
         </Text>
       ) : null}
 
-      {showBody ? (
+      {forwardedPostId ? (
+        <MessageForwardedPost
+          body={message.body}
+          textColor={bodyColor}
+          mutedColor={metaColor}
+        />
+      ) : showBody ? (
         <Text style={[styles.body, { color: bodyColor }, fontStyle('regular')]}>{message.body}</Text>
       ) : null}
 

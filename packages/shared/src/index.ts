@@ -28,6 +28,11 @@ export {
   messageAttachmentTooLargeMessage,
 } from './message-attachments';
 
+export {
+  extractForwardedPostId,
+  stripForwardedPostUrl,
+} from './post-links';
+
 export enum JobStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',

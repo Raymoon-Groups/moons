@@ -14,7 +14,7 @@ const PROTECTED_PREFIXES = [
 
 const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.get('moons_session')?.value === '1';
 
@@ -47,12 +47,18 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/dashboard',
     '/dashboard/:path*',
+    '/profile',
     '/profile/:path*',
+    '/applications',
     '/applications/:path*',
     '/recruiter/:path*',
+    '/onboarding',
     '/onboarding/:path*',
+    '/settings',
     '/settings/:path*',
+    '/network',
     '/network/:path*',
     '/feed',
     '/feed/:path*',

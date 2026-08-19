@@ -26,6 +26,7 @@ import {
   MessageAttachmentContent,
   MessageComposeField,
 } from '@/components/messages/message-compose-field';
+import { MessageForwardedPost } from '@/components/messages/message-forwarded-post';
 
 const PAGE_BG = 'li-page-bg';
 const POLL_MS = 10_000;
@@ -624,7 +625,7 @@ function MessagesPageInner() {
                                       : 'rounded-bl-md border border-border/50 bg-surface-elevated text-foreground'
                                   }`}
                                 >
-                                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                                  <MessageForwardedPost body={m.body} isMine={m.isMine} />
                                   {m.attachmentUrl && m.attachmentFileName && (
                                     <MessageAttachmentContent
                                       url={m.attachmentUrl}
