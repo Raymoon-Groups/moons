@@ -1,6 +1,6 @@
 import type { FeedPost, PostCommentItem } from '@moons/shared';
 import { authDelete, authFetch, authUpload, authUploadWithProgress } from '@/lib/api';
-import { prepareUploadFile } from '@/lib/upload-file';
+import { appendUploadFile } from '@/lib/upload-file';
 
 export type FeedPage = {
   items: FeedPost[];
@@ -43,10 +43,9 @@ export async function createPost(
 ) {
   onProgress?.(0);
   const form = new FormData();
-  if (body.trim()) form.append('body', body.trim());
+  form.append('body', body.trim());
   for (const file of files) {
-    const uploadable = await prepareUploadFile(file);
-    form.append('media', uploadable as unknown as Blob);
+    await appendUploadFile(form, 'media', file);
   }
   return authUploadWithProgress<FeedPost>('/posts', form, onProgress);
 }
@@ -87,9 +86,8 @@ export function fetchComments(postId: string, page = 1) {
 export async function addComment(postId: string, body: string, attachment?: LocalMediaFile) {
   if (attachment) {
     const form = new FormData();
-    if (body.trim()) form.append('body', body.trim());
-    const uploadable = await prepareUploadFile(attachment);
-    form.append('attachment', uploadable as unknown as Blob);
+    form.append('body', body.trim());
+    await appendUploadFile(form, 'attachment', attachment);
     return authUpload<PostCommentItem>(`/posts/${postId}/comments`, form);
   }
   return authFetch<PostCommentItem>(`/posts/${postId}/comments`, {

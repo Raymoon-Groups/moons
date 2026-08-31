@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -228,6 +229,12 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
       allowsMultipleSelection: true,
       quality: 0.85,
       selectionLimit: 10,
+      ...(Platform.OS === 'ios'
+        ? {
+            preferredAssetRepresentationMode:
+              ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+          }
+        : {}),
     });
     if (result.canceled) return;
     setExpanded(true);

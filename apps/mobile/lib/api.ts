@@ -176,20 +176,31 @@ async function parseXhrError(xhr: XMLHttpRequest): Promise<ApiError> {
   let message = 'Request failed';
   let code: string | undefined;
   try {
-    const body = JSON.parse(xhr.responseText);
-    let rawMessage: unknown = body.message;
-    if (typeof body.code === 'string') code = body.code;
+    if (xhr.responseText) {
+      const body = JSON.parse(xhr.responseText);
+      let rawMessage: unknown = body.message;
+      if (typeof body.code === 'string') code = body.code;
 
-    if (rawMessage && typeof rawMessage === 'object' && !Array.isArray(rawMessage)) {
-      const nested = rawMessage as Record<string, unknown>;
-      if (typeof nested.message === 'string') rawMessage = nested.message;
-      if (typeof nested.code === 'string') code = nested.code;
+      if (rawMessage && typeof rawMessage === 'object' && !Array.isArray(rawMessage)) {
+        const nested = rawMessage as Record<string, unknown>;
+        if (typeof nested.message === 'string') rawMessage = nested.message;
+        if (typeof nested.code === 'string') code = nested.code;
+      }
+
+      if (Array.isArray(rawMessage)) rawMessage = rawMessage.join(', ');
+      if (typeof rawMessage === 'string' && rawMessage.trim()) message = rawMessage;
     }
-
-    if (Array.isArray(rawMessage)) rawMessage = rawMessage.join(', ');
-    if (typeof rawMessage === 'string' && rawMessage.trim()) message = rawMessage;
   } catch {
     // ignore
+  }
+  if (message === 'Request failed' && xhr.status > 0) {
+    if (xhr.status === 413) {
+      message = 'File is too large to upload. Try a smaller photo or video.';
+    } else if (xhr.status >= 500) {
+      message = 'Server error while uploading. Please try again in a moment.';
+    } else {
+      message = `Upload failed (${xhr.status})`;
+    }
   }
   return new ApiError(message, xhr.status, code);
 }
@@ -254,9 +265,7 @@ export async function authUploadWithProgress<T>(
 }
 
 export async function authUpload<T>(path: string, formData: FormData): Promise<T> {
-  return withAuthRetry((token) =>
-    apiFetchRaw<T>(path, { method: 'POST', body: formData, token }),
-  );
+  return withAuthRetry((token) => uploadFormDataRaw<T>(path, formData, token));
 }
 
 export async function authDelete<T>(path: string): Promise<T> {

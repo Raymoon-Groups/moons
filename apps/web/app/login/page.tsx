@@ -9,7 +9,7 @@ import { AuthSplitLayout } from '@/components/auth/auth-split-layout';
 import { PasswordField } from '@/components/auth/password-field';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
 import { ApiError, apiFetch } from '@/lib/api-client';
-import { getPostAuthPath } from '@/lib/auth-redirect';
+import { getLoginRedirectPath } from '@/lib/auth-redirect';
 import { useAuth } from '@/lib/auth-context';
 import type { AuthResponse } from '@moons/shared';
 
@@ -20,6 +20,7 @@ function LoginForm() {
   const defaultRole =
     searchParams.get('role') === 'recruiter' ? UserRole.RECRUITER : UserRole.CANDIDATE;
   const resetSuccess = searchParams.get('reset') === 'success';
+  const nextPath = searchParams.get('next');
 
   const [googleRole, setGoogleRole] = useState<UserRole>(defaultRole);
   const [email, setEmail] = useState('');
@@ -39,7 +40,7 @@ function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
       login(data);
-      router.push(getPostAuthPath(data.user));
+      router.push(getLoginRedirectPath(data.user, nextPath));
     } catch (err) {
       if (err instanceof ApiError && err.code === 'GOOGLE_ACCOUNT') {
         setIsGoogleAccount(true);

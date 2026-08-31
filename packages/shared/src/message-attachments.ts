@@ -12,11 +12,13 @@ export const MESSAGE_ATTACHMENT_MIME_TYPES = [
   'image/png',
   'image/gif',
   'image/webp',
+  'image/heic',
+  'image/heif',
   'text/plain',
 ] as const;
 
 export const MESSAGE_ATTACHMENT_ACCEPT =
-  '.pdf,.doc,.docx,.txt,image/jpeg,image/png,image/gif,image/webp';
+  '.pdf,.doc,.docx,.txt,image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif';
 
 export function isMessageAttachmentTooLarge(sizeBytes: number) {
   return sizeBytes > MAX_MESSAGE_ATTACHMENT_BYTES;

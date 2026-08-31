@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic';
 import { JobPortalHero } from '@/components/landing/job-search-hero';
+import { LandingAnnouncementPopup } from '@/components/landing/landing-announcement-popup';
 import { StatsBar } from '@/components/landing/landing-sections';
 
 const BrowseCategories = dynamic(
@@ -44,6 +45,7 @@ function SectionSkeleton() {
 export default function Home() {
   return (
     <>
+      <LandingAnnouncementPopup />
       <JobPortalHero />
       <StatsBar />
       <BrowseCategories />

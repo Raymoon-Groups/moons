@@ -15,6 +15,7 @@ const navigationLinks = [
 
 const companyLinks = [
   { label: 'About', href: '/about' },
+  { label: 'Blog', href: '/blogs' },
   { label: 'Contact us', href: '/contact' },
   { label: 'Terms & conditions', href: '/terms' },
   { label: 'Privacy policy', href: '/privacy' },

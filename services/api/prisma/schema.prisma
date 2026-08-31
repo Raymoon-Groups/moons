@@ -380,3 +380,54 @@ model PostComment {
   @@index([authorId])
   @@map("post_comments")
 }
+
+enum BlogSection {
+  FEATURED
+  LATEST
+  FOUNDERS
+}
+
+model BlogPost {
+  id              String      @id @default(uuid())
+  slug            String      @unique
+  title           String
+  excerpt         String      @default("")
+  body            String      @default("")
+  category        String      @default("General")
+  section         BlogSection @default(LATEST)
+  coverImageUrl   String?     @map("cover_image_url")
+  readTimeMinutes Int         @default(5) @map("read_time_minutes")
+  published       Boolean     @default(false)
+  publishedAt     DateTime?   @map("published_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@index([published, section, publishedAt])
+  @@map("blog_posts")
+}
+
+model SiteAnnouncement {
+  id          String   @id @default(uuid())
+  title       String
+  body        String   @default("")
+  ctaLabel    String?  @map("cta_label")
+  ctaUrl      String?  @map("cta_url")
+  imageUrl    String?  @map("image_url")
+  active      Boolean  @default(false)
+  durationSec Int      @default(5) @map("duration_sec")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([active, updatedAt])
+  @@map("site_announcements")
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  createdAt    DateTime @default(now()) @map("created_at")
+  unsubscribed Boolean  @default(false)
+
+  @@index([createdAt])
+  @@map("newsletter_subscribers")
+}

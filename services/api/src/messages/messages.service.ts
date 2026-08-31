@@ -8,6 +8,7 @@ import { ConnectionStatus, NotificationType } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { extname, join } from 'path';
+import { normalizeUploadMime } from '../common/upload-mime';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { publicDisplayName, ProfileWithUser } from '../network/network.utils';
@@ -49,9 +50,10 @@ export class MessagesService {
   }
 
   private saveAttachment(file: MessageFile) {
-    if (!ALLOWED_MESSAGE_ATTACHMENT_MIME.has(file.mimetype)) {
+    const mimeType = normalizeUploadMime(file.mimetype, file.originalname || '');
+    if (!ALLOWED_MESSAGE_ATTACHMENT_MIME.has(mimeType)) {
       throw new BadRequestException(
-        'Attachment must be PDF, Word, plain text, or an image (JPG, PNG, GIF, WEBP)',
+        'Attachment must be PDF, Word, plain text, or an image (JPG, PNG, GIF, WEBP, HEIC)',
       );
     }
     if (file.size > MAX_MESSAGE_ATTACHMENT_BYTES) {
@@ -69,7 +71,7 @@ export class MessagesService {
     return {
       attachmentUrl: `/uploads/message-attachments/${filename}`,
       attachmentFileName: this.sanitizeFileName(file.originalname),
-      attachmentMimeType: file.mimetype,
+      attachmentMimeType: mimeType,
     };
   }
 

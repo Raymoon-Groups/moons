@@ -1,5 +1,5 @@
 import { authFetch, authUpload } from '@/lib/api';
-import { prepareUploadFile } from '@/lib/upload-file';
+import { appendUploadFile } from '@/lib/upload-file';
 import { emitRefresh } from '@/lib/refresh-events';
 
 /** How often the inbox list refreshes while the Messages tab is open. */
@@ -90,8 +90,7 @@ export async function sendMessage(
   if (attachment) {
     const formData = new FormData();
     formData.append('body', body);
-    const uploadable = await prepareUploadFile(attachment);
-    formData.append('attachment', uploadable as unknown as Blob);
+    await appendUploadFile(formData, 'attachment', attachment);
     return authUpload<MessageItem>(`/messages/conversations/${conversationId}/messages`, formData);
   }
   return authFetch<MessageItem>(`/messages/conversations/${conversationId}/messages`, {
@@ -104,8 +103,7 @@ export async function sendMessageToUser(userId: string, body: string, attachment
   if (attachment) {
     const formData = new FormData();
     formData.append('body', body);
-    const uploadable = await prepareUploadFile(attachment);
-    formData.append('attachment', uploadable as unknown as Blob);
+    await appendUploadFile(formData, 'attachment', attachment);
     return authUpload<MessageItem>(`/messages/with/${userId}`, formData);
   }
   return authFetch<MessageItem>(`/messages/with/${userId}`, {

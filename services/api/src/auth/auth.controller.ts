@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Post,
   Req,
   Res,
@@ -18,6 +19,7 @@ import {
   CurrentUser,
   JwtPayload,
 } from '../common/decorators/current-user.decorator';
+import { AdminGuard } from '../common/guards/admin.guard';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
@@ -39,6 +41,13 @@ const REFRESH_COOKIE = 'moons_refresh';
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @Get('admin/me')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  adminMe(@CurrentUser() user: JwtPayload) {
+    return { ok: true, email: user.email };
+  }
 
   @Post('register/send-otp')
   sendOtp(@Body() dto: SendOtpDto) {

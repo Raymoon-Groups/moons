@@ -8,6 +8,7 @@ import { ConnectionStatus, NotificationType, PostMediaType, Prisma } from '@pris
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import { normalizeUploadMime } from '../common/upload-mime';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -19,7 +20,14 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const MAX_COMMENT_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
-const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const IMAGE_MIME = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+]);
 const VIDEO_MIME = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
 const COMMENT_ATTACHMENT_MIME = new Set([
   'application/pdf',
@@ -29,6 +37,8 @@ const COMMENT_ATTACHMENT_MIME = new Set([
   'image/png',
   'image/gif',
   'image/webp',
+  'image/heic',
+  'image/heif',
   'text/plain',
 ]);
 
@@ -96,7 +106,8 @@ export class PostsService {
   }
 
   private saveCommentAttachment(file: Express.Multer.File) {
-    if (!COMMENT_ATTACHMENT_MIME.has(file.mimetype)) {
+    const mimeType = normalizeUploadMime(file.mimetype, file.originalname || '');
+    if (!COMMENT_ATTACHMENT_MIME.has(mimeType)) {
       throw new BadRequestException(
         'Attachment must be an image, PDF, Word document, or text file',
       );
@@ -112,7 +123,7 @@ export class PostsService {
     return {
       attachmentUrl: `/uploads/comment-attachments/${filename}`,
       attachmentFileName: this.sanitizeFileName(file.originalname),
-      attachmentMimeType: file.mimetype,
+      attachmentMimeType: mimeType,
     };
   }
 
@@ -337,12 +348,15 @@ export class PostsService {
       sortOrder: number;
     }>;
 
-    const images = files.filter((f) => IMAGE_MIME.has(f.mimetype));
-    const videos = files.filter((f) => VIDEO_MIME.has(f.mimetype));
-    const invalid = files.filter((f) => !IMAGE_MIME.has(f.mimetype) && !VIDEO_MIME.has(f.mimetype));
+    const images = files.filter((f) => IMAGE_MIME.has(normalizeUploadMime(f.mimetype, f.originalname || '')));
+    const videos = files.filter((f) => VIDEO_MIME.has(normalizeUploadMime(f.mimetype, f.originalname || '')));
+    const invalid = files.filter((f) => {
+      const mime = normalizeUploadMime(f.mimetype, f.originalname || '');
+      return !IMAGE_MIME.has(mime) && !VIDEO_MIME.has(mime);
+    });
 
     if (invalid.length) {
-      throw new BadRequestException('Only JPEG, PNG, WEBP, GIF images and MP4/WEBM/MOV videos are allowed');
+      throw new BadRequestException('Only JPEG, PNG, WEBP, GIF, HEIC images and MP4/WEBM/MOV videos are allowed');
     }
     if (images.length && videos.length) {
       throw new BadRequestException('A post can include images or one video, not both');
@@ -364,7 +378,8 @@ export class PostsService {
     }> = [];
 
     files.forEach((file, index) => {
-      const isVideo = VIDEO_MIME.has(file.mimetype);
+      const mimeType = normalizeUploadMime(file.mimetype, file.originalname || '');
+      const isVideo = VIDEO_MIME.has(mimeType);
       if (isVideo && file.size > MAX_VIDEO_BYTES) {
         throw new BadRequestException('Video must be 50MB or smaller');
       }
@@ -378,7 +393,7 @@ export class PostsService {
         type: isVideo ? PostMediaType.VIDEO : PostMediaType.IMAGE,
         url: `/uploads/posts/${filename}`,
         fileName: file.originalname || filename,
-        mimeType: file.mimetype,
+        mimeType,
         sortOrder: index,
       });
     });
@@ -388,6 +403,11 @@ export class PostsService {
 
   async createPost(userId: string, body: string | undefined, files: Express.Multer.File[] = []) {
     const text = (body ?? '').trim();
+    if (files.some((file) => !file.buffer?.length)) {
+      throw new BadRequestException(
+        'Uploaded file could not be read. Please choose the photo again.',
+      );
+    }
     const media = this.saveMediaFiles(files);
     if (!text && media.length === 0) {
       throw new BadRequestException('Add text, an image, or a video to post');

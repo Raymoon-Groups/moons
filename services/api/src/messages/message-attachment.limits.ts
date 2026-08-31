@@ -10,6 +10,8 @@ export const ALLOWED_MESSAGE_ATTACHMENT_MIME = new Set([
   'image/png',
   'image/gif',
   'image/webp',
+  'image/heic',
+  'image/heif',
   'text/plain',
 ]);
 

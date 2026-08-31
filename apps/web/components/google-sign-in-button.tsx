@@ -1,10 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { UserRole, type AuthResponse } from '@moons/shared';
 import { apiFetch } from '@/lib/api-client';
-import { getPostAuthPath } from '@/lib/auth-redirect';
+import { getLoginRedirectPath, getPostAuthPath } from '@/lib/auth-redirect';
 import { useAuth } from '@/lib/auth-context';
 import {
   ensureGoogleGsiInitialized,
@@ -22,12 +22,14 @@ export function GoogleSignInButton({
   variant = 'default',
 }: GoogleSignInButtonProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const buttonHostRef = useRef<HTMLDivElement>(null);
   const roleRef = useRef(role);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const nextPath = searchParams.get('next');
 
   roleRef.current = role;
 
@@ -41,14 +43,18 @@ export function GoogleSignInButton({
           body: JSON.stringify({ idToken, role: roleRef.current }),
         });
         login(data);
-        router.push(getPostAuthPath(data.user));
+        router.push(
+          variant === 'auth'
+            ? getLoginRedirectPath(data.user, nextPath)
+            : getPostAuthPath(data.user),
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Google sign-in failed');
       } finally {
         setLoading(false);
       }
     },
-    [login, router],
+    [login, nextPath, router, variant],
   );
 
   useEffect(() => subscribeGoogleCredential(handleSuccess), [handleSuccess]);

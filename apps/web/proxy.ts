@@ -10,6 +10,7 @@ const PROTECTED_PREFIXES = [
   '/settings',
   '/network',
   '/feed',
+  '/admin',
 ];
 
 const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
@@ -31,7 +32,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isProtected && hasSession && pathname !== '/onboarding') {
+  const isAdminRoute =
+    pathname === '/admin' || pathname.startsWith('/admin/');
+
+  // Marketers on /admin should not be forced through product onboarding.
+  if (isProtected && hasSession && pathname !== '/onboarding' && !isAdminRoute) {
     const onboarded = request.cookies.get('moons_onboarded')?.value === '1';
     if (!onboarded) {
       return NextResponse.redirect(new URL('/onboarding', request.url));
@@ -39,6 +44,10 @@ export function proxy(request: NextRequest) {
   }
 
   if (isAuthPage && hasSession) {
+    const next = request.nextUrl.searchParams.get('next');
+    if (next?.startsWith('/') && !next.startsWith('//')) {
+      return NextResponse.redirect(new URL(next, request.url));
+    }
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
@@ -62,6 +71,8 @@ export const config = {
     '/network/:path*',
     '/feed',
     '/feed/:path*',
+    '/admin',
+    '/admin/:path*',
     '/login',
     '/register',
     '/forgot-password',
