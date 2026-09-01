@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { ensurePhotoLibraryAccess } from '@/lib/image-picker-access';
 import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -167,9 +168,9 @@ export function CandidateProfileEdit({
   const cardBg = isDark ? colors.surfaceElevated : '#fff';
 
   async function pickPhoto() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setError('Photo library permission is required');
+    const access = await ensurePhotoLibraryAccess();
+    if (!access.ok) {
+      setError(access.message);
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({

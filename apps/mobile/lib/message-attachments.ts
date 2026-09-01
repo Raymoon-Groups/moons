@@ -7,7 +7,7 @@ import {
 } from '@moons/shared';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { Platform } from 'react-native';
+import { ensurePhotoLibraryAccess, iosCompatibleAssetOptions } from '@/lib/image-picker-access';
 import type { MessageAttachment } from '@/lib/messages';
 
 export {
@@ -74,12 +74,12 @@ export async function pickMessageImage(): Promise<
   { file: MessageAttachment } | { error: AttachmentPickError } | null
 > {
   try {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    const access = await ensurePhotoLibraryAccess();
+    if (!access.ok) {
       return {
         error: {
           title: 'Photo access needed',
-          message: 'Allow photo library access in Settings to attach images.',
+          message: access.message,
         },
       };
     }
@@ -87,12 +87,7 @@ export async function pickMessageImage(): Promise<
       mediaTypes: ['images'],
       quality: 0.85,
       allowsEditing: false,
-      ...(Platform.OS === 'ios'
-        ? {
-            preferredAssetRepresentationMode:
-              ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
-          }
-        : {}),
+      ...iosCompatibleAssetOptions(),
     });
     if (result.canceled || !result.assets[0]) return null;
     const asset = result.assets[0];

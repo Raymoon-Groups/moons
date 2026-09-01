@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { ensurePhotoLibraryAccess } from '@/lib/image-picker-access';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -73,9 +74,9 @@ export function CoverPhotoBanner({
   );
 
   async function pickAndUpload() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission needed', 'Allow photo access to upload a cover image.');
+    const access = await ensurePhotoLibraryAccess();
+    if (!access.ok) {
+      Alert.alert('Permission needed', access.message);
       return;
     }
 

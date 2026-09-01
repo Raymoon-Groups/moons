@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { ensurePhotoLibraryAccess } from '@/lib/image-picker-access';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton, SecondaryButton } from '@/components/ui';
@@ -70,9 +71,9 @@ export function ProfilePhotoUpload({
   );
 
   async function pickImage() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      onError('Photo library permission is required');
+    const access = await ensurePhotoLibraryAccess();
+    if (!access.ok) {
+      onError(access.message);
       return;
     }
 
@@ -227,9 +228,9 @@ export function CompanyLogoUpload({
   );
 
   async function pickImage() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      onError('Photo library permission is required');
+    const access = await ensurePhotoLibraryAccess();
+    if (!access.ok) {
+      onError(access.message);
       return;
     }
 
