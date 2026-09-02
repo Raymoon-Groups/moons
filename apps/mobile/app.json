@@ -17,7 +17,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.moonsjob.app",
       "infoPlist": {
-        "LSApplicationQueriesSchemes": ["whatsapp", "whatsapp-business"]
+        "LSApplicationQueriesSchemes": [
+          "whatsapp",
+          "whatsapp-business"
+        ]
       }
     },
     "android": {
@@ -52,6 +55,12 @@
           "photosPermission": "Allow MoonsJob to access your photos for profile pictures, posts, and messages.",
           "cameraPermission": false,
           "microphonePermission": false
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.900368374913-pek10lel7fsk1tcmknrfna6j532o6goh"
         }
       ]
     ],

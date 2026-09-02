@@ -16,6 +16,7 @@ import {
   GOOGLE_IOS_CLIENT_ID,
 } from '@/lib/config';
 import { isExpoGo } from '@/lib/expo-runtime';
+import { signInWithNativeGoogle } from '@/lib/google-sign-in-native';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
@@ -24,6 +25,8 @@ import { ErrorText } from './ui';
 WebBrowser.maybeCompleteAuthSession();
 
 type GoogleSignInButtonProps = { role?: UserRole };
+
+const useNativeAndroidGoogleSignIn = Platform.OS === 'android' && !isExpoGo;
 
 function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
@@ -55,24 +58,6 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       color: colors.warning,
       lineHeight: 18,
     },
-    noticeBox: {
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: theme.radius.lg,
-      padding: 14,
-      backgroundColor: colors.surface,
-      gap: 8,
-    },
-    noticeTitle: {
-      color: colors.heading,
-      ...fontStyle('bold'),
-      fontSize: 14,
-    },
-    noticeText: {
-      color: colors.muted,
-      fontSize: 12,
-      lineHeight: 18,
-    },
   });
 }
 
@@ -92,7 +77,6 @@ function getGoogleRedirectUri() {
   return AuthSession.makeRedirectUri({ scheme: 'moonsjob', path: 'oauth' });
 }
 
-/** expo-auth-session requires androidClientId on Android — use platform ID or web client as fallback. */
 function getGoogleAuthRequestConfig(redirectUri: string) {
   const webId = GOOGLE_CLIENT_ID || undefined;
   const androidId = GOOGLE_ANDROID_CLIENT_ID || webId;
@@ -107,12 +91,37 @@ function getGoogleAuthRequestConfig(redirectUri: string) {
   };
 }
 
+async function completeGoogleAuth(
+  idToken: string,
+  role: UserRole,
+  signIn: ReturnType<typeof useAuth>['signIn'],
+  setError: (message: string) => void,
+  setLoading: (value: boolean) => void,
+) {
+  setLoading(true);
+  setError('');
+  try {
+    const data = await googleAuthRequest(idToken, role);
+    await signIn(data);
+    router.replace(getPostAuthPath(data.user) as never);
+  } catch (err) {
+    const message = err instanceof ApiError ? err.message : 'Google sign-in failed';
+    setError(
+      message === 'Invalid Google token' || message === 'Unauthorized'
+        ? 'Server rejected the Google token. Ensure GOOGLE_CLIENT_ID is set on the API and restart it.'
+        : message,
+    );
+  } finally {
+    setLoading(false);
+  }
+}
+
 function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInButtonProps) {
   const { signIn } = useAuth();
   const { colors } = useTheme();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
+  const [authReady, setAuthReady] = useState(useNativeAndroidGoogleSignIn);
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const redirectUri = useMemo(() => getGoogleRedirectUri(), []);
@@ -124,12 +133,13 @@ function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInBut
   const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
 
   useEffect(() => {
+    if (useNativeAndroidGoogleSignIn) return;
     const timer = setTimeout(() => setAuthReady(true), 1500);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (!response) return;
+    if (useNativeAndroidGoogleSignIn || !response) return;
 
     if (response.type === 'error') {
       const message = response.error?.message ?? '';
@@ -151,27 +161,30 @@ function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInBut
         return;
       }
 
-      setLoading(true);
-      setError('');
-      try {
-        const data = await googleAuthRequest(idToken, role);
-        await signIn(data);
-        router.replace(getPostAuthPath(data.user) as never);
-      } catch (err) {
-        const message = err instanceof ApiError ? err.message : 'Google sign-in failed';
-        setError(
-          message === 'Invalid Google token' || message === 'Unauthorized'
-            ? 'Server rejected the Google token. Ensure GOOGLE_CLIENT_ID is set on the API and restart it.'
-            : message,
-        );
-      } finally {
-        setLoading(false);
-      }
+      await completeGoogleAuth(idToken, role, signIn, setError, setLoading);
     })();
   }, [response, role, signIn]);
 
   async function handlePress() {
     setError('');
+
+    if (useNativeAndroidGoogleSignIn) {
+      setLoading(true);
+      const result = await signInWithNativeGoogle();
+      if ('cancelled' in result) {
+        setLoading(false);
+        return;
+      }
+      if ('error' in result) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+
+      await completeGoogleAuth(result.idToken, role, signIn, setError, setLoading);
+      return;
+    }
+
     if (!request) {
       setError(
         authReady
@@ -180,6 +193,7 @@ function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInBut
       );
       return;
     }
+
     try {
       await promptAsync();
     } catch {
@@ -187,7 +201,7 @@ function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInBut
     }
   }
 
-  const disabled = loading || (!request && !authReady);
+  const disabled = loading || (!useNativeAndroidGoogleSignIn && !request && !authReady);
   const usingWebClientOnAndroid =
     Platform.OS === 'android' && !GOOGLE_ANDROID_CLIENT_ID && Boolean(GOOGLE_CLIENT_ID);
 
