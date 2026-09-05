@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { UserRole } from '@moons/shared';
+import { useAuthSurface } from '@/components/auth-layout';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
@@ -38,32 +39,35 @@ function RoleOption({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
+  const surface = useAuthSurface();
+  const onDark = surface === 'dark';
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
         option: {
           flex: 1,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: onDark ? 'rgba(255,255,255,0.2)' : colors.border,
           borderRadius: theme.radius.md,
           paddingVertical: 13,
           alignItems: 'center',
-          backgroundColor: colors.surface,
+          backgroundColor: onDark ? 'rgba(255,255,255,0.06)' : colors.surface,
         },
         optionSelected: {
           borderColor: colors.blue,
-          backgroundColor: 'rgba(107, 154, 232, 0.1)',
+          backgroundColor: onDark ? 'rgba(142, 182, 255, 0.18)' : 'rgba(107, 154, 232, 0.1)',
         },
         optionText: {
           fontSize: 14,
           ...fontStyle('bold'),
-          color: colors.muted,
+          color: onDark ? 'rgba(214,224,240,0.75)' : colors.muted,
         },
         optionTextSelected: {
-          color: colors.heading,
+          color: onDark ? '#F5F8FF' : colors.heading,
         },
       }),
-    [colors],
+    [colors, onDark],
   );
 
   return (

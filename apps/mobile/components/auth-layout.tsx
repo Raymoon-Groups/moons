@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo, useState, type ReactNode } from 'react';
+import { router } from 'expo-router';
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import {
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,209 +13,217 @@ import {
   View,
   type TextInputProps,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthLegalLinks } from './auth-legal-links';
 import { MoonsLogo } from './moons-logo';
 import { ThemeToggle } from './theme-toggle';
-import { fontStyle } from '@/lib/font-style';
+import { displayFontStyle, fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
 export type AuthHeroVariant = 'signin' | 'signup' | 'forgot';
 
-function AuthHeroArt({ variant, blue }: { variant: AuthHeroVariant; blue: string }) {
-  const icon =
-    variant === 'signin'
-      ? 'phone-portrait-outline'
-      : variant === 'signup'
-        ? 'person-add-outline'
-        : 'key-outline';
+type AuthSurface = 'dark' | 'light';
 
+const AuthSurfaceContext = createContext<AuthSurface>('light');
+
+export function useAuthSurface() {
+  return useContext(AuthSurfaceContext);
+}
+
+const { width: SCREEN_W } = Dimensions.get('window');
+const WAVE_H = 44;
+const PANEL = '#14233f';
+
+function TopWave({ fill }: { fill: string }) {
+  // Soft dip under the white header into the navy panel
   return (
-    <View style={heroArt.wrap}>
-      <View style={[heroArt.blob, { backgroundColor: `${blue}22` }]} />
-      <View style={[heroArt.ring, { borderColor: `${blue}33` }]} />
-      <View style={[heroArt.card, { backgroundColor: '#fff', borderColor: `${blue}28` }]}>
-        <View style={[heroArt.avatar, { backgroundColor: `${blue}18` }]}>
-          <Ionicons name={icon} size={28} color={blue} />
-        </View>
-        <View style={heroArt.bars}>
-          <View style={[heroArt.bar, { width: '70%', backgroundColor: `${blue}55` }]} />
-          <View style={[heroArt.bar, { width: '48%', backgroundColor: `${blue}33` }]} />
-        </View>
-      </View>
-      <View style={[heroArt.float, heroArt.floatLeft, { backgroundColor: '#F5C84C' }]}>
-        <Ionicons name="briefcase-outline" size={14} color="#fff" />
-      </View>
-      <View style={[heroArt.float, heroArt.floatRight, { backgroundColor: blue }]}>
-        <Ionicons name="search" size={14} color="#fff" />
-      </View>
+    <Svg width={SCREEN_W} height={WAVE_H} viewBox={`0 0 ${SCREEN_W} ${WAVE_H}`} style={styles.wave}>
+      <Path
+        d={`M0 0 C ${SCREEN_W * 0.28} ${WAVE_H * 1.15}, ${SCREEN_W * 0.62} 4, ${SCREEN_W} ${WAVE_H * 0.72} L ${SCREEN_W} ${WAVE_H} L 0 ${WAVE_H} Z`}
+        fill={fill}
+      />
+    </Svg>
+  );
+}
+
+function BottomWave({ fill }: { fill: string }) {
+  return (
+    <Svg width={SCREEN_W} height={WAVE_H} viewBox={`0 0 ${SCREEN_W} ${WAVE_H}`} style={styles.wave}>
+      <Path
+        d={`M0 0 L ${SCREEN_W} 0 L ${SCREEN_W} ${WAVE_H * 0.35} C ${SCREEN_W * 0.7} ${WAVE_H * 1.05}, ${SCREEN_W * 0.3} 8, 0 ${WAVE_H} Z`}
+        fill={fill}
+      />
+    </Svg>
+  );
+}
+
+function AuthModeToggle({ active }: { active: 'signin' | 'signup' }) {
+  return (
+    <View style={styles.toggleTrack}>
+      <Pressable
+        onPress={() => router.replace('/login')}
+        style={[styles.toggleItem, active === 'signin' && styles.toggleItemActive]}
+      >
+        <Text
+          style={[
+            styles.toggleText,
+            active === 'signin' ? styles.toggleTextActive : styles.toggleTextIdle,
+          ]}
+        >
+          Login
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={() => router.replace('/register')}
+        style={[styles.toggleItem, active === 'signup' && styles.toggleItemActive]}
+      >
+        <Text
+          style={[
+            styles.toggleText,
+            active === 'signup' ? styles.toggleTextActive : styles.toggleTextIdle,
+          ]}
+        >
+          Sign up
+        </Text>
+      </Pressable>
     </View>
   );
 }
 
-const heroArt = StyleSheet.create({
-  wrap: {
-    width: 180,
-    height: 140,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  blob: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-  },
-  ring: {
-    position: 'absolute',
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-  },
-  card: {
-    width: 112,
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 12,
-    alignItems: 'center',
-    gap: 10,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bars: { width: '100%', gap: 6 },
-  bar: { height: 7, borderRadius: 4 },
-  float: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  floatLeft: { left: 8, top: 18 },
-  floatRight: { right: 4, bottom: 22 },
-});
-
 export function AuthField({
   icon,
+  label,
   ...props
-}: TextInputProps & { icon: keyof typeof Ionicons.glyphMap }) {
+}: TextInputProps & { icon: keyof typeof Ionicons.glyphMap; label?: string }) {
+  const surface = useAuthSurface();
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
-  const { style, onFocus, onBlur, ...rest } = props;
+  const { style, onFocus, onBlur, placeholder, ...rest } = props;
+  const dark = surface === 'dark';
 
   return (
-    <View
-      style={[
-        fieldStyles.wrap,
-        {
-          backgroundColor: colors.surface,
-          borderColor: focused ? colors.blue : colors.border,
-        },
-      ]}
-    >
-      <Ionicons name={icon} size={18} color={focused ? colors.blue : colors.muted} />
-      <TextInput
-        {...rest}
-        placeholderTextColor={colors.muted}
-        style={[fieldStyles.input, { color: colors.heading }, style]}
-        onFocus={(e) => {
-          setFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          onBlur?.(e);
-        }}
-      />
+    <View style={styles.fieldBlock}>
+      {label ? (
+        <Text style={[styles.fieldLabel, { color: dark ? 'rgba(255,255,255,0.78)' : colors.muted }]}>
+          {label}
+        </Text>
+      ) : null}
+      <View
+        style={[
+          styles.underlineField,
+          {
+            borderBottomColor: focused
+              ? colors.blue
+              : dark
+                ? 'rgba(255,255,255,0.28)'
+                : colors.border,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={focused ? colors.blue : dark ? 'rgba(255,255,255,0.55)' : colors.muted}
+        />
+        <TextInput
+          {...rest}
+          placeholder={placeholder}
+          placeholderTextColor={dark ? 'rgba(255,255,255,0.35)' : colors.muted}
+          style={[
+            styles.underlineInput,
+            { color: dark ? '#F5F8FF' : colors.heading },
+            style,
+          ]}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+        />
+      </View>
     </View>
   );
 }
 
 export function AuthPasswordField({
   icon = 'lock-closed-outline',
+  label,
   ...props
-}: Omit<TextInputProps, 'secureTextEntry'> & { icon?: keyof typeof Ionicons.glyphMap }) {
+}: Omit<TextInputProps, 'secureTextEntry'> & {
+  icon?: keyof typeof Ionicons.glyphMap;
+  label?: string;
+}) {
+  const surface = useAuthSurface();
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
-  const { style, onFocus, onBlur, ...rest } = props;
+  const { style, onFocus, onBlur, placeholder, ...rest } = props;
+  const dark = surface === 'dark';
 
   return (
-    <View
-      style={[
-        fieldStyles.wrap,
-        {
-          backgroundColor: colors.surface,
-          borderColor: focused ? colors.blue : colors.border,
-        },
-      ]}
-    >
-      <Ionicons name={icon} size={18} color={focused ? colors.blue : colors.muted} />
-      <TextInput
-        {...rest}
-        secureTextEntry={!visible}
-        placeholderTextColor={colors.muted}
-        style={[fieldStyles.input, { color: colors.heading }, style]}
-        onFocus={(e) => {
-          setFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          onBlur?.(e);
-        }}
-      />
-      <Pressable
-        onPress={() => setVisible((v) => !v)}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel={visible ? 'Hide password' : 'Show password'}
+    <View style={styles.fieldBlock}>
+      {label ? (
+        <Text style={[styles.fieldLabel, { color: dark ? 'rgba(255,255,255,0.78)' : colors.muted }]}>
+          {label}
+        </Text>
+      ) : null}
+      <View
+        style={[
+          styles.underlineField,
+          {
+            borderBottomColor: focused
+              ? colors.blue
+              : dark
+                ? 'rgba(255,255,255,0.28)'
+                : colors.border,
+          },
+        ]}
       >
         <Ionicons
-          name={visible ? 'eye-off-outline' : 'eye-outline'}
+          name={icon}
           size={18}
-          color={colors.muted}
+          color={focused ? colors.blue : dark ? 'rgba(255,255,255,0.55)' : colors.muted}
         />
-      </Pressable>
+        <TextInput
+          {...rest}
+          secureTextEntry={!visible}
+          placeholder={placeholder}
+          placeholderTextColor={dark ? 'rgba(255,255,255,0.35)' : colors.muted}
+          style={[
+            styles.underlineInput,
+            { color: dark ? '#F5F8FF' : colors.heading },
+            style,
+          ]}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+        />
+        <Pressable
+          onPress={() => setVisible((v) => !v)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={visible ? 'Hide password' : 'Show password'}
+        >
+          <Ionicons
+            name={visible ? 'eye-off-outline' : 'eye-outline'}
+            size={18}
+            color={dark ? 'rgba(255,255,255,0.55)' : colors.muted}
+          />
+        </Pressable>
+      </View>
     </View>
   );
 }
-
-const fieldStyles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1.5,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 4,
-    marginBottom: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    paddingVertical: Platform.OS === 'ios' ? 0 : 10,
-    ...fontStyle('regular'),
-  },
-});
 
 export function AuthLayout({
   title,
@@ -230,108 +239,159 @@ export function AuthLayout({
   variant?: AuthHeroVariant;
 }) {
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        root: {
-          flex: 1,
-          backgroundColor: isDark ? colors.background : '#eef2f8',
-        },
-        topBar: {
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: 8,
-        },
-        hero: {
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: 28,
-        },
-        formArea: { flex: 1 },
-        scroll: {
-          paddingHorizontal: theme.spacing.md,
-          flexGrow: 1,
-        },
-        card: {
-          backgroundColor: colors.surfaceElevated,
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
-          borderBottomLeftRadius: 28,
-          borderBottomRightRadius: 28,
-          borderWidth: 1,
-          borderColor: colors.border,
-          paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.lg,
-          paddingBottom: theme.spacing.lg,
-          ...theme.shadow.card,
-        },
-        title: {
-          fontSize: 28,
-          color: colors.heading,
-          textAlign: 'center',
-          marginTop: 4,
-          ...fontStyle('extrabold'),
-        },
-        subtitle: {
-          marginTop: 8,
-          fontSize: 14,
-          lineHeight: 20,
-          color: colors.muted,
-          textAlign: 'center',
-          ...fontStyle('regular'),
-        },
-        body: { marginTop: theme.spacing.lg },
-        footer: {
-          marginTop: theme.spacing.lg,
-          alignItems: 'center',
-        },
-      }),
-    [colors, isDark],
-  );
+  const { colors } = useTheme();
+  const showToggle = variant === 'signin' || variant === 'signup';
 
   return (
-    <View style={styles.root}>
-      <LinearGradient
-        colors={
-          isDark
-            ? ['rgba(74,127,212,0.25)', 'rgba(26,39,68,0.35)', colors.background]
-            : ['#d7e4f8', '#eef2f8', '#eef2f8']
-        }
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+    <AuthSurfaceContext.Provider value="dark">
+      <View style={[styles.root, { backgroundColor: '#F3F6FB' }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+          <View style={styles.headerRow}>
+            <MoonsLogo size="lg" />
+            <ThemeToggle />
+          </View>
+        </View>
 
-      <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
-        <MoonsLogo size="md" />
-        <ThemeToggle />
-      </View>
+        <TopWave fill={PANEL} />
 
-      <View style={styles.hero}>
-        <AuthHeroArt variant={variant} blue={colors.blue} />
-      </View>
-
-      <KeyboardAvoidingView
-        style={styles.formArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-      >
-        <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 28 }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={styles.panel}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         >
-          <View style={styles.card}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scroll,
+              { paddingBottom: Math.max(insets.bottom, 18) + 12 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {showToggle ? (
+              <AuthModeToggle active={variant === 'signup' ? 'signup' : 'signin'} />
+            ) : null}
+
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>
+
             <View style={styles.body}>{children}</View>
+
             {footer ? <View style={styles.footer}>{footer}</View> : null}
-          </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        <BottomWave fill="#F3F6FB" />
+
+        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
           <AuthLegalLinks />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        </View>
+      </View>
+    </AuthSurfaceContext.Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: 8,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  wave: {
+    backgroundColor: 'transparent',
+  },
+  panel: {
+    flex: 1,
+    backgroundColor: PANEL,
+  },
+  scroll: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: 8,
+    flexGrow: 1,
+  },
+  toggleTrack: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 999,
+    padding: 4,
+    marginBottom: 22,
+    width: '100%',
+    maxWidth: 280,
+  },
+  toggleItem: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 999,
+    alignItems: 'center',
+  },
+  toggleItemActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  toggleText: {
+    fontSize: 14,
+    ...displayFontStyle('semibold'),
+  },
+  toggleTextActive: {
+    color: PANEL,
+  },
+  toggleTextIdle: {
+    color: '#8EB6FF',
+  },
+  title: {
+    fontSize: 28,
+    color: '#F5F8FF',
+    textAlign: 'center',
+    letterSpacing: -0.6,
+    ...displayFontStyle('extrabold'),
+  },
+  subtitle: {
+    marginTop: 8,
+    marginBottom: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(214, 224, 240, 0.72)',
+    textAlign: 'center',
+    ...fontStyle('regular'),
+  },
+  body: {
+    marginTop: theme.spacing.md,
+  },
+  footer: {
+    marginTop: theme.spacing.lg,
+    alignItems: 'center',
+  },
+  bottomBar: {
+    backgroundColor: '#F3F6FB',
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: 4,
+  },
+  fieldBlock: {
+    marginBottom: 18,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    marginBottom: 8,
+    ...fontStyle('medium'),
+  },
+  underlineField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderBottomWidth: 1.5,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 6,
+  },
+  underlineInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: Platform.OS === 'ios' ? 4 : 8,
+    ...fontStyle('regular'),
+  },
+});

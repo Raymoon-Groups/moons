@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+import { useAuthSurface } from '@/components/auth-layout';
 
 function useUiStyles() {
   const { colors } = useTheme();
@@ -83,6 +84,13 @@ function useUiStyles() {
           marginTop: 14,
           ...theme.shadow.button,
         },
+        primaryButtonSoft: {
+          backgroundColor: '#EEF3FA',
+          shadowColor: '#04101f',
+          shadowOpacity: 0.18,
+        },
+        primaryButtonText: { color: '#fff', fontFamily: theme.fonts.bold, fontSize: 15, letterSpacing: 0.2 },
+        primaryButtonTextSoft: { color: '#14233f' },
         secondaryButton: {
           borderRadius: theme.radius.full,
           borderWidth: 1.5,
@@ -92,9 +100,13 @@ function useUiStyles() {
           marginTop: 10,
           backgroundColor: colors.surfaceElevated,
         },
+        secondaryButtonOnDark: {
+          borderColor: 'rgba(255,255,255,0.22)',
+          backgroundColor: 'rgba(255,255,255,0.06)',
+        },
+        secondaryButtonTextOnDark: { color: '#F5F8FF' },
         buttonDisabled: { opacity: 0.6 },
         buttonPressed: { opacity: 0.9, transform: [{ scale: 0.985 }] },
-        primaryButtonText: { color: '#fff', fontFamily: theme.fonts.bold, fontSize: 15, letterSpacing: 0.2 },
         secondaryButtonText: { color: colors.heading, fontFamily: theme.fonts.semibold, fontSize: 15 },
         alertError: {
           marginTop: 10,
@@ -116,8 +128,12 @@ function useUiStyles() {
         info: { color: colors.success, fontSize: 14, lineHeight: 20, fontFamily: theme.fonts.regular },
         dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
         dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+        dividerLineOnDark: { backgroundColor: 'rgba(255,255,255,0.22)' },
         dividerText: { fontSize: 12, fontFamily: theme.fonts.medium, color: colors.muted },
+        dividerTextOnDark: { color: 'rgba(214,224,240,0.7)' },
         link: { color: colors.blue, fontFamily: theme.fonts.bold, fontSize: 14 },
+        linkOnDark: { color: '#8EB6FF' },
+        labelOnDark: { color: 'rgba(245,248,255,0.82)' },
       }),
     [colors],
   );
@@ -165,7 +181,10 @@ export function Card({ children }: { children: ReactNode }) {
 
 export function FieldLabel({ children }: { children: string }) {
   const styles = useUiStyles();
-  return <Text style={styles.label}>{children}</Text>;
+  const surface = useAuthSurface();
+  return (
+    <Text style={[styles.label, surface === 'dark' && styles.labelOnDark]}>{children}</Text>
+  );
 }
 
 export function Input(props: TextInputProps) {
@@ -236,27 +255,31 @@ export function PrimaryButton({
   onPress,
   loading,
   disabled,
+  tone = 'brand',
 }: {
   label: string;
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
+  tone?: 'brand' | 'soft';
 }) {
   const styles = useUiStyles();
+  const soft = tone === 'soft';
   return (
     <Pressable
       onPress={onPress}
       disabled={loading || disabled}
       style={({ pressed }) => [
         styles.primaryButton,
+        soft && styles.primaryButtonSoft,
         (loading || disabled) && styles.buttonDisabled,
         pressed && styles.buttonPressed,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={soft ? '#14233f' : '#fff'} />
       ) : (
-        <Text style={styles.primaryButtonText}>{label}</Text>
+        <Text style={[styles.primaryButtonText, soft && styles.primaryButtonTextSoft]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -272,17 +295,22 @@ export function SecondaryButton({
   disabled?: boolean;
 }) {
   const styles = useUiStyles();
+  const surface = useAuthSurface();
+  const onDark = surface === 'dark';
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
         styles.secondaryButton,
+        onDark && styles.secondaryButtonOnDark,
         disabled && styles.buttonDisabled,
         pressed && styles.buttonPressed,
       ]}
     >
-      <Text style={styles.secondaryButtonText}>{label}</Text>
+      <Text style={[styles.secondaryButtonText, onDark && styles.secondaryButtonTextOnDark]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -307,20 +335,23 @@ export function InfoText({ children }: { children: string }) {
 
 export function Divider({ label = 'or continue with' }: { label?: string }) {
   const styles = useUiStyles();
+  const surface = useAuthSurface();
+  const onDark = surface === 'dark';
   return (
     <View style={styles.dividerRow}>
-      <View style={styles.dividerLine} />
-      <Text style={styles.dividerText}>{label}</Text>
-      <View style={styles.dividerLine} />
+      <View style={[styles.dividerLine, onDark && styles.dividerLineOnDark]} />
+      <Text style={[styles.dividerText, onDark && styles.dividerTextOnDark]}>{label}</Text>
+      <View style={[styles.dividerLine, onDark && styles.dividerLineOnDark]} />
     </View>
   );
 }
 
 export function LinkText({ children, onPress }: { children: string; onPress: () => void }) {
   const styles = useUiStyles();
+  const surface = useAuthSurface();
   return (
     <Pressable onPress={onPress}>
-      <Text style={styles.link}>{children}</Text>
+      <Text style={[styles.link, surface === 'dark' && styles.linkOnDark]}>{children}</Text>
     </Pressable>
   );
 }

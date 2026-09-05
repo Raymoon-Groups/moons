@@ -6,8 +6,6 @@ import { useAuth } from '@/lib/auth-context';
 import { getPostAuthPath } from '@/lib/auth-redirect';
 import { getIntroSeen, setIntroSeen } from '@/lib/app-preferences';
 
-const SPLASH_MIN_MS = 1400;
-
 export default function Index() {
   const { user, ready } = useAuth();
   const [prefsLoaded, setPrefsLoaded] = useState(false);
@@ -22,20 +20,6 @@ export default function Index() {
     });
   }, []);
 
-  useEffect(() => {
-    const startedAt = Date.now();
-
-    const id = setInterval(() => {
-      const minElapsed = Date.now() - startedAt >= SPLASH_MIN_MS;
-      if (ready && prefsLoaded && minElapsed) {
-        setSplashDone(true);
-        clearInterval(id);
-      }
-    }, 50);
-
-    return () => clearInterval(id);
-  }, [ready, prefsLoaded]);
-
   const finishIntro = useCallback(async () => {
     await setIntroSeen();
     setIntroSeenState(true);
@@ -49,8 +33,13 @@ export default function Index() {
     }
   }, [splashDone, ready, prefsLoaded, introSeen, user]);
 
-  if (!splashDone || !ready || !prefsLoaded) {
-    return <AppSplash />;
+  if (!splashDone) {
+    return (
+      <AppSplash
+        continueReady={ready && prefsLoaded}
+        onGetStarted={() => setSplashDone(true)}
+      />
+    );
   }
 
   if (showIntro) {

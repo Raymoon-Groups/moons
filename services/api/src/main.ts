@@ -27,13 +27,19 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const corsOrigins = [
+    ...(process.env.CORS_ORIGIN ?? 'http://localhost:3000')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+    // Expo mobile web preview (pnpm mobile / expo start --web)
+    'http://localhost:8081',
+    'http://127.0.0.1:8081',
+  ];
+  const uniqueCorsOrigins = [...new Set(corsOrigins)];
 
   app.enableCors({
-    origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
+    origin: uniqueCorsOrigins.length === 1 ? uniqueCorsOrigins[0] : uniqueCorsOrigins,
     credentials: true,
   });
 

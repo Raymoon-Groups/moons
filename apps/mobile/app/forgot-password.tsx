@@ -84,6 +84,7 @@ export default function ForgotPasswordScreen() {
         <>
           <AuthField
             icon="mail-outline"
+            label="Email"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -93,6 +94,7 @@ export default function ForgotPasswordScreen() {
           {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton
+            tone="soft"
             label={loading ? 'Sending…' : 'Send OTP'}
             onPress={handleSendReset}
             loading={loading}
@@ -102,23 +104,27 @@ export default function ForgotPasswordScreen() {
         <>
           <AuthField
             icon="keypad-outline"
+            label="Code"
             value={otp}
             onChangeText={setOtp}
             keyboardType="number-pad"
             placeholder="Verification code"
           />
           <AuthPasswordField
+            label="New password"
             value={password}
             onChangeText={setPassword}
             placeholder="New password"
           />
           <AuthPasswordField
+            label="Confirm password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm password"
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
           <PrimaryButton
+            tone="soft"
             label={loading ? 'Resetting…' : 'Reset password'}
             onPress={handleResetPassword}
             loading={loading}

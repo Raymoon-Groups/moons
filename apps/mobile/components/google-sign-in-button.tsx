@@ -20,6 +20,7 @@ import { signInWithNativeGoogle } from '@/lib/google-sign-in-native';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+import { useAuthSurface } from '@/components/auth-layout';
 import { ErrorText } from './ui';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -28,7 +29,10 @@ type GoogleSignInButtonProps = { role?: UserRole };
 
 const useNativeAndroidGoogleSignIn = Platform.OS === 'android' && !isExpoGo;
 
-function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
+function createStyles(
+  colors: ReturnType<typeof useTheme>['colors'],
+  onDark: boolean,
+) {
   return StyleSheet.create({
     button: {
       flexDirection: 'row',
@@ -36,20 +40,20 @@ function createStyles(colors: ReturnType<typeof useTheme>['colors']) {
       justifyContent: 'center',
       gap: 10,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: onDark ? 'rgba(255,255,255,0.22)' : colors.border,
       borderRadius: theme.radius.full,
       paddingVertical: 14,
-      backgroundColor: colors.surface,
+      backgroundColor: onDark ? 'rgba(255,255,255,0.08)' : colors.surface,
     },
     buttonDisabled: { opacity: 0.55 },
     buttonText: {
-      color: colors.heading,
+      color: onDark ? '#F5F8FF' : colors.heading,
       ...fontStyle('bold'),
       fontSize: 15,
     },
     hint: {
       fontSize: 12,
-      color: colors.muted,
+      color: onDark ? 'rgba(214,224,240,0.7)' : colors.muted,
       lineHeight: 18,
       marginTop: 10,
     },
@@ -119,10 +123,14 @@ async function completeGoogleAuth(
 function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInButtonProps) {
   const { signIn } = useAuth();
   const { colors } = useTheme();
+  const surface = useAuthSurface();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [authReady, setAuthReady] = useState(useNativeAndroidGoogleSignIn);
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(
+    () => createStyles(colors, surface === 'dark'),
+    [colors, surface],
+  );
 
   const redirectUri = useMemo(() => getGoogleRedirectUri(), []);
   const googleConfig = useMemo(
@@ -217,10 +225,14 @@ function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInBut
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={colors.heading} />
+          <ActivityIndicator color={surface === 'dark' ? '#F5F8FF' : colors.heading} />
         ) : (
           <>
-            <Ionicons name="logo-google" size={18} color={colors.heading} />
+            <Ionicons
+              name="logo-google"
+              size={18}
+              color={surface === 'dark' ? '#F5F8FF' : colors.heading}
+            />
             <Text style={styles.buttonText}>Continue with Google</Text>
           </>
         )}
@@ -239,7 +251,11 @@ function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInBut
 
 export function GoogleSignInButton({ role = UserRole.CANDIDATE }: GoogleSignInButtonProps) {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const surface = useAuthSurface();
+  const styles = useMemo(
+    () => createStyles(colors, surface === 'dark'),
+    [colors, surface],
+  );
 
   if (!GOOGLE_CLIENT_ID) {
     return (

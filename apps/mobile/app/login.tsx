@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 import { UserRole } from '@moons/shared';
 import { AuthField, AuthLayout, AuthPasswordField } from '@/components/auth-layout';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
@@ -30,6 +30,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [googleRole, setGoogleRole] = useState(defaultRole);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [isGoogleAccount, setIsGoogleAccount] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,20 +49,45 @@ export default function LoginScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        forgotRow: { alignItems: 'flex-end', marginTop: -4, marginBottom: 4 },
-        googleHint: { marginTop: 8, fontSize: 13, lineHeight: 18, color: colors.warning },
+        forgotRow: { alignItems: 'flex-end', marginTop: -8, marginBottom: 8 },
+        googleHint: {
+          marginTop: 8,
+          fontSize: 13,
+          lineHeight: 18,
+          color: colors.warning,
+        },
         apiBanner: {
-          backgroundColor: colors.errorBg,
+          backgroundColor: 'rgba(220, 38, 38, 0.16)',
           borderRadius: 12,
           padding: 12,
           marginBottom: 12,
           borderWidth: 1,
-          borderColor: `${colors.error}33`,
+          borderColor: 'rgba(248, 113, 113, 0.35)',
         },
-        apiBannerText: { color: colors.error, fontSize: 13, lineHeight: 19 },
-        apiBannerHint: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 6 },
+        apiBannerText: { color: '#FECACA', fontSize: 13, lineHeight: 19 },
+        apiBannerHint: {
+          color: 'rgba(214,224,240,0.7)',
+          fontSize: 12,
+          lineHeight: 17,
+          marginTop: 6,
+        },
+        rememberRow: {
+          marginTop: 18,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        },
+        rememberText: {
+          color: 'rgba(245,248,255,0.85)',
+          fontSize: 14,
+          ...fontStyle('medium'),
+        },
         footer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-        footerText: { color: colors.muted, fontSize: 14, ...fontStyle('regular') },
+        footerText: {
+          color: 'rgba(214,224,240,0.72)',
+          fontSize: 14,
+          ...fontStyle('regular'),
+        },
       }),
     [colors],
   );
@@ -88,7 +114,7 @@ export default function LoginScreen() {
   return (
     <AuthLayout
       variant="signin"
-      title="Sign In"
+      title="Welcome back"
       subtitle="Enter a valid email & password to continue on MoonsJob"
       footer={
         <View style={styles.footer}>
@@ -114,6 +140,7 @@ export default function LoginScreen() {
 
       <AuthField
         icon="mail-outline"
+        label="Email"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -122,6 +149,7 @@ export default function LoginScreen() {
       />
 
       <AuthPasswordField
+        label="Password"
         value={password}
         onChangeText={setPassword}
         placeholder="Password"
@@ -139,7 +167,22 @@ export default function LoginScreen() {
         </Text>
       ) : null}
 
-      <PrimaryButton label={loading ? 'Signing in…' : 'Login'} onPress={handleSubmit} loading={loading} />
+      <PrimaryButton
+        tone="soft"
+        label={loading ? 'Signing in…' : 'Login'}
+        onPress={handleSubmit}
+        loading={loading}
+      />
+
+      <View style={styles.rememberRow}>
+        <Text style={styles.rememberText}>Remember me</Text>
+        <Switch
+          value={rememberMe}
+          onValueChange={setRememberMe}
+          trackColor={{ false: 'rgba(255,255,255,0.2)', true: colors.success }}
+          thumbColor="#FFFFFF"
+        />
+      </View>
 
       <Divider label="Or Continue with" />
 

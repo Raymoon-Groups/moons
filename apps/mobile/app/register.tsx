@@ -24,12 +24,9 @@ import { ApiError, NetworkError, resendRegisterOtp, sendRegisterOtp, verifyRegis
 import { useAuth } from '@/lib/auth-context';
 import { getPostAuthPath } from '@/lib/auth-redirect';
 import { fontStyle } from '@/lib/font-style';
-import { useTheme } from '@/lib/theme-context';
-
 type Step = 'credentials' | 'otp';
 
 export default function RegisterScreen() {
-  const { colors } = useTheme();
   const { signIn } = useAuth();
   const params = useLocalSearchParams<{ role?: string }>();
   const defaultRole = params.role === 'recruiter' ? UserRole.RECRUITER : UserRole.CANDIDATE;
@@ -47,9 +44,14 @@ export default function RegisterScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        otpHint: { color: colors.muted, fontSize: 14, marginBottom: 8, lineHeight: 20 },
+        otpHint: {
+          color: 'rgba(214,224,240,0.72)',
+          fontSize: 14,
+          marginBottom: 8,
+          lineHeight: 20,
+        },
         legal: {
-          color: colors.muted,
+          color: 'rgba(214,224,240,0.65)',
           fontSize: 12,
           lineHeight: 18,
           textAlign: 'center',
@@ -57,9 +59,9 @@ export default function RegisterScreen() {
           ...fontStyle('regular'),
         },
         footer: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
-        footerText: { color: colors.muted, fontSize: 14 },
+        footerText: { color: 'rgba(214,224,240,0.72)', fontSize: 14 },
       }),
-    [colors],
+    [],
   );
 
   async function handleSendOtp() {
@@ -162,6 +164,7 @@ export default function RegisterScreen() {
 
           <AuthField
             icon="mail-outline"
+            label="Email"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -170,6 +173,7 @@ export default function RegisterScreen() {
           />
 
           <AuthPasswordField
+            label="Password"
             value={password}
             onChangeText={setPassword}
             placeholder="Password"
@@ -188,6 +192,7 @@ export default function RegisterScreen() {
           {info ? <InfoText>{info}</InfoText> : null}
 
           <PrimaryButton
+            tone="soft"
             label={loading ? 'Sending code…' : 'Create Account'}
             onPress={handleSendOtp}
             loading={loading}
@@ -209,6 +214,7 @@ export default function RegisterScreen() {
           {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton
+            tone="soft"
             label={loading ? 'Verifying…' : 'Verify & create account'}
             onPress={handleVerifyOtp}
             loading={loading}

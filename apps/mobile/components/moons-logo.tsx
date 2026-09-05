@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
-const SIZES = { sm: 32, md: 40, lg: 48, xl: 56 } as const;
+const SIZES = { sm: 32, md: 40, lg: 48, xl: 56, xxl: 72 } as const;
 
 export function MoonsLogo({
   size = 'md',
