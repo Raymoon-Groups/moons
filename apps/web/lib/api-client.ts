@@ -3,11 +3,34 @@ import { cachedFetch } from './api-cache';
 import {
   clearAuthSession,
   getAccessToken,
-  getRefreshToken,
+  hasSessionCookie,
+  getStoredUser,
   setAuthSession,
 } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+
+function readCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|; )moons_csrf=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+async function ensureCsrfToken(): Promise<string | null> {
+  const existing = readCsrfToken();
+  if (existing) return existing;
+  try {
+    const response = await fetch(`${API_URL}/auth/csrf`, {
+      credentials: 'include',
+      headers: { 'X-Moons-Client': 'web' },
+    });
+    if (!response.ok) return readCsrfToken();
+    const data = (await response.json()) as { csrfToken?: string };
+    return data.csrfToken ?? readCsrfToken();
+  } catch {
+    return readCsrfToken();
+  }
+}
 
 export class ApiError extends Error {
   constructor(
@@ -52,7 +75,7 @@ export function getApiErrorMessage(err: unknown, fallback = 'Request failed'): s
 }
 
 type RefreshResult =
-  | { ok: true; accessToken: string }
+  | { ok: true; accessToken?: string }
   | { ok: false; reason: 'auth' | 'network' };
 
 /** Single-flight refresh — concurrent 401s share one refresh call. */
@@ -63,10 +86,10 @@ async function refreshAccessToken(): Promise<RefreshResult> {
 
   refreshInFlight = (async (): Promise<RefreshResult> => {
     try {
-      const bodyRefresh = getRefreshToken();
+      // Prefer HttpOnly refresh cookie; empty body is enough for web.
       const data = await apiFetchRaw<AuthResponse>('/auth/refresh', {
         method: 'POST',
-        body: JSON.stringify(bodyRefresh ? { refreshToken: bodyRefresh } : {}),
+        body: JSON.stringify({}),
       });
       setAuthSession(data);
       return { ok: true, accessToken: data.accessToken };
@@ -84,16 +107,19 @@ async function refreshAccessToken(): Promise<RefreshResult> {
 }
 
 type ApiFetchOptions = Omit<RequestInit, 'cache'> & {
-  token?: string;
+  token?: string | null;
   skipAuthRetry?: boolean;
   cache?: boolean;
 };
 
 async function apiFetchRaw<T>(
   path: string,
-  options: RequestInit & { token?: string } = {},
+  options: RequestInit & { token?: string | null } = {},
 ): Promise<T> {
   const { token, headers, ...rest } = options;
+  const method = (rest.method ?? 'GET').toUpperCase();
+  const needsCsrf = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+  const csrfToken = needsCsrf ? await ensureCsrfToken() : readCsrfToken();
 
   let response: Response;
   try {
@@ -102,6 +128,8 @@ async function apiFetchRaw<T>(
       credentials: 'include',
       headers: {
         ...(rest.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        'X-Moons-Client': 'web',
+        ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
@@ -147,12 +175,14 @@ export async function apiFetch<T>(
 }
 
 async function withAuthRetry<T>(
-  request: (token: string) => Promise<T>,
+  request: (token: string | null) => Promise<T>,
 ): Promise<T> {
-  let token = getAccessToken();
-  if (!token) {
+  const hasSession = hasSessionCookie() || !!getStoredUser() || !!getAccessToken();
+  if (!hasSession) {
     throw new ApiError('Please log in to continue', 401);
   }
+
+  let token = getAccessToken();
 
   try {
     return await request(token);
@@ -160,7 +190,7 @@ async function withAuthRetry<T>(
     if (err instanceof ApiError && err.status === 401) {
       const result = await refreshAccessToken();
       if (result.ok) {
-        return request(result.accessToken);
+        return request(getAccessToken());
       }
       if (result.reason === 'auth') {
         clearAuthSession();
@@ -184,6 +214,7 @@ export function authFetch<T>(
   path: string,
   options: Omit<ApiFetchOptions, 'token'> = {},
 ): Promise<T> {
+  // Prefer cookie auth; Bearer is optional (in-memory) for media/dev convenience.
   return withAuthRetry((token) => apiFetch<T>(path, { ...options, token }));
 }
 
@@ -201,4 +232,16 @@ export function authDelete<T>(path: string): Promise<T> {
   return withAuthRetry((token) =>
     apiFetch<T>(path, { method: 'DELETE', token }),
   );
+}
+
+/** Re-hydrate in-memory access token from the HttpOnly refresh cookie after a page reload. */
+export async function ensureWebSession(): Promise<boolean> {
+  if (!hasSessionCookie() && !getStoredUser()) return false;
+  if (getAccessToken()) return true;
+  const result = await refreshAccessToken();
+  if (!result.ok && result.reason === 'auth') {
+    clearAuthSession();
+    return false;
+  }
+  return result.ok;
 }

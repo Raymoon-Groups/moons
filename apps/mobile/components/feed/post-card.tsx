@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import type { FeedPost, PostCommentItem } from '@moons/shared';
+import { storedToEditable } from '@moons/shared';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { CommentOptionsSheet } from '@/components/feed/comment-options-sheet';
 import { ForwardPostModal } from '@/components/feed/forward-post-modal';
@@ -22,8 +23,11 @@ import { InlineFeedVideo } from '@/components/feed/inline-feed-video';
 import { MediaViewer } from '@/components/feed/media-viewer';
 import { PostCommentsSheet } from '@/components/feed/post-comments-sheet';
 import { PostOptionsSheet } from '@/components/feed/post-options-sheet';
+import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
+import { MentionText } from '@/components/mentions/mention-text';
 import { SuccessModal } from '@/components/success-modal';
 import { ViewableAvatar } from '@/components/profile/protected-avatar-viewer';
+import { authFetch } from '@/lib/api';
 import { resolveAssetUrl } from '@/lib/assets';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -43,6 +47,7 @@ import {
 } from '@/lib/posts';
 import { sharePostNative, sharePostWhatsApp } from '@/lib/post-share';
 import { useTheme } from '@/lib/theme-context';
+import { useMentionComposer } from '@/lib/use-mention-composer';
 
 type SuccessState = {
   title: string;
@@ -99,6 +104,8 @@ export function PostCard({
   const [editOpen, setEditOpen] = useState(false);
   const [editText, setEditText] = useState(post.body);
   const [editSaving, setEditSaving] = useState(false);
+  const editMention = useMentionComposer();
+  const editMentionSuggestions = editMention.suggestionsFor(editText);
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const [commentMenuTarget, setCommentMenuTarget] = useState<PostCommentItem | null>(null);
   const [confirm, setConfirm] = useState<
@@ -509,6 +516,14 @@ export function PostCard({
         });
       } else if (confirm.type === 'report-comment') {
         const commentId = confirm.comment.id;
+        await authFetch('/reports', {
+          method: 'POST',
+          body: JSON.stringify({
+            targetType: 'COMMENT',
+            targetId: commentId,
+            reason: 'inappropriate_or_spam',
+          }),
+        });
         setReportedCommentIds((prev) => {
           const next = new Set(prev);
           next.add(commentId);
@@ -528,11 +543,11 @@ export function PostCard({
     }
   }
 
-  async function submitComment() {
-    if (!commentText.trim() && !commentFile) return;
+  async function submitComment(storedBody: string) {
+    if (!storedBody.trim() && !commentFile) return;
     setBusy(true);
     try {
-      const created = await addComment(post.id, commentText.trim(), commentFile ?? undefined);
+      const created = await addComment(post.id, storedBody.trim(), commentFile ?? undefined);
       setComments((prev) => [...prev, created]);
       setCommentText('');
       setCommentFile(null);
@@ -658,7 +673,7 @@ export function PostCard({
         </Pressable>
       </View>
 
-      {post.body ? <Text style={styles.body}>{post.body}</Text> : null}
+      {post.body ? <MentionText value={post.body} style={styles.body} /> : null}
       {post.media.length > 0 ? (
         post.media.length === 1 ? (
           <View style={styles.mediaWrap}>
@@ -758,12 +773,10 @@ export function PostCard({
             </View>
           </View>
           {original.body ? (
-            <Text
+            <MentionText
+              value={original.body}
               style={[styles.body, { fontSize: 14, marginTop: 8, paddingHorizontal: 0, paddingBottom: 0 }]}
-              numberOfLines={5}
-            >
-              {original.body}
-            </Text>
+            />
           ) : null}
           {original.media.length > 0 ? (
             original.media[0].type === 'VIDEO' && resolveAssetUrl(original.media[0].url) ? (
@@ -825,7 +838,9 @@ export function PostCard({
         onEdit={
           isMine
             ? () => {
-                setEditText(post.body);
+                const editable = storedToEditable(post.body);
+                setEditText(editable.text);
+                editMention.resetMentions(editable.mentions);
                 setEditOpen(true);
               }
             : undefined
@@ -846,6 +861,19 @@ export function PostCard({
         caption={post.body}
         authorName={post.author.fullName || 'MoonsJob member'}
         timeLabel={timeAgo(post.createdAt)}
+        liked={post.likedByMe}
+        likeCount={post.likeCount}
+        commentCount={post.commentCount}
+        likeDisabled={busy}
+        onLike={() => void toggleLike()}
+        onComment={() => {
+          setViewerIndex(null);
+          void toggleComments();
+        }}
+        onShare={() => {
+          setViewerIndex(null);
+          setShowOptions(true);
+        }}
         onClose={() => setViewerIndex(null)}
       />
 
@@ -857,6 +885,19 @@ export function PostCard({
           caption={original.body}
           authorName={original.author.fullName || 'MoonsJob member'}
           timeLabel={timeAgo(original.createdAt)}
+          liked={post.likedByMe}
+          likeCount={post.likeCount}
+          commentCount={post.commentCount}
+          likeDisabled={busy}
+          onLike={() => void toggleLike()}
+          onComment={() => {
+            setSharedViewerIndex(null);
+            void toggleComments();
+          }}
+          onShare={() => {
+            setSharedViewerIndex(null);
+            setShowOptions(true);
+          }}
           onClose={() => setSharedViewerIndex(null)}
         />
       ) : null}
@@ -884,8 +925,16 @@ export function PostCard({
             </Text>
             <TextInput
               value={editText}
-              onChangeText={setEditText}
+              onChangeText={(text) => {
+                setEditText(text);
+                editMention.setCaret(text.length);
+                editMention.syncMentionsFromText(text);
+                editMention.ensureLoaded();
+              }}
+              onSelectionChange={(e) => editMention.setCaret(e.nativeEvent.selection.end)}
               multiline
+              placeholder="Use @ to mention someone in your network"
+              placeholderTextColor={colors.muted}
               style={{
                 minHeight: 120,
                 borderWidth: 1,
@@ -895,6 +944,13 @@ export function PostCard({
                 color: colors.heading,
                 textAlignVertical: 'top',
                 backgroundColor: colors.surface,
+              }}
+            />
+            <MentionSuggestions
+              people={editMentionSuggestions}
+              onSelect={(person) => {
+                const result = editMention.pickMention(editText, person);
+                setEditText(result.text);
               }}
             />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
@@ -908,7 +964,7 @@ export function PostCard({
                 disabled={editSaving}
                 onPress={() => {
                   setEditSaving(true);
-                  void updatePost(post.id, editText)
+                  void updatePost(post.id, editMention.toStored(editText))
                     .then((next) => {
                       onChange(next);
                       setEditOpen(false);
@@ -989,7 +1045,7 @@ export function PostCard({
             setCommentText('');
             setCommentFile(null);
           }}
-          onSubmit={() => void submitComment()}
+          onSubmit={(storedBody) => void submitComment(storedBody)}
           onPickAttachment={pickCommentAttachment}
           onClearFile={() => setCommentFile(null)}
           onCommentMenu={openCommentMenu}

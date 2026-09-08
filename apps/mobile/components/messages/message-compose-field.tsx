@@ -10,10 +10,12 @@ import {
   View,
 } from 'react-native';
 import { AttachmentPickerModal } from '@/components/messages/attachment-picker-modal';
+import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
 import type { MessageAttachment } from '@/lib/messages';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+import { useMentionComposer } from '@/lib/use-mention-composer';
 
 export function MessageComposeField({
   value,
@@ -23,7 +25,7 @@ export function MessageComposeField({
   onSubmit,
   sending,
   editable = true,
-  placeholder = 'Type here',
+  placeholder = 'Type here… Use @ to mention',
   inputId,
   onFocus,
 }: {
@@ -31,7 +33,7 @@ export function MessageComposeField({
   onChange: (value: string) => void;
   attachment: MessageAttachment | null;
   onAttachmentChange: (file: MessageAttachment | null) => void;
-  onSubmit: () => void;
+  onSubmit: (storedBody?: string) => void;
   sending?: boolean;
   editable?: boolean;
   placeholder?: string;
@@ -40,6 +42,8 @@ export function MessageComposeField({
 }) {
   const { colors, isDark } = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const mention = useMentionComposer();
+  const mentionSuggestions = mention.suggestionsFor(value);
   const canSend = Boolean(value.trim() || attachment);
   const enabled = editable && !sending;
 
@@ -50,6 +54,11 @@ export function MessageComposeField({
   function handleAttach() {
     if (!enabled) return;
     setPickerOpen(true);
+  }
+
+  function handleSend() {
+    onSubmit(mention.toStored(value));
+    mention.resetMentions();
   }
 
   return (
@@ -83,6 +92,14 @@ export function MessageComposeField({
         </View>
       ) : null}
 
+      <MentionSuggestions
+        people={mentionSuggestions}
+        onSelect={(person) => {
+          const result = mention.pickMention(value, person);
+          onChange(result.text);
+        }}
+      />
+
       <View style={styles.row}>
         <View
           style={[
@@ -97,7 +114,13 @@ export function MessageComposeField({
           <TextInput
             nativeID={inputId}
             value={value}
-            onChangeText={onChange}
+            onChangeText={(text) => {
+              onChange(text);
+              mention.setCaret(text.length);
+              mention.syncMentionsFromText(text);
+              mention.ensureLoaded();
+            }}
+            onSelectionChange={(e) => mention.setCaret(e.nativeEvent.selection.end)}
             onFocus={onFocus}
             placeholder={placeholder}
             placeholderTextColor={colors.muted}
@@ -111,7 +134,7 @@ export function MessageComposeField({
         {canSend ? (
           <Pressable
             disabled={!enabled}
-            onPress={onSubmit}
+            onPress={handleSend}
             style={[
               styles.actionBtn,
               {

@@ -293,12 +293,13 @@ export default function MessageThreadScreen() {
     detail.connectionDirection === 'received' &&
     detail.connectionId;
 
-  async function handleSend() {
-    if (!id || (!text.trim() && !attachment)) return;
+  async function handleSend(storedBody?: string) {
+    const body = (storedBody ?? text).trim();
+    if (!id || (!body && !attachment)) return;
     setSending(true);
     setError('');
     try {
-      const msg = await sendMessage(id, text.trim(), attachment ?? undefined);
+      const msg = await sendMessage(id, body, attachment ?? undefined);
       stickToBottomRef.current = true;
       lastMessageIdRef.current = msg.id;
       setMessages((prev) => [...prev, msg]);
@@ -554,10 +555,10 @@ export default function MessageThreadScreen() {
                 onChange={setText}
                 attachment={attachment}
                 onAttachmentChange={setAttachment}
-                onSubmit={() => void handleSend()}
+                onSubmit={(storedBody) => void handleSend(storedBody)}
                 sending={sending}
                 editable={detail.canReply}
-                placeholder={detail.canReply ? 'Type here' : 'Connect to reply'}
+                placeholder={detail.canReply ? 'Type here… Use @ to mention' : 'Connect to reply'}
                 onFocus={() => scrollToLatest(true)}
               />
             </View>

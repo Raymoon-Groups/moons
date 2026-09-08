@@ -53,7 +53,8 @@ export default function PrivacyScreen() {
       <StaticSection heading="5. Your rights">
         <Text style={[{ color: colors.muted, fontSize: 15, lineHeight: 22 }, fontStyle('regular')]}>
           You can access, update, or delete your profile information at any time from your account
-          settings. To request full account deletion, contact{' '}
+          settings. To permanently delete your account, open Settings → Delete account in the app.
+          If you cannot sign in, contact{' '}
           <Text style={[{ color: colors.blue }, fontStyle('semibold')]}>privacy@moonsjob.com</Text>.
         </Text>
       </StaticSection>

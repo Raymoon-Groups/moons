@@ -10,12 +10,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   CurrentUser,
   JwtPayload,
 } from '../common/decorators/current-user.decorator';
 import { OnboardingGuard } from '../common/guards/onboarding.guard';
+import { THROTTLE } from '../common/throttle.constants';
 import { ConnectionsService } from './connections.service';
 import { SearchProfessionalsDto } from './dto/search-professionals.dto';
 import { SendConnectionDto } from './dto/send-connection.dto';
@@ -100,6 +102,7 @@ export class NetworkController {
   }
 
   @Post('connections/request')
+  @Throttle(THROTTLE.connectionRequest)
   sendRequest(@CurrentUser() user: JwtPayload, @Body() dto: SendConnectionDto) {
     return this.connections.sendRequest(user.sub, dto);
   }

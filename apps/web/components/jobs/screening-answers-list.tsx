@@ -5,7 +5,8 @@ import {
   type ScreeningAnswer,
   type ScreeningQuestion,
 } from '@moons/shared';
-import { resolveAssetUrl } from '@/lib/assets';
+import { useState } from 'react';
+import { openResumeFile } from '@/lib/open-resume';
 
 function isYesNoValue(value: string) {
   const v = value.trim().toLowerCase();
@@ -57,8 +58,48 @@ type PreparedAnswer = {
   question?: ScreeningQuestion;
   label: string;
   isResume: boolean;
-  href: string | null;
+  resumePath: string | null;
 };
+
+function ResumeAnswerButton({
+  path,
+  fileName,
+  label,
+}: {
+  path: string;
+  fileName?: string | null;
+  label: string;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => {
+        void (async () => {
+          setBusy(true);
+          await openResumeFile(path, fileName);
+          setBusy(false);
+        })();
+      }}
+      className="group flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-white/80 px-4 py-3.5 text-left shadow-[0_8px_24px_-18px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5 hover:border-moons-blue/25 hover:bg-white disabled:opacity-60"
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue/10 to-sky-100 text-moons-blue">
+        <DocumentIcon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] font-semibold uppercase tracking-wide text-moons-muted">
+          {label}
+        </span>
+        <span className="mt-0.5 block truncate text-sm font-semibold text-heading group-hover:text-moons-blue">
+          {busy ? 'Opening…' : fileName || 'View resume'}
+        </span>
+      </span>
+      <span className="shrink-0 text-xs font-semibold text-moons-blue">{busy ? '…' : 'Open'}</span>
+    </button>
+  );
+}
 
 export function ScreeningAnswersList({
   questions,
@@ -77,13 +118,14 @@ export function ScreeningAnswersList({
     const question = questionMap.get(answer.questionId);
     const isResume =
       question?.type === ScreeningQuestionType.RESUME ||
-      answer.value.startsWith('/uploads/resumes/');
+      answer.value.startsWith('/uploads/resumes/') ||
+      answer.value.includes('/media/resumes/');
     return {
       answer,
       question,
       label: question?.prompt ?? (isResume ? 'Resume' : 'Answer'),
       isResume,
-      href: isResume ? resolveAssetUrl(answer.value) : null,
+      resumePath: isResume ? answer.value : null,
     };
   });
 
@@ -92,28 +134,16 @@ export function ScreeningAnswersList({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {resumeItems.map(({ answer, href, label }) => (
-        <a
-          key={answer.questionId}
-          href={href ?? '#'}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-white/80 px-4 py-3.5 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5 hover:border-moons-blue/25 hover:bg-white"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue/10 to-sky-100 text-moons-blue">
-            <DocumentIcon className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-semibold uppercase tracking-wide text-moons-muted">
-              {label}
-            </span>
-            <span className="mt-0.5 block truncate text-sm font-semibold text-heading group-hover:text-moons-blue">
-              {answer.fileName || 'View resume'}
-            </span>
-          </span>
-          <span className="shrink-0 text-xs font-semibold text-moons-blue">Open</span>
-        </a>
-      ))}
+      {resumeItems.map(({ answer, resumePath, label }) =>
+        resumePath ? (
+          <ResumeAnswerButton
+            key={answer.questionId}
+            path={resumePath}
+            fileName={answer.fileName}
+            label={label}
+          />
+        ) : null,
+      )}
 
       {questionItems.length > 0 && (
         <div className="overflow-hidden rounded-2xl border border-border/60 bg-white/85 shadow-[0_10px_30px_-22px_rgba(15,23,42,0.35)] backdrop-blur-sm">

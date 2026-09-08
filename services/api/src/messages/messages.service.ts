@@ -189,6 +189,19 @@ export class MessagesService {
       throw new BadRequestException('You cannot message yourself');
     }
 
+    const block = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerId: userId, blockedId: otherUserId },
+          { blockerId: otherUserId, blockedId: userId },
+        ],
+      },
+      select: { blockerId: true },
+    });
+    if (block) {
+      throw new ForbiddenException('You cannot message this user');
+    }
+
     const connection = await this.prisma.connection.findFirst({
       where: {
         status: ConnectionStatus.ACCEPTED,
@@ -459,6 +472,7 @@ export class MessagesService {
       body: preview,
       linkUrl: `/messages?conversation=${conversationId}`,
       metadata: { conversationId, messageId: message.id, fromUserId: userId },
+      actorId: userId,
     });
 
     return this.mapMessageItem(message, userId);

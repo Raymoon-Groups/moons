@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
+import { MentionText } from '@/components/mentions/mention-text';
 import { MessageAttachmentContent } from '@/components/messages/message-attachment-content';
 import { MessageForwardedPost } from '@/components/messages/message-forwarded-post';
 import { extractForwardedPostId } from '@moons/shared';
@@ -108,7 +109,15 @@ export function MessageBubble({
           mutedColor={metaColor}
         />
       ) : showBody ? (
-        <Text style={[styles.body, { color: bodyColor }, fontStyle('regular')]}>{message.body}</Text>
+        <MentionText
+          value={message.body}
+          style={[styles.body, { color: bodyColor }, fontStyle('regular')]}
+          mentionStyle={
+            message.isMine && !isDark
+              ? { color: '#fff', textDecorationLine: 'underline' }
+              : undefined
+          }
+        />
       ) : null}
 
       {hasAttachment ? (

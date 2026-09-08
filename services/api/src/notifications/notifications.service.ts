@@ -6,6 +6,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 export const NETWORK_NOTIFICATION_TYPES: NotificationType[] = [
   NotificationType.CONNECTION_REQUEST,
@@ -29,6 +30,24 @@ export const BELL_NOTIFICATION_TYPES: NotificationType[] = [
   NotificationType.POST_CREATED,
 ];
 
+/** User-to-user types that are easy to spam. */
+const SOCIAL_ABUSE_TYPES = new Set<NotificationType>([
+  NotificationType.MESSAGE_RECEIVED,
+  NotificationType.CONNECTION_REQUEST,
+  NotificationType.PROFILE_VIEW,
+  NotificationType.POST_LIKE,
+  NotificationType.POST_COMMENT,
+  NotificationType.POST_SHARE,
+  NotificationType.POST_CREATED,
+  NotificationType.NETWORK_SUGGESTION,
+]);
+
+const HOUR_SECONDS = 60 * 60;
+/** Max social notifications one user can generate toward one recipient / hour. */
+const PAIR_LIMIT_PER_HOUR = 25;
+/** Max social notifications one user can generate overall / hour. */
+const ACTOR_LIMIT_PER_HOUR = 100;
+
 export interface CreateNotificationInput {
   userId: string;
   type: NotificationType;
@@ -36,13 +55,73 @@ export interface CreateNotificationInput {
   body: string;
   linkUrl?: string;
   metadata?: Prisma.InputJsonValue;
+  /** Acting user (sender / liker / viewer). Used for block + rate checks. */
+  actorId?: string;
+  /** Skip abuse checks (system / transactional only). */
+  skipAbuseChecks?: boolean;
 }
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private redis: RedisService,
+  ) {}
 
   async create(input: CreateNotificationInput) {
+    const actorId = input.actorId ?? this.extractActorId(input.metadata);
+
+    if (!input.skipAbuseChecks && actorId && actorId !== input.userId) {
+      if (await this.isBlockedEitherWay(actorId, input.userId)) {
+        return null;
+      }
+
+      if (SOCIAL_ABUSE_TYPES.has(input.type)) {
+        if (await this.hitLimit(`notify:pair:${actorId}:${input.userId}`, PAIR_LIMIT_PER_HOUR, HOUR_SECONDS)) {
+          return null;
+        }
+        if (await this.hitLimit(`notify:actor:${actorId}`, ACTOR_LIMIT_PER_HOUR, HOUR_SECONDS)) {
+          return null;
+        }
+      }
+    }
+
+    // Collapse unread message pings for the same conversation into one row.
+    if (
+      input.type === NotificationType.MESSAGE_RECEIVED &&
+      input.metadata &&
+      typeof input.metadata === 'object' &&
+      !Array.isArray(input.metadata)
+    ) {
+      const conversationId = (input.metadata as Record<string, unknown>).conversationId;
+      if (typeof conversationId === 'string' && conversationId) {
+        const existing = await this.prisma.notification.findFirst({
+          where: {
+            userId: input.userId,
+            type: NotificationType.MESSAGE_RECEIVED,
+            readAt: null,
+            metadata: {
+              path: ['conversationId'],
+              equals: conversationId,
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (existing) {
+          return this.prisma.notification.update({
+            where: { id: existing.id },
+            data: {
+              title: input.title,
+              body: input.body,
+              linkUrl: input.linkUrl ?? existing.linkUrl,
+              metadata: input.metadata ?? existing.metadata ?? {},
+              createdAt: new Date(),
+            },
+          });
+        }
+      }
+    }
+
     return this.prisma.notification.create({
       data: {
         userId: input.userId,
@@ -53,6 +132,45 @@ export class NotificationsService {
         metadata: input.metadata ?? {},
       },
     });
+  }
+
+  private extractActorId(metadata?: Prisma.InputJsonValue): string | undefined {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      return undefined;
+    }
+    const record = metadata as Record<string, unknown>;
+    for (const key of ['fromUserId', 'viewerId', 'actorId', 'senderId']) {
+      const value = record[key];
+      if (typeof value === 'string' && value.length > 0) return value;
+    }
+    return undefined;
+  }
+
+  private async isBlockedEitherWay(userA: string, userB: string) {
+    const block = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerId: userA, blockedId: userB },
+          { blockerId: userB, blockedId: userA },
+        ],
+      },
+      select: { blockerId: true },
+    });
+    return Boolean(block);
+  }
+
+  /** @returns true when the limit is exceeded (caller should drop the action). */
+  private async hitLimit(key: string, limit: number, ttlSeconds: number) {
+    try {
+      const count = await this.redis.incr(key);
+      if (count === 1) {
+        await this.redis.expire(key, ttlSeconds);
+      }
+      return count > limit;
+    } catch {
+      // If Redis is down, allow the notification rather than breaking core flows.
+      return false;
+    }
   }
 
   /** Remove stale connection-request notifications after accept / ignore / cancel. */
@@ -197,6 +315,7 @@ export class NotificationsService {
       body: `Your application for ${jobTitle} at ${companyName} was submitted successfully.`,
       linkUrl: '/applications',
       metadata: { jobId },
+      skipAbuseChecks: true,
     });
   }
 
@@ -213,6 +332,7 @@ export class NotificationsService {
       body: `${candidateName} applied for ${jobTitle}.`,
       linkUrl: `/recruiter/jobs/${jobId}/applicants`,
       metadata: { jobId },
+      skipAbuseChecks: true,
     });
   }
 
@@ -227,6 +347,7 @@ export class NotificationsService {
       title: 'Application viewed',
       body: `Your application for ${jobTitle} at ${companyName} was viewed by the recruiter.`,
       linkUrl: '/applications',
+      skipAbuseChecks: true,
     });
   }
 
@@ -268,6 +389,7 @@ export class NotificationsService {
       body,
       linkUrl: '/applications',
       metadata: { status },
+      skipAbuseChecks: true,
     });
   }
 }

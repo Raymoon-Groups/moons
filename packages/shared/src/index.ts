@@ -33,6 +33,20 @@ export {
   stripForwardedPostUrl,
 } from './post-links';
 
+export {
+  MENTION_TOKEN_RE,
+  serializeMention,
+  parseMentions,
+  storedToEditable,
+  editableToStored,
+  getActiveMention,
+  insertMentionText,
+  filterMentionCandidates,
+  type MentionRef,
+  type MentionSegment,
+  type ActiveMention,
+} from './mentions';
+
 export enum JobStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',
@@ -229,8 +243,13 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   user: AuthUser;
+  /**
+   * Mobile uses Bearer tokens from this payload.
+   * Web auth uses HttpOnly cookies; the web client may keep accessToken in memory
+   * only for media URLs, not in localStorage.
+   */
   accessToken: string;
-  /** Returned for mobile clients; web uses httpOnly cookie instead */
+  /** Returned for mobile clients; web uses HttpOnly cookie instead */
   refreshToken?: string;
 }
 

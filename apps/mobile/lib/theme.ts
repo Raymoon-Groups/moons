@@ -41,7 +41,7 @@ export const theme = {
     },
   },
   typography: {
-    hero: 28,
+    hero: 30,
     title: 22,
     subtitle: 15,
     body: 15,

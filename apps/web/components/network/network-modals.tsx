@@ -196,8 +196,8 @@ export function MessageComposeModal({
 
   if (!open) return null;
 
-  async function handleSend() {
-    const trimmed = text.trim();
+  async function handleSend(storedBody?: string) {
+    const trimmed = (storedBody ?? text).trim();
     if (!trimmed && !attachment) return;
     setLoading(true);
     setError('');
@@ -237,9 +237,9 @@ export function MessageComposeModal({
             onChange={setText}
             attachment={attachment}
             onAttachmentChange={setAttachment}
-            onSubmit={() => void handleSend()}
+            onSubmit={(storedBody) => void handleSend(storedBody)}
             sending={loading}
-            placeholder={`Write a message to ${firstName}…`}
+            placeholder={`Write a message to ${firstName}… Use @ to mention`}
             rows={5}
             compact
           />

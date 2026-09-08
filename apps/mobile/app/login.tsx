@@ -49,42 +49,58 @@ export default function LoginScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        forgotRow: { alignItems: 'flex-end', marginTop: -8, marginBottom: 8 },
         googleHint: {
           marginTop: 8,
+          marginBottom: 4,
           fontSize: 13,
           lineHeight: 18,
           color: colors.warning,
         },
         apiBanner: {
-          backgroundColor: 'rgba(220, 38, 38, 0.16)',
-          borderRadius: 12,
+          backgroundColor: colors.errorBg,
+          borderRadius: 14,
           padding: 12,
-          marginBottom: 12,
+          marginBottom: 14,
           borderWidth: 1,
-          borderColor: 'rgba(248, 113, 113, 0.35)',
+          borderColor: 'rgba(220, 38, 38, 0.16)',
         },
-        apiBannerText: { color: '#FECACA', fontSize: 13, lineHeight: 19 },
+        apiBannerText: { color: colors.error, fontSize: 13, lineHeight: 19 },
         apiBannerHint: {
-          color: 'rgba(214,224,240,0.7)',
+          color: colors.muted,
           fontSize: 12,
           lineHeight: 17,
           marginTop: 6,
         },
-        rememberRow: {
-          marginTop: 18,
+        metaRow: {
+          marginTop: 12,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: 12,
+        },
+        rememberRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
         },
         rememberText: {
-          color: 'rgba(245,248,255,0.85)',
-          fontSize: 14,
+          color: colors.foreground,
+          fontSize: 13,
           ...fontStyle('medium'),
         },
-        footer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+        forgotLink: {
+          color: colors.blue,
+          fontSize: 13,
+          ...fontStyle('semibold'),
+        },
+        footer: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
         footerText: {
-          color: 'rgba(214,224,240,0.72)',
+          color: colors.muted,
           fontSize: 14,
           ...fontStyle('regular'),
         },
@@ -114,12 +130,12 @@ export default function LoginScreen() {
   return (
     <AuthLayout
       variant="signin"
-      title="Welcome back"
-      subtitle="Enter a valid email & password to continue on MoonsJob"
+      title="Sign in"
+      subtitle="Find roles, connect with employers, and grow your career."
       footer={
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Haven't any account? </Text>
-          <LinkText onPress={() => router.push('/register')}>Sign up</LinkText>
+          <Text style={styles.footerText}>New here? </Text>
+          <LinkText onPress={() => router.push('/register')}>Create an account</LinkText>
         </View>
       }
     >
@@ -138,6 +154,12 @@ export default function LoginScreen() {
         </View>
       ) : null}
 
+      <FieldLabel>Continue as</FieldLabel>
+      <RolePicker value={googleRole} onChange={setGoogleRole} />
+      <GoogleSignInButton role={googleRole} />
+
+      <Divider label="or sign in with email" />
+
       <AuthField
         icon="mail-outline"
         label="Email"
@@ -145,50 +167,44 @@ export default function LoginScreen() {
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        placeholder="Email address"
+        placeholder="Your email"
       />
 
       <AuthPasswordField
         label="Password"
         value={password}
         onChangeText={setPassword}
-        placeholder="Password"
+        placeholder="Your password"
       />
 
-      <View style={styles.forgotRow}>
-        <LinkText onPress={() => router.push('/forgot-password')}>Forget password</LinkText>
+      <View style={styles.metaRow}>
+        <View style={styles.rememberRow}>
+          <Switch
+            value={rememberMe}
+            onValueChange={setRememberMe}
+            trackColor={{ false: colors.border, true: colors.blue }}
+            thumbColor="#FFFFFF"
+          />
+          <Text style={styles.rememberText}>Remember me</Text>
+        </View>
+        <Text style={styles.forgotLink} onPress={() => router.push('/forgot-password')}>
+          Forgot password?
+        </Text>
       </View>
 
       {error ? <ErrorText>{error}</ErrorText> : null}
       {isGoogleAccount ? (
         <Text style={styles.googleHint}>
-          This account uses Google sign-in. Continue with Google below, or add a password in Settings
+          This account uses Google sign-in. Continue with Google above, or add a password in Settings
           after signing in.
         </Text>
       ) : null}
 
       <PrimaryButton
-        tone="soft"
-        label={loading ? 'Signing in…' : 'Login'}
+        label={loading ? 'Signing in…' : 'Sign in'}
         onPress={handleSubmit}
         loading={loading}
       />
-
-      <View style={styles.rememberRow}>
-        <Text style={styles.rememberText}>Remember me</Text>
-        <Switch
-          value={rememberMe}
-          onValueChange={setRememberMe}
-          trackColor={{ false: 'rgba(255,255,255,0.2)', true: colors.success }}
-          thumbColor="#FFFFFF"
-        />
-      </View>
-
-      <Divider label="Or Continue with" />
-
-      <FieldLabel>I am a</FieldLabel>
-      <RolePicker value={googleRole} onChange={setGoogleRole} />
-      <GoogleSignInButton role={googleRole} />
     </AuthLayout>
   );
 }

@@ -26,6 +26,7 @@ import {
   type ProfileContentTab,
 } from '@/components/profile/profile-content-tabs';
 import { ProfileHeroCard } from '@/components/profile/profile-hero-card';
+import { SecondaryButton } from '@/components/ui';
 import { resolveAvatarUrl } from '@/lib/assets';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -33,6 +34,7 @@ import {
   notifyConnectionsRefresh,
 } from '@/lib/connection-invites';
 import { fontStyle } from '@/lib/font-style';
+import { openResumeFileOrAlert } from '@/lib/open-resume';
 import {
   acceptConnection,
   cancelConnection,
@@ -541,6 +543,10 @@ export default function NetworkProfileScreen() {
   const certifications = Array.isArray(profile.certifications)
     ? (profile.certifications as CertificationEntry[])
     : [];
+  const resumeUrl = profile.resumeUrl ? String(profile.resumeUrl) : null;
+  const resumeFileName = profile.resumeFileName
+    ? String(profile.resumeFileName)
+    : 'View resume';
   const isOwnProfile = user?.id === profile.userId;
   const showOpenBadge = showOpenOnMoonsToViewer(
     Boolean(profile.openToWork),
@@ -847,6 +853,15 @@ export default function NetworkProfileScreen() {
                       {String(profile.summary)}
                     </Text>
                   </InfoCard>
+                ) : null}
+
+                {resumeUrl ? (
+                  <View style={{ marginBottom: 12 }}>
+                    <SecondaryButton
+                      label={isOwnProfile ? 'View my resume' : 'Download resume'}
+                      onPress={() => void openResumeFileOrAlert(resumeUrl, resumeFileName)}
+                    />
+                  </View>
                 ) : null}
 
                 {data.sharedSkills.length > 0 ? (

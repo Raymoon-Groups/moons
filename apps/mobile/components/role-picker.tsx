@@ -4,7 +4,6 @@ import { UserRole } from '@moons/shared';
 import { useAuthSurface } from '@/components/auth-layout';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
-import { theme } from '@/lib/theme';
 
 export function RolePicker({
   value,
@@ -13,17 +12,41 @@ export function RolePicker({
   value: UserRole;
   onChange: (role: UserRole) => void;
 }) {
+  const { colors } = useTheme();
+  const surface = useAuthSurface();
+  const onDark = surface === 'dark';
+
+  const shell = useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          flexDirection: 'row',
+          gap: 4,
+          marginTop: 8,
+          marginBottom: 12,
+          padding: 4,
+          borderRadius: 14,
+          backgroundColor: onDark ? 'rgba(255,255,255,0.08)' : '#EEF2F7',
+        },
+      }),
+    [onDark],
+  );
+
   return (
-    <View style={baseStyles.row}>
+    <View style={shell.row}>
       <RoleOption
         label="Jobseeker"
         selected={value === UserRole.CANDIDATE}
         onPress={() => onChange(UserRole.CANDIDATE)}
+        colors={colors}
+        onDark={onDark}
       />
       <RoleOption
         label="Employer"
         selected={value === UserRole.RECRUITER}
         onPress={() => onChange(UserRole.RECRUITER)}
+        colors={colors}
+        onDark={onDark}
       />
     </View>
   );
@@ -33,35 +56,37 @@ function RoleOption({
   label,
   selected,
   onPress,
+  colors,
+  onDark,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  colors: ReturnType<typeof useTheme>['colors'];
+  onDark: boolean;
 }) {
-  const { colors } = useTheme();
-  const surface = useAuthSurface();
-  const onDark = surface === 'dark';
-
   const styles = useMemo(
     () =>
       StyleSheet.create({
         option: {
           flex: 1,
-          borderWidth: 1,
-          borderColor: onDark ? 'rgba(255,255,255,0.2)' : colors.border,
-          borderRadius: theme.radius.md,
-          paddingVertical: 13,
+          borderRadius: 11,
+          paddingVertical: 11,
           alignItems: 'center',
-          backgroundColor: onDark ? 'rgba(255,255,255,0.06)' : colors.surface,
+          backgroundColor: 'transparent',
         },
         optionSelected: {
-          borderColor: colors.blue,
-          backgroundColor: onDark ? 'rgba(142, 182, 255, 0.18)' : 'rgba(107, 154, 232, 0.1)',
+          backgroundColor: onDark ? 'rgba(142, 182, 255, 0.22)' : colors.white,
+          shadowColor: '#0f1c33',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: onDark ? 0 : 0.08,
+          shadowRadius: 6,
+          elevation: onDark ? 0 : 2,
         },
         optionText: {
-          fontSize: 14,
-          ...fontStyle('bold'),
-          color: onDark ? 'rgba(214,224,240,0.75)' : colors.muted,
+          fontSize: 13,
+          ...fontStyle('semibold'),
+          color: onDark ? 'rgba(214,224,240,0.7)' : colors.muted,
         },
         optionTextSelected: {
           color: onDark ? '#F5F8FF' : colors.heading,
@@ -76,12 +101,3 @@ function RoleOption({
     </Pressable>
   );
 }
-
-const baseStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-});

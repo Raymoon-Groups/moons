@@ -12,13 +12,17 @@ import { User, UserRole } from '@prisma/client';
 import { isRecruiterCompanyEmail, RECRUITER_COMPANY_EMAIL_MESSAGE } from '../common/utils/recruiter-email';
 import * as bcrypt from 'bcrypt';
 import { randomInt, randomUUID } from 'crypto';
+import { existsSync, readdirSync, unlinkSync } from 'fs';
 import { OAuth2Client } from 'google-auth-library';
+import { join } from 'path';
 import { normalizeEmail } from '../common/utils/normalize-email';
 import { EmailService } from '../email/email.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { UsersService } from '../users/users.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { LoginDto } from './dto/login.dto';
@@ -38,10 +42,13 @@ const RESET_OTP_PREFIX = 'reset-otp:';
 const OTP_SEND_RATE_PREFIX = 'otp-send-rate:';
 const OTP_VERIFY_RATE_PREFIX = 'otp-verify-rate:';
 const RESET_SEND_RATE_PREFIX = 'reset-send-rate:';
+const LOGIN_RATE_PREFIX = 'login-rate:';
 const MAX_OTP_SENDS_PER_HOUR = 5;
 const MAX_OTP_VERIFY_ATTEMPTS = 5;
+const MAX_LOGIN_ATTEMPTS = 10;
 const RATE_WINDOW_SECONDS = 60 * 60;
 const VERIFY_RATE_WINDOW_SECONDS = 15 * 60;
+const LOGIN_RATE_WINDOW_SECONDS = 15 * 60;
 
 @Injectable()
 export class AuthService {
@@ -52,6 +59,7 @@ export class AuthService {
     private jwtService: JwtService,
     private redisService: RedisService,
     private emailService: EmailService,
+    private prisma: PrismaService,
   ) {}
 
   async sendRegistrationOtp(dto: SendOtpDto) {
@@ -194,6 +202,13 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const email = normalizeEmail(dto.email);
+
+    await this.checkRateLimit(
+      `${LOGIN_RATE_PREFIX}${email}`,
+      MAX_LOGIN_ATTEMPTS,
+      LOGIN_RATE_WINDOW_SECONDS,
+    );
+
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -221,6 +236,8 @@ export class AuthService {
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.redisService.del(`${LOGIN_RATE_PREFIX}${email}`);
 
     const withProfile = await this.usersService.findByIdWithProfile(user.id);
     const tokens = await this.issueTokens(user.id, user.email, user.role);
@@ -362,8 +379,13 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
     await this.usersService.setPassword(user.id, passwordHash);
     await this.redisService.del(key);
+    await this.revokeAllSessions(user.id);
 
-    return { success: true, message: 'Password reset successfully.' };
+    return {
+      success: true,
+      message: 'Password reset successfully. Please sign in again on all devices.',
+      sessionsRevoked: true,
+    };
   }
 
   async setPassword(userId: string, dto: SetPasswordDto) {
@@ -385,7 +407,11 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
     await this.usersService.setPassword(userId, passwordHash);
 
-    return { success: true, message: 'Password created successfully.' };
+    // Drop any existing refresh sessions, then mint a fresh one for this device.
+    return this.reissueAfterSessionRevoke(
+      userId,
+      'Password created successfully. Other devices have been signed out.',
+    );
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
@@ -412,7 +438,179 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
     await this.usersService.setPassword(userId, passwordHash);
 
-    return { success: true, message: 'Password changed successfully.' };
+    return this.reissueAfterSessionRevoke(
+      userId,
+      'Password changed successfully. Other devices have been signed out.',
+    );
+  }
+
+  /** Sign out every device (used by settings “Sign out all devices”). */
+  async logoutAll(userId: string) {
+    await this.revokeAllSessions(userId);
+    return {
+      success: true,
+      message: 'Signed out of all devices.',
+      sessionsRevoked: true,
+    };
+  }
+
+  /**
+   * Permanently delete the signed-in account and associated personal data.
+   * Conversations the user is in are removed (matches privacy policy).
+   */
+  async deleteAccount(userId: string, dto: DeleteAccountDto) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (user.passwordHash) {
+      if (!dto.password) {
+        throw new BadRequestException('Password is required to delete this account');
+      }
+      const valid = await bcrypt.compare(dto.password, user.passwordHash);
+      if (!valid) {
+        throw new UnauthorizedException('Password is incorrect');
+      }
+    }
+
+    const email = user.email;
+
+    // Collect upload paths before cascading DB deletes remove the rows.
+    const uploadPaths = await this.collectUserUploadPaths(userId);
+    for (const relative of uploadPaths) {
+      this.safeUnlinkUpload(relative);
+    }
+    this.deleteUserIdPrefixedUploads(userId);
+
+    await this.revokeAllSessions(userId);
+    await this.redisService.del(`auth-epoch:${userId}`);
+
+    // Cascade removes profile, jobs, applications, posts, messages, connections, etc.
+    await this.prisma.user.delete({ where: { id: userId } });
+
+    try {
+      await this.prisma.newsletterSubscriber.deleteMany({ where: { email } });
+    } catch {
+      // newsletter table may be empty / unused
+    }
+
+    // Best-effort cleanup of email-keyed redis rate / otp keys
+    await Promise.allSettled([
+      this.redisService.del(`${OTP_REDIS_PREFIX}${email}`),
+      this.redisService.del(`${RESET_OTP_PREFIX}${email}`),
+      this.redisService.del(`${LOGIN_RATE_PREFIX}${email}`),
+      this.redisService.del(`${OTP_SEND_RATE_PREFIX}${email}`),
+      this.redisService.del(`${OTP_VERIFY_RATE_PREFIX}${email}`),
+      this.redisService.del(`${OTP_VERIFY_RATE_PREFIX}reset:${email}`),
+      this.redisService.del(`${RESET_SEND_RATE_PREFIX}${email}`),
+    ]);
+
+    return {
+      success: true,
+      message: 'Your account has been permanently deleted.',
+    };
+  }
+
+  private async collectUserUploadPaths(userId: string): Promise<string[]> {
+    const paths = new Set<string>();
+
+    const [postMedia, comments, messages] = await Promise.all([
+      this.prisma.postMedia.findMany({
+        where: { post: { authorId: userId } },
+        select: { url: true },
+      }),
+      this.prisma.postComment.findMany({
+        where: { authorId: userId, attachmentUrl: { not: null } },
+        select: { attachmentUrl: true },
+      }),
+      this.prisma.message.findMany({
+        where: { senderId: userId, attachmentUrl: { not: null } },
+        select: { attachmentUrl: true },
+      }),
+    ]);
+
+    for (const row of postMedia) {
+      if (row.url) paths.add(row.url);
+    }
+    for (const row of comments) {
+      if (row.attachmentUrl) paths.add(row.attachmentUrl);
+    }
+    for (const row of messages) {
+      if (row.attachmentUrl) paths.add(row.attachmentUrl);
+    }
+
+    return [...paths];
+  }
+
+  private deleteUserIdPrefixedUploads(userId: string) {
+    const dirs = ['avatars', 'banners', 'resumes', 'company-logos'];
+    const root = join(process.cwd(), 'uploads');
+    for (const dir of dirs) {
+      const absolute = join(root, dir);
+      if (!existsSync(absolute)) continue;
+      for (const name of readdirSync(absolute)) {
+        if (name.startsWith(userId)) {
+          try {
+            unlinkSync(join(absolute, name));
+          } catch {
+            // ignore missing/locked files
+          }
+        }
+      }
+    }
+  }
+
+  private safeUnlinkUpload(relativeOrUrl: string) {
+    try {
+      let pathname = relativeOrUrl;
+      if (pathname.startsWith('http://') || pathname.startsWith('https://')) {
+        pathname = new URL(pathname).pathname;
+      }
+      const marker = '/uploads/';
+      const idx = pathname.indexOf(marker);
+      if (idx === -1) return;
+      const relative = pathname.slice(idx + 1); // uploads/...
+      // Prevent path traversal
+      if (relative.includes('..')) return;
+      const absolute = join(process.cwd(), relative);
+      if (!absolute.startsWith(join(process.cwd(), 'uploads'))) return;
+      if (existsSync(absolute)) unlinkSync(absolute);
+    } catch {
+      // ignore
+    }
+  }
+
+  private async revokeAllSessions(userId: string) {
+    await Promise.all([
+      this.redisService.delByPattern(`refresh:${userId}:*`),
+      this.redisService.delByPattern(`refresh-rotated:${userId}:*`),
+      this.redisService.incr(`auth-epoch:${userId}`),
+    ]);
+  }
+
+  private async reissueAfterSessionRevoke(userId: string, message: string) {
+    await this.revokeAllSessions(userId);
+
+    const withProfile = await this.usersService.findByIdWithProfile(userId);
+    if (!withProfile) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const tokens = await this.issueTokens(
+      withProfile.id,
+      withProfile.email,
+      withProfile.role,
+    );
+
+    return {
+      success: true,
+      message,
+      sessionsRevoked: true,
+      user: this.usersService.toPublic(withProfile, withProfile.profile),
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 
   async completeOnboarding(
@@ -510,9 +708,12 @@ export class AuthService {
         email: string;
         role: string;
         jti: string;
+        ave?: number;
       }>(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET,
       });
+
+      await this.assertAuthEpoch(payload.sub, payload.ave);
 
       const key = `refresh:${payload.sub}:${payload.jti}`;
       const rotatedKey = `refresh-rotated:${payload.sub}:${payload.jti}`;
@@ -622,8 +823,9 @@ export class AuthService {
       await this.redisService.expire(key, windowSeconds);
     }
     if (count > max) {
-      throw new BadRequestException(
+      throw new HttpException(
         'Too many attempts. Please try again later.',
+        HttpStatus.TOO_MANY_REQUESTS,
       );
     }
   }
@@ -703,7 +905,8 @@ export class AuthService {
 
   private async issueTokens(userId: string, email: string, role: string) {
     const jti = randomUUID();
-    const payload = { sub: userId, email, role };
+    const authEpoch = await this.getAuthEpoch(userId);
+    const payload = { sub: userId, email, role, ave: authEpoch };
 
     const accessExpires = process.env.JWT_ACCESS_EXPIRES_IN ?? '60m';
     const refreshExpires = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
@@ -729,5 +932,20 @@ export class AuthService {
     );
 
     return { accessToken, refreshToken };
+  }
+
+  private async getAuthEpoch(userId: string) {
+    const raw = await this.redisService.get(`auth-epoch:${userId}`);
+    const parsed = raw ? Number(raw) : 0;
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  /** Used by JwtStrategy / media auth to reject tokens from revoked sessions. */
+  async assertAuthEpoch(userId: string, tokenEpoch: number | undefined) {
+    const current = await this.getAuthEpoch(userId);
+    const claimed = typeof tokenEpoch === 'number' && Number.isFinite(tokenEpoch) ? tokenEpoch : 0;
+    if (claimed !== current) {
+      throw new UnauthorizedException('Session has been revoked. Please sign in again.');
+    }
   }
 }

@@ -1,14 +1,25 @@
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Card, ErrorText, FieldLabel, InfoText, PasswordInput, PrimaryButton, Screen } from '@/components/ui';
+import { Alert, StyleSheet, Text, View } from 'react-native';
+import {
+  Card,
+  ErrorText,
+  FieldLabel,
+  InfoText,
+  PasswordInput,
+  PrimaryButton,
+  Screen,
+  SecondaryButton,
+} from '@/components/ui';
 import { ApiError, authFetch } from '@/lib/api';
+import type { AuthResponse } from '@moons/shared';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
 export default function SecurityScreen() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, signIn, logout } = useAuth();
   const { colors } = useTheme();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,6 +29,7 @@ export default function SecurityScreen() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [logoutAllLoading, setLogoutAllLoading] = useState(false);
 
   const styles = useMemo(
     () =>
@@ -43,19 +55,38 @@ export default function SecurityScreen() {
     setInfo('');
   }, [user?.hasPassword]);
 
+  async function applySessionTokens(result: {
+    user?: AuthResponse['user'];
+    accessToken?: string;
+    refreshToken?: string;
+    message?: string;
+  }) {
+    if (result.user && result.accessToken) {
+      await signIn({
+        user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
+    }
+  }
+
   async function handleSetPassword() {
     setError('');
     setInfo('');
     setLoading(true);
     try {
-      await authFetch('/auth/set-password', {
-        method: 'POST',
-        body: JSON.stringify({ password, confirmPassword }),
-      });
-      if (user) {
+      const result = await authFetch<AuthResponse & { success: boolean; message: string }>(
+        '/auth/set-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({ password, confirmPassword }),
+        },
+      );
+      await applySessionTokens(result);
+      if (user && !result.user) {
         await updateUser({ ...user, hasPassword: true });
       }
-      setInfo('Password created successfully.');
+      setInfo(result.message || 'Password created successfully. Other devices were signed out.');
       setPassword('');
       setConfirmPassword('');
     } catch (err) {
@@ -70,15 +101,19 @@ export default function SecurityScreen() {
     setInfo('');
     setLoading(true);
     try {
-      await authFetch('/auth/change-password', {
-        method: 'POST',
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-          confirmPassword: confirmNewPassword,
-        }),
-      });
-      setInfo('Password changed successfully.');
+      const result = await authFetch<AuthResponse & { success: boolean; message: string }>(
+        '/auth/change-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+            confirmPassword: confirmNewPassword,
+          }),
+        },
+      );
+      await applySessionTokens(result);
+      setInfo(result.message || 'Password changed successfully. Other devices were signed out.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
@@ -86,6 +121,35 @@ export default function SecurityScreen() {
       setError(err instanceof ApiError ? err.message : 'Failed to change password');
     } finally {
       setLoading(false);
+    }
+  }
+
+  function confirmLogoutAll() {
+    Alert.alert(
+      'Sign out all devices',
+      'This will sign you out everywhere, including this device.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign out all',
+          style: 'destructive',
+          onPress: () => void handleLogoutAll(),
+        },
+      ],
+    );
+  }
+
+  async function handleLogoutAll() {
+    setError('');
+    setInfo('');
+    setLogoutAllLoading(true);
+    try {
+      await authFetch('/auth/logout-all', { method: 'POST', body: JSON.stringify({}) });
+      await logout();
+      router.replace('/login');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to sign out all devices');
+      setLogoutAllLoading(false);
     }
   }
 
@@ -105,6 +169,7 @@ export default function SecurityScreen() {
         {user?.hasPassword ? (
           <>
             <Text style={styles.sectionTitle}>Change password</Text>
+            <Text style={styles.hint}>This signs out all other devices automatically.</Text>
             <FieldLabel>Current password</FieldLabel>
             <PasswordInput value={currentPassword} onChangeText={setCurrentPassword} placeholder="Current password" />
             <FieldLabel>New password</FieldLabel>
@@ -134,6 +199,18 @@ export default function SecurityScreen() {
         )}
         {error ? <ErrorText>{error}</ErrorText> : null}
         {info ? <InfoText>{info}</InfoText> : null}
+      </Card>
+
+      <Card>
+        <Text style={styles.sectionTitle}>Sessions</Text>
+        <Text style={styles.hint}>
+          Sign out everywhere if you think someone else may have access to your account.
+        </Text>
+        <SecondaryButton
+          label={logoutAllLoading ? 'Signing out…' : 'Sign out all devices'}
+          onPress={confirmLogoutAll}
+          disabled={logoutAllLoading || loading}
+        />
       </Card>
     </Screen>
   );

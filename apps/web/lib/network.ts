@@ -51,8 +51,8 @@ export function fetchNetworkStats() {
   return authFetch<NetworkStats>('/network/stats');
 }
 
-export function fetchConnections(page = 1) {
-  return authFetch<Paginated<ConnectionListItem>>(`/network/connections?page=${page}`);
+export function fetchConnections(page = 1, limit = 20) {
+  return authFetch<Paginated<ConnectionListItem>>(`/network/connections?page=${page}&limit=${limit}`);
 }
 
 export function fetchPendingReceived(page = 1) {

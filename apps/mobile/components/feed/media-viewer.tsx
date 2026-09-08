@@ -58,6 +58,13 @@ function FullscreenVideo({
   );
 }
 
+function formatCount(n: number) {
+  if (n <= 0) return '';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}K`;
+  return String(n);
+}
+
 /** Full-screen image and video viewer with the author's caption underneath. */
 export function MediaViewer({
   visible,
@@ -66,6 +73,13 @@ export function MediaViewer({
   caption,
   authorName,
   timeLabel,
+  liked = false,
+  likeCount = 0,
+  commentCount = 0,
+  likeDisabled = false,
+  onLike,
+  onComment,
+  onShare,
   onClose,
 }: {
   visible: boolean;
@@ -74,6 +88,13 @@ export function MediaViewer({
   caption?: string;
   authorName?: string | null;
   timeLabel?: string;
+  liked?: boolean;
+  likeCount?: number;
+  commentCount?: number;
+  likeDisabled?: boolean;
+  onLike?: () => void;
+  onComment?: () => void;
+  onShare?: () => void;
   onClose: () => void;
 }) {
   const { width, height } = useWindowDimensions();
@@ -89,6 +110,7 @@ export function MediaViewer({
   }, [visible, initialIndex]);
 
   const hasCaption = Boolean(caption && caption.trim());
+  const showActions = Boolean(onLike || onComment || onShare);
 
   return (
     <Modal
@@ -150,8 +172,74 @@ export function MediaViewer({
           ) : null}
         </View>
 
+        {showActions ? (
+          <View
+            style={[
+              styles.actionRail,
+              { bottom: Math.max(insets.bottom, 16) + (hasCaption || authorName ? 108 : 24) },
+            ]}
+            pointerEvents="box-none"
+          >
+            {onLike ? (
+              <Pressable
+                style={styles.actionBtn}
+                onPress={onLike}
+                disabled={likeDisabled}
+                accessibilityLabel={liked ? 'Unlike' : 'Like'}
+              >
+                <View style={styles.actionIcon}>
+                  <Ionicons
+                    name={liked ? 'heart' : 'heart-outline'}
+                    size={26}
+                    color={liked ? '#ff4d6d' : '#fff'}
+                  />
+                </View>
+                {likeCount > 0 ? (
+                  <Text style={styles.actionCount}>{formatCount(likeCount)}</Text>
+                ) : (
+                  <Text style={styles.actionLabel}>Like</Text>
+                )}
+              </Pressable>
+            ) : null}
+
+            {onComment ? (
+              <Pressable
+                style={styles.actionBtn}
+                onPress={onComment}
+                accessibilityLabel="Comment"
+              >
+                <View style={styles.actionIcon}>
+                  <Ionicons name="chatbubble-outline" size={24} color="#fff" />
+                </View>
+                {commentCount > 0 ? (
+                  <Text style={styles.actionCount}>{formatCount(commentCount)}</Text>
+                ) : (
+                  <Text style={styles.actionLabel}>Comment</Text>
+                )}
+              </Pressable>
+            ) : null}
+
+            {onShare ? (
+              <Pressable style={styles.actionBtn} onPress={onShare} accessibilityLabel="Share">
+                <View style={styles.actionIcon}>
+                  <Ionicons name="share-social-outline" size={25} color="#fff" />
+                </View>
+                <Text style={styles.actionLabel}>Share</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
         {hasCaption || authorName ? (
-          <View style={[styles.captionWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View
+            style={[
+              styles.captionWrap,
+              {
+                paddingBottom: Math.max(insets.bottom, 16),
+                paddingRight: showActions ? 72 : 18,
+              },
+            ]}
+          >
             {authorName ? (
               <Text style={styles.author}>
                 {authorName}
@@ -206,6 +294,36 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.16)',
   },
   counterText: { color: '#fff', fontSize: 12, ...fontStyle('semibold') },
+  actionRail: {
+    position: 'absolute',
+    right: 10,
+    alignItems: 'center',
+    gap: 18,
+  },
+  actionBtn: {
+    alignItems: 'center',
+    minWidth: 52,
+  },
+  actionIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  actionCount: {
+    marginTop: 4,
+    color: '#fff',
+    fontSize: 12,
+    ...fontStyle('semibold'),
+  },
+  actionLabel: {
+    marginTop: 4,
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 11,
+    ...fontStyle('semibold'),
+  },
   captionWrap: {
     position: 'absolute',
     left: 0,

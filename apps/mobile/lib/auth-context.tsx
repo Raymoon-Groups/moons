@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { AuthResponse, AuthUser } from '@moons/shared';
 import { loginRequest, logoutRequest, persistAuthSession } from './api';
+import { setAssetAuthToken } from './assets';
 import {
   clearAuthSession,
   getAccessToken,
@@ -37,8 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = await getAccessToken();
       const stored = await getStoredUser();
       if (token && stored) {
+        setAssetAuthToken(token);
         setUser(stored);
       } else {
+        setAssetAuthToken(null);
         await clearAuthSession();
       }
       setReady(true);
@@ -47,12 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await loginRequest(email, password);
+    setAssetAuthToken(data.accessToken);
     setUser(data.user);
     return data.user;
   }, []);
 
   const signIn = useCallback(async (data: AuthResponse) => {
     await persistAuthSession(data);
+    setAssetAuthToken(data.accessToken);
     setUser(data.user);
     return data.user;
   }, []);
@@ -61,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = await getAccessToken();
     const refreshToken = await getRefreshToken();
     if (token) {
+      setAssetAuthToken(token);
       await setAuthSession({
         accessToken: token,
         refreshToken: refreshToken ?? undefined,
@@ -72,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await logoutRequest();
+    setAssetAuthToken(null);
     setUser(null);
   }, []);
 

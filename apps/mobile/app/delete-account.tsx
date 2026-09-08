@@ -1,4 +1,6 @@
-import { Linking } from 'react-native';
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   StaticBulletList,
   StaticEmailLink,
@@ -6,42 +8,134 @@ import {
   StaticParagraph,
   StaticSection,
 } from '@/components/static/static-page';
-import { PrimaryButton } from '@/components/ui';
+import { ErrorText, FieldLabel, PasswordInput, PrimaryButton } from '@/components/ui';
+import { ApiError, authFetch } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { fontStyle } from '@/lib/font-style';
+import { useTheme } from '@/lib/theme-context';
+import { theme } from '@/lib/theme';
 
 export default function DeleteAccountScreen() {
+  const { user, logout } = useAuth();
+  const { colors } = useTheme();
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        formCard: {
+          backgroundColor: colors.surfaceElevated,
+          borderRadius: theme.radius.lg,
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: theme.spacing.md,
+          marginBottom: theme.spacing.md,
+        },
+        title: { fontSize: 16, ...fontStyle('bold'), color: colors.heading, marginBottom: 8 },
+        hint: { fontSize: 13, color: colors.muted, marginBottom: 12, lineHeight: 18 },
+        input: {
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: theme.radius.md,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          fontSize: 15,
+          color: colors.heading,
+          backgroundColor: colors.surface,
+          marginBottom: 12,
+          ...fontStyle('regular'),
+        },
+      }),
+    [colors],
+  );
+
+  async function runDelete() {
+    setError('');
+    if (confirmation !== 'DELETE') {
+      setError('Type DELETE in capital letters to confirm.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await authFetch('/auth/account', {
+        method: 'DELETE',
+        body: JSON.stringify({
+          confirmation,
+          ...(user?.hasPassword ? { password } : {}),
+        }),
+      });
+      await logout();
+      router.replace('/login');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to delete account');
+      setLoading(false);
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert(
+      'Delete account permanently?',
+      'Your profile, resume, applications, messages, and uploaded files will be removed. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => void runDelete() },
+      ],
+    );
+  }
+
   return (
     <StaticPageScreen
       eyebrow="Account"
       title="Delete your MoonsJob account"
-      subtitle="Request permanent deletion of your MoonsJob account and associated personal data."
-      updated="24 July 2026"
+      subtitle="Permanently delete your MoonsJob account and associated personal data."
+      updated="8 September 2026"
     >
-      <StaticSection heading="App covered by this page">
-        <StaticParagraph>
-          This page applies to the MoonsJob mobile app and the MoonsJob website operated by MoonsJob.
-        </StaticParagraph>
-      </StaticSection>
-
-      <StaticSection heading="How to request account deletion">
-        <StaticParagraph>Follow these steps:</StaticParagraph>
-        <StaticBulletList
-          items={[
-            'Email privacy@moonsjob.com from the same email address registered on your MoonsJob account.',
-            'Use the subject line: MoonsJob account deletion request.',
-            'Include your full name and confirm that you want your MoonsJob account and associated data deleted.',
-            'We will verify ownership of the account and process your request. You will receive a confirmation email when deletion is complete.',
-          ]}
-        />
-        <StaticParagraph>Typical processing time: up to 30 days after we verify your request.</StaticParagraph>
-        <PrimaryButton
-          label="Email privacy@moonsjob.com"
-          onPress={() => {
-            void Linking.openURL(
-              'mailto:privacy@moonsjob.com?subject=MoonsJob%20account%20deletion%20request',
-            );
-          }}
-        />
-      </StaticSection>
+      {user ? (
+        <View style={styles.formCard}>
+          <Text style={styles.title}>Delete in the app</Text>
+          <Text style={styles.hint}>
+            This removes your account immediately. Type DELETE to confirm
+            {user.hasPassword ? ' and enter your password' : ''}.
+          </Text>
+          {user.hasPassword ? (
+            <>
+              <FieldLabel>Current password</FieldLabel>
+              <PasswordInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Current password"
+              />
+            </>
+          ) : null}
+          <FieldLabel>Type DELETE to confirm</FieldLabel>
+          <TextInput
+            value={confirmation}
+            onChangeText={setConfirmation}
+            placeholder="DELETE"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            style={styles.input}
+            placeholderTextColor={colors.muted}
+          />
+          {error ? <ErrorText>{error}</ErrorText> : null}
+          <PrimaryButton
+            label={loading ? 'Deleting…' : 'Delete my account'}
+            onPress={confirmDelete}
+            loading={loading}
+          />
+        </View>
+      ) : (
+        <StaticSection heading="Sign in required">
+          <StaticParagraph>
+            Sign in to delete your account from the app, or email privacy@moonsjob.com if you cannot
+            access it.
+          </StaticParagraph>
+          <PrimaryButton label="Go to login" onPress={() => router.push('/login')} />
+        </StaticSection>
+      )}
 
       <StaticSection heading="What data is deleted">
         <StaticParagraph>
@@ -49,25 +143,19 @@ export default function DeleteAccountScreen() {
         </StaticParagraph>
         <StaticBulletList
           items={[
-            'Account credentials and login identifiers (email, authentication data)',
-            'Profile information (name, headline, phone, location, skills, experience, education)',
-            'Uploaded files such as resume, avatar, banner, and company logo',
-            'Job applications you submitted as a candidate',
-            'Jobs you posted as a recruiter (closed/removed from public listings)',
-            'Network connections, connection requests, and profile visit records tied to you',
-            'Messages and conversations associated with your account',
-            'In-app notification records for your account',
+            'Account credentials and login identifiers',
+            'Profile information and uploaded files (resume, avatar, banner, logo)',
+            'Job applications and jobs you posted',
+            'Network connections and profile visit records',
+            'Messages, conversations, and notifications',
           ]}
         />
       </StaticSection>
 
       <StaticSection heading="What data may be retained">
-        <StaticParagraph>
-          We may retain limited information when required for legitimate purposes:
-        </StaticParagraph>
         <StaticBulletList
           items={[
-            'Legal / fraud prevention records (typically up to 90 days, or longer if legally required)',
+            'Legal / fraud prevention records (typically up to 90 days)',
             'Encrypted backups for a short rotation period (typically up to 30 days)',
             'Aggregated analytics that cannot identify you',
           ]}
@@ -76,7 +164,7 @@ export default function DeleteAccountScreen() {
 
       <StaticSection heading="Contact">
         <StaticParagraph>
-          Questions about deletion or privacy: privacy@moonsjob.com or support@moonsjob.com.
+          Questions: privacy@moonsjob.com or support@moonsjob.com.
         </StaticParagraph>
         <StaticEmailLink email="privacy@moonsjob.com" />
       </StaticSection>

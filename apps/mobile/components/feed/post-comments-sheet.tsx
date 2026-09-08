@@ -16,10 +16,13 @@ import {
 import { useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PostCommentItem } from '@moons/shared';
+import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
+import { MentionText } from '@/components/mentions/mention-text';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import type { LocalMediaFile } from '@/lib/posts';
 import { useTheme } from '@/lib/theme-context';
+import { useMentionComposer } from '@/lib/use-mention-composer';
 
 /**
  * Full comment thread in a bottom sheet. The sheet lifts by keyboard height
@@ -50,7 +53,7 @@ export function PostCommentsSheet({
   commentFile: LocalMediaFile | null;
   onChangeText: (text: string) => void;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: (storedBody: string) => void;
   onPickAttachment: () => void;
   onClearFile: () => void;
   onCommentMenu: (comment: PostCommentItem) => void;
@@ -61,12 +64,17 @@ export function PostCommentsSheet({
   const keyboardHeight = useKeyboardState((state) => state.height);
   const inputRef = useRef<TextInput>(null);
   const listRef = useRef<FlatList<PostCommentItem>>(null);
+  const mention = useMentionComposer();
+  const mentionSuggestions = mention.suggestionsFor(commentText);
   const hairline = isDark ? colors.border : 'rgba(15, 28, 51, 0.08)';
   const canSubmit = Boolean(commentText.trim() || commentFile) && !busy;
   const bottomPad = keyboardHeight > 0 ? 10 : Math.max(insets.bottom, 10);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      mention.resetMentions();
+      return;
+    }
     const t = setTimeout(() => inputRef.current?.focus(), 320);
     return () => clearTimeout(t);
   }, [visible]);
@@ -218,16 +226,15 @@ export function PostCommentsSheet({
                       c.attachmentMimeType?.startsWith('image/') &&
                       c.body.trim().startsWith('📎')
                     ) ? (
-                      <Text
+                      <MentionText
+                        value={c.body}
                         style={{
                           color: isHidden ? colors.muted : colors.heading,
                           marginTop: 4,
                           fontSize: 14,
                           lineHeight: 20,
                         }}
-                      >
-                        {c.body}
-                      </Text>
+                      />
                     ) : null}
                     {isHidden ? (
                       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, lineHeight: 17 }}>
@@ -312,25 +319,40 @@ export function PostCommentsSheet({
               <Pressable onPress={onPickAttachment} hitSlop={8} style={styles.iconBtn}>
                 <Ionicons name="attach" size={22} color={colors.blue} />
               </Pressable>
-              <TextInput
-                ref={inputRef}
-                value={commentText}
-                onChangeText={onChangeText}
-                placeholder="Write a comment…"
-                placeholderTextColor={colors.muted}
-                multiline
-                maxLength={2000}
-                style={[
-                  styles.input,
-                  {
-                    color: colors.heading,
-                    borderColor: hairline,
-                    backgroundColor: isDark ? colors.surface : '#F3F6FA',
-                  },
-                ]}
-              />
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  ref={inputRef}
+                  value={commentText}
+                  onChangeText={(text) => {
+                    onChangeText(text);
+                    mention.setCaret(text.length);
+                    mention.syncMentionsFromText(text);
+                    mention.ensureLoaded();
+                  }}
+                  onSelectionChange={(e) => mention.setCaret(e.nativeEvent.selection.end)}
+                  placeholder="Write a comment… Use @ to mention"
+                  placeholderTextColor={colors.muted}
+                  multiline
+                  maxLength={2000}
+                  style={[
+                    styles.input,
+                    {
+                      color: colors.heading,
+                      borderColor: hairline,
+                      backgroundColor: isDark ? colors.surface : '#F3F6FA',
+                    },
+                  ]}
+                />
+                <MentionSuggestions
+                  people={mentionSuggestions}
+                  onSelect={(person) => {
+                    const result = mention.pickMention(commentText, person);
+                    onChangeText(result.text);
+                  }}
+                />
+              </View>
               <Pressable
-                onPress={onSubmit}
+                onPress={() => onSubmit(mention.toStored(commentText).trim())}
                 disabled={!canSubmit}
                 style={[
                   styles.sendBtn,

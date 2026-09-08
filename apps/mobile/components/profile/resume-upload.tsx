@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton, SecondaryButton } from '@/components/ui';
 import { fontStyle } from '@/lib/font-style';
+import { openResumeFileOrAlert } from '@/lib/open-resume';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { Profile } from '@/lib/types';
@@ -90,6 +91,9 @@ export function ResumeUpload({
     });
   }
 
+  const savedResumeUrl =
+    !pendingRemove && !pendingFile ? profile.resumeUrl : null;
+
   return (
     <View>
       {fileName ? (
@@ -97,6 +101,14 @@ export function ResumeUpload({
       ) : (
         <Text style={styles.empty}>No resume uploaded</Text>
       )}
+      {savedResumeUrl ? (
+        <View style={{ marginBottom: theme.spacing.sm }}>
+          <SecondaryButton
+            label="View my resume"
+            onPress={() => void openResumeFileOrAlert(savedResumeUrl, fileName)}
+          />
+        </View>
+      ) : null}
       <SecondaryButton
         label={fileName ? 'Replace resume' : 'Upload resume (PDF or DOC)'}
         onPress={pickResume}

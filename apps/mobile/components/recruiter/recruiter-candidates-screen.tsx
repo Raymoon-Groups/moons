@@ -18,6 +18,7 @@ import { EmptyState, FilterChips, ScreenHeader } from '@/components/portal-ui';
 import { SearchBar } from '@/components/search-bar';
 import { StatusBadge } from '@/components/status-badge';
 import { authFetch } from '@/lib/api';
+import { openResumeFileOrAlert } from '@/lib/open-resume';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import {
@@ -202,7 +203,7 @@ function CandidateCard({
 
         {profile?.resumeUrl ? (
           <Pressable
-            onPress={() => void Linking.openURL(resolveAssetUrl(profile.resumeUrl)!)}
+            onPress={() => void openResumeFileOrAlert(profile.resumeUrl, profile.resumeFileName)}
             style={styles.actionBtn}
           >
             <Text style={styles.actionText}>Download CV</Text>

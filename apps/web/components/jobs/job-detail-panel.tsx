@@ -10,7 +10,7 @@ import { ApplyJobModal } from '@/components/jobs/apply-job-modal';
 import { JobKeyDetailsList } from '@/components/jobs/job-key-details';
 import { JobTags } from '@/components/jobs/job-tags';
 import { apiFetch, authFetch } from '@/lib/api-client';
-import { getAccessToken, getStoredUser } from '@/lib/auth';
+import { getStoredUser, isAuthenticated } from '@/lib/auth';
 import { formatPostedAgo } from '@/lib/job-formatters';
 import type { JobListing } from '@/lib/jobs';
 
@@ -31,7 +31,7 @@ export function JobDetailPanel({
 
   const user = getStoredUser();
   const isCandidate = user?.role === UserRole.CANDIDATE;
-  const isLoggedIn = !!getAccessToken();
+  const isLoggedIn = isAuthenticated();
 
   useEffect(() => {
     if (!jobId) {
@@ -61,7 +61,7 @@ export function JobDetailPanel({
         if (cancelled) return;
         if (!hasPreview) setJob(data);
 
-        if (getStoredUser()?.role === UserRole.CANDIDATE && getAccessToken()) {
+        if (getStoredUser()?.role === UserRole.CANDIDATE && isAuthenticated()) {
           const check = await authFetch<{ applied: boolean }>(
             `/applications/check?jobId=${jobId}`,
           );

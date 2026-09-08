@@ -101,6 +101,7 @@ model User {
   posts               Post[]         @relation("PostsAuthored")
   postLikes           PostLike[]
   postComments        PostComment[]  @relation("PostCommentsAuthored")
+  abuseReports        AbuseReport[]  @relation("AbuseReportsFiled")
 
   @@map("users")
 }
@@ -430,4 +431,38 @@ model NewsletterSubscriber {
 
   @@index([createdAt])
   @@map("newsletter_subscribers")
+}
+
+enum AbuseReportTarget {
+  COMMENT
+  POST
+  USER
+  JOB
+  MESSAGE
+}
+
+enum AbuseReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+  ACTIONED
+}
+
+model AbuseReport {
+  id         String            @id @default(uuid())
+  reporterId String            @map("reporter_id")
+  targetType AbuseReportTarget @map("target_type")
+  targetId   String            @map("target_id")
+  reason     String?
+  details    String?
+  status     AbuseReportStatus @default(OPEN)
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+
+  reporter User @relation("AbuseReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@map("abuse_reports")
 }

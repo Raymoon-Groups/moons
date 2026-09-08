@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import type { FeedPost } from '@moons/shared';
+import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
 import { SuccessModal } from '@/components/success-modal';
 import { UploadProgressModal } from '@/components/upload-progress-modal';
 import { resolveAssetUrl } from '@/lib/assets';
@@ -21,6 +22,7 @@ import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
 import { createPost, type LocalMediaFile } from '@/lib/posts';
 import { useTheme } from '@/lib/theme-context';
+import { useMentionComposer } from '@/lib/use-mention-composer';
 
 const MAX_BODY = 3000;
 
@@ -80,6 +82,8 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadLabel, setUploadLabel] = useState('Uploading');
   const [success, setSuccess] = useState<PostSuccessState | null>(null);
+  const mention = useMentionComposer();
+  const mentionSuggestions = mention.suggestionsFor(body);
 
   const avatar = resolveAssetUrl(user?.avatarUrl ?? null);
   const initial = (user?.fullName?.[0] || user?.email?.[0] || '?').toUpperCase();
@@ -250,9 +254,10 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
     setUploadLabel(getUploadLabel(attachedFiles));
     setUploadProgress(0);
     try {
-      const created = await createPost(body, attachedFiles, setUploadProgress);
+      const created = await createPost(mention.toStored(body), attachedFiles, setUploadProgress);
       onPosted(created);
       setBody('');
+      mention.resetMentions();
       setFiles([]);
       setExpanded(false);
       setUploadProgress(null);
@@ -268,6 +273,7 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
   function cancel() {
     setExpanded(false);
     setBody('');
+    mention.resetMentions();
     setFiles([]);
   }
 
@@ -356,12 +362,27 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
 
         <TextInput
           value={body}
-          onChangeText={(text) => setBody(text.slice(0, MAX_BODY))}
-          placeholder="Share an update with your network…"
+          onChangeText={(text) => {
+            const next = text.slice(0, MAX_BODY);
+            setBody(next);
+            mention.setCaret(next.length);
+            mention.syncMentionsFromText(next);
+            mention.ensureLoaded();
+          }}
+          onSelectionChange={(e) => mention.setCaret(e.nativeEvent.selection.end)}
+          placeholder="Share an update with your network… Use @ to mention"
           placeholderTextColor={colors.muted}
           multiline
           autoFocus
           style={styles.input}
+        />
+
+        <MentionSuggestions
+          people={mentionSuggestions}
+          onSelect={(person) => {
+            const result = mention.pickMention(body, person);
+            setBody(result.text.slice(0, MAX_BODY));
+          }}
         />
 
         {files.length > 0 ? (

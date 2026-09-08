@@ -346,14 +346,15 @@ function MessagesPageInner() {
     scrollThreadToEnd();
   }, [messages, scrollThreadToEnd]);
 
-  async function handleSend(e?: React.FormEvent) {
+  async function handleSend(e?: React.FormEvent, storedBody?: string) {
     e?.preventDefault();
     if (!activeId || sending || !threadDetail?.canReply) return;
-    if (!draft.trim() && !attachment) return;
+    const body = (storedBody ?? draft).trim();
+    if (!body && !attachment) return;
     setSending(true);
     setError('');
     try {
-      const sent = await sendMessage(activeId, draft.trim(), attachment ?? undefined);
+      const sent = await sendMessage(activeId, body, attachment ?? undefined);
       stickToBottomRef.current = true;
       setMessages((prev) => [...prev, sent]);
       setDraft('');
@@ -671,9 +672,9 @@ function MessagesPageInner() {
                       onChange={setDraft}
                       attachment={attachment}
                       onAttachmentChange={setAttachment}
-                      onSubmit={() => void handleSend()}
+                      onSubmit={(storedBody) => void handleSend(undefined, storedBody)}
                       sending={sending}
-                      placeholder={`Message ${displayName.split(' ')[0]}…`}
+                      placeholder={`Message ${displayName.split(' ')[0]}… Use @ to mention`}
                     />
                   </form>
                 ) : !threadDetail?.canReply && messages.length > 0 ? (

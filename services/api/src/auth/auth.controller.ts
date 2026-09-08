@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Post,
   Req,
@@ -13,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import { Request, Response } from 'express';
 import {
@@ -20,9 +22,17 @@ import {
   JwtPayload,
 } from '../common/decorators/current-user.decorator';
 import { AdminGuard } from '../common/guards/admin.guard';
+import { THROTTLE } from '../common/throttle.constants';
 import { AuthService } from './auth.service';
+import {
+  clearAuthCookies,
+  REFRESH_COOKIE,
+  setAuthCookies,
+} from './auth-cookies';
+import { ensureCsrfCookie } from '../common/middleware/csrf-cookie.middleware';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { LoginDto } from './dto/login.dto';
@@ -35,10 +45,9 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { parseResume } from './resume-parser.util';
 
-const REFRESH_COOKIE = 'moons_refresh';
-
 @ApiTags('auth')
 @Controller('auth')
+@Throttle(THROTTLE.auth)
 export class AuthController {
   constructor(private authService: AuthService) {}
 
@@ -49,23 +58,34 @@ export class AuthController {
     return { ok: true, email: user.email };
   }
 
+  /** Issue / refresh the readable CSRF cookie for web cookie-auth sessions. */
+  @Get('csrf')
+  csrf(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const token = ensureCsrfCookie(req, res);
+    return { csrfToken: token };
+  }
+
   @Post('register/send-otp')
+  @Throttle(THROTTLE.authStrict)
   sendOtp(@Body() dto: SendOtpDto) {
     return this.authService.sendRegistrationOtp(dto);
   }
 
   @Post('register/resend-otp')
+  @Throttle(THROTTLE.authStrict)
   resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendRegistrationOtp(dto);
   }
 
   @Post('register/verify-otp')
+  @Throttle(THROTTLE.authStrict)
   async verifyOtp(
     @Body() dto: VerifyOtpDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.verifyRegistrationOtp(dto);
-    this.setRefreshCookie(res, result.refreshToken);
+    setAuthCookies(res, result);
+    // Tokens remain in JSON for mobile Bearer clients; web uses HttpOnly cookies.
     return {
       user: result.user,
       accessToken: result.accessToken,
@@ -74,12 +94,13 @@ export class AuthController {
   }
 
   @Post('google')
+  @Throttle(THROTTLE.authStrict)
   async google(
     @Body() dto: GoogleAuthDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.loginWithGoogle(dto);
-    this.setRefreshCookie(res, result.refreshToken);
+    setAuthCookies(res, result);
     return {
       user: result.user,
       accessToken: result.accessToken,
@@ -88,12 +109,13 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle(THROTTLE.authStrict)
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto);
-    this.setRefreshCookie(res, result.refreshToken);
+    setAuthCookies(res, result);
     return {
       user: result.user,
       accessToken: result.accessToken,
@@ -102,11 +124,13 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle(THROTTLE.authStrict)
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
   }
 
   @Post('reset-password')
+  @Throttle(THROTTLE.authStrict)
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
@@ -114,21 +138,63 @@ export class AuthController {
   @Post('set-password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  setPassword(
+  async setPassword(
     @CurrentUser() user: JwtPayload,
     @Body() dto: SetPasswordDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.setPassword(user.sub, dto);
+    const result = await this.authService.setPassword(user.sub, dto);
+    if (result.accessToken && result.refreshToken) {
+      setAuthCookies(res, {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
+    }
+    return result;
   }
 
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  changePassword(
+  async changePassword(
     @CurrentUser() user: JwtPayload,
     @Body() dto: ChangePasswordDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.changePassword(user.sub, dto);
+    const result = await this.authService.changePassword(user.sub, dto);
+    if (result.accessToken && result.refreshToken) {
+      setAuthCookies(res, {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
+    }
+    return result;
+  }
+
+  @Post('logout-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async logoutAll(
+    @CurrentUser() user: JwtPayload,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.logoutAll(user.sub);
+    clearAuthCookies(res);
+    return result;
+  }
+
+  @Delete('account')
+  @Throttle(THROTTLE.authStrict)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async deleteAccount(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: DeleteAccountDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.deleteAccount(user.sub, dto);
+    clearAuthCookies(res);
+    return result;
   }
 
   @Post('onboarding/complete')
@@ -167,6 +233,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle(THROTTLE.auth)
   async refresh(
     @Req() req: Request,
     @Body() dto: RefreshTokenDto,
@@ -177,7 +244,7 @@ export class AuthController {
       throw new UnauthorizedException('No refresh token');
     }
     const result = await this.authService.refresh(refreshToken);
-    this.setRefreshCookie(res, result.refreshToken);
+    setAuthCookies(res, result);
     return {
       user: result.user,
       accessToken: result.accessToken,
@@ -218,22 +285,7 @@ export class AuthController {
   ) {
     const refreshToken = req.cookies?.[REFRESH_COOKIE] ?? dto.refreshToken;
     await this.authService.logout(refreshToken);
-    res.clearCookie(REFRESH_COOKIE, this.refreshCookieOptions());
+    clearAuthCookies(res);
     return { success: true };
-  }
-
-  private refreshCookieOptions() {
-    const isProd = process.env.NODE_ENV === 'production';
-    return {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? ('none' as const) : ('lax' as const),
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
-    };
-  }
-
-  private setRefreshCookie(res: Response, token: string) {
-    res.cookie(REFRESH_COOKIE, token, this.refreshCookieOptions());
   }
 }

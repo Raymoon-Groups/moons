@@ -24,10 +24,13 @@ import { ApiError, NetworkError, resendRegisterOtp, sendRegisterOtp, verifyRegis
 import { useAuth } from '@/lib/auth-context';
 import { getPostAuthPath } from '@/lib/auth-redirect';
 import { fontStyle } from '@/lib/font-style';
+import { useTheme } from '@/lib/theme-context';
+
 type Step = 'credentials' | 'otp';
 
 export default function RegisterScreen() {
   const { signIn } = useAuth();
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{ role?: string }>();
   const defaultRole = params.role === 'recruiter' ? UserRole.RECRUITER : UserRole.CANDIDATE;
 
@@ -45,13 +48,14 @@ export default function RegisterScreen() {
     () =>
       StyleSheet.create({
         otpHint: {
-          color: 'rgba(214,224,240,0.72)',
-          fontSize: 14,
-          marginBottom: 8,
-          lineHeight: 20,
+          color: colors.muted,
+          fontSize: 12,
+          marginTop: -2,
+          marginBottom: 12,
+          lineHeight: 18,
         },
         legal: {
-          color: 'rgba(214,224,240,0.65)',
+          color: colors.muted,
           fontSize: 12,
           lineHeight: 18,
           textAlign: 'center',
@@ -59,9 +63,9 @@ export default function RegisterScreen() {
           ...fontStyle('regular'),
         },
         footer: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
-        footerText: { color: 'rgba(214,224,240,0.72)', fontSize: 14 },
+        footerText: { color: colors.muted, fontSize: 14 },
       }),
-    [],
+    [colors],
   );
 
   async function handleSendOtp() {
@@ -144,23 +148,26 @@ export default function RegisterScreen() {
   return (
     <AuthLayout
       variant="signup"
-      title={step === 'credentials' ? 'Sign Up' : 'Verify email'}
+      title={step === 'credentials' ? 'Create account' : 'Verify email'}
       subtitle={
         step === 'credentials'
-          ? 'Use proper information to continue on MoonsJob'
+          ? 'Join MoonsJob to apply faster and connect with top teams.'
           : `Enter the 6-digit code sent to ${email}`
       }
       footer={
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an Account? </Text>
+          <Text style={styles.footerText}>Already have an account? </Text>
           <LinkText onPress={() => router.push('/login')}>Sign in</LinkText>
         </View>
       }
     >
       {step === 'credentials' ? (
         <>
-          <FieldLabel>I am a</FieldLabel>
+          <FieldLabel>Continue as</FieldLabel>
           <RolePicker value={role} onChange={setRole} />
+          <GoogleSignInButton role={role} />
+
+          <Divider label="or continue with email" />
 
           <AuthField
             icon="mail-outline"
@@ -169,21 +176,17 @@ export default function RegisterScreen() {
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="Email address"
+            placeholder="Your email"
           />
 
           <AuthPasswordField
             label="Password"
             value={password}
             onChangeText={setPassword}
-            placeholder="Password"
+            placeholder="Create a password"
           />
 
-          <Text style={[styles.otpHint, { marginTop: 0 }]}>{PASSWORD_REQUIREMENTS_MESSAGE}</Text>
-
-          <Text style={styles.legal}>
-            By signing up, you agree to our Terms & Conditions and Privacy Policy.
-          </Text>
+          <Text style={styles.otpHint}>{PASSWORD_REQUIREMENTS_MESSAGE}</Text>
 
           {passwordErrors.length > 0 ? (
             <ErrorText>{passwordErrors.map((item) => `• ${item}`).join('\n')}</ErrorText>
@@ -192,29 +195,29 @@ export default function RegisterScreen() {
           {info ? <InfoText>{info}</InfoText> : null}
 
           <PrimaryButton
-            tone="soft"
-            label={loading ? 'Sending code…' : 'Create Account'}
+            label={loading ? 'Sending code…' : 'Create account'}
             onPress={handleSendOtp}
             loading={loading}
           />
 
-          <Divider label="Or Continue with" />
-          <GoogleSignInButton role={role} />
+          <Text style={styles.legal}>
+            By signing up, you agree to our Terms & Conditions and Privacy Policy.
+          </Text>
         </>
       ) : (
         <>
           <AuthField
             icon="keypad-outline"
+            label="Verification code"
             value={otp}
             onChangeText={(text) => setOtp(text.replace(/\D/g, '').slice(0, 6))}
             keyboardType="number-pad"
-            placeholder="Verification code"
+            placeholder="6-digit code"
             maxLength={6}
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton
-            tone="soft"
             label={loading ? 'Verifying…' : 'Verify & create account'}
             onPress={handleVerifyOtp}
             loading={loading}

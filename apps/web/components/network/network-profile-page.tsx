@@ -22,6 +22,7 @@ import {
   ShareProfileMenu,
 } from '@/components/network/network-modals';
 import { ProfilePostsSection } from '@/components/feed/profile-posts-section';
+import { ResumeDownloadButton } from '@/components/resume-download-button';
 import type {
   CertificationEntry,
   EducationEntry,
@@ -505,7 +506,7 @@ export function NetworkProfilePage() {
   const preferredLocations = Array.isArray(profile.preferredLocations)
     ? (profile.preferredLocations as string[])
     : [];
-  const resumeUrl = profile.resumeUrl ? resolveAssetUrl(String(profile.resumeUrl)) : null;
+  const resumeUrl = profile.resumeUrl ? String(profile.resumeUrl) : null;
   const isOwnProfile = user?.id === profile.userId;
   const connectionStatus = normalizeConnectionStatus(data.connectionStatus);
   const isConnected = connectionStatus === 'ACCEPTED';
@@ -828,14 +829,11 @@ export function NetworkProfilePage() {
                   )}
                 </dl>
                 {resumeUrl && (
-                  <a
-                    href={resumeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-5 flex h-9 w-full items-center justify-center rounded-full border border-moons-blue text-[13px] font-semibold text-moons-blue transition hover:bg-moons-blue/5"
-                  >
-                    View resume
-                  </a>
+                  <ResumeDownloadButton
+                    url={resumeUrl}
+                    label="View resume"
+                    className="mt-5 flex h-9 w-full items-center justify-center rounded-full border border-moons-blue text-[13px] font-semibold text-moons-blue transition hover:bg-moons-blue/5 disabled:opacity-60"
+                  />
                 )}
               </SectionCard>
 

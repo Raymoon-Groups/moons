@@ -1,4 +1,4 @@
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppIntro } from '@/components/app-intro';
 import { AppSplash } from '@/components/app-splash';
@@ -20,10 +20,17 @@ export default function Index() {
     });
   }, []);
 
-  const finishIntro = useCallback(async () => {
+  const finishIntro = useCallback(async (dest?: 'login' | 'register') => {
     await setIntroSeen();
     setIntroSeenState(true);
     setShowIntro(false);
+    if (dest === 'register') {
+      router.replace('/register');
+      return;
+    }
+    if (dest === 'login') {
+      router.replace('/login');
+    }
   }, []);
 
   useEffect(() => {
@@ -43,7 +50,7 @@ export default function Index() {
   }
 
   if (showIntro) {
-    return <AppIntro onComplete={() => void finishIntro()} />;
+    return <AppIntro onComplete={(dest) => void finishIntro(dest)} />;
   }
 
   if (!user) {

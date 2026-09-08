@@ -16,8 +16,8 @@ const POST_UPLOAD_DIR = join(process.cwd(), 'uploads', 'posts');
 const COMMENT_UPLOAD_DIR = join(process.cwd(), 'uploads', 'comment-attachments');
 const MAX_IMAGES = 10;
 const MAX_VIDEOS = 1;
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const MAX_COMMENT_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 const IMAGE_MIME = new Set([
@@ -381,10 +381,10 @@ export class PostsService {
       const mimeType = normalizeUploadMime(file.mimetype, file.originalname || '');
       const isVideo = VIDEO_MIME.has(mimeType);
       if (isVideo && file.size > MAX_VIDEO_BYTES) {
-        throw new BadRequestException('Video must be 50MB or smaller');
+        throw new BadRequestException('Video must be 100MB or smaller');
       }
       if (!isVideo && file.size > MAX_IMAGE_BYTES) {
-        throw new BadRequestException('Each image must be 5MB or smaller');
+        throw new BadRequestException('Each image must be 15MB or smaller');
       }
       const ext = extname(file.originalname || '').toLowerCase() || (isVideo ? '.mp4' : '.jpg');
       const filename = `${randomUUID()}${ext}`;
@@ -451,7 +451,8 @@ export class PostsService {
 
     const recipientIds = connections
       .map((c) => (c.fromUserId === authorId ? c.toUserId : c.fromUserId))
-      .filter((id) => id !== authorId && !blocked.has(id));
+      .filter((id) => id !== authorId && !blocked.has(id))
+      .slice(0, 50);
 
     if (!recipientIds.length) return;
 
@@ -482,6 +483,7 @@ export class PostsService {
           body: notificationBody,
           linkUrl: `/dashboard?post=${postId}`,
           metadata: { postId, fromUserId: authorId },
+          actorId: authorId,
         }),
       ),
     );
@@ -656,6 +658,7 @@ export class PostsService {
         body: `${name} liked your post`,
         linkUrl: `/dashboard?post=${targetId}`,
         metadata: { postId: targetId, fromUserId: userId },
+        actorId: userId,
       });
     }
 
@@ -793,6 +796,7 @@ export class PostsService {
           : `${name} commented on your post`,
         linkUrl: `/dashboard?post=${targetId}`,
         metadata: { postId: targetId, commentId: comment.id, fromUserId: userId },
+        actorId: userId,
       });
     }
 
@@ -966,6 +970,7 @@ export class PostsService {
         body: `${name} shared your post`,
         linkUrl: `/dashboard?post=${shared.id}`,
         metadata: { postId: shared.id, originalPostId: rootId, fromUserId: userId },
+        actorId: userId,
       });
     }
 

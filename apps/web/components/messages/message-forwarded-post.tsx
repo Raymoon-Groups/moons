@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { extractForwardedPostId, stripForwardedPostUrl, type FeedPost } from '@moons/shared';
+import { MentionText } from '@/components/mentions/mention-text';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fetchPost } from '@/lib/posts';
 
@@ -34,8 +35,16 @@ export function MessageForwardedPost({ body, isMine }: { body: string; isMine?: 
     };
   }, [postId]);
 
+  const mentionClass = isMine
+    ? 'font-semibold text-white underline underline-offset-2'
+    : 'font-semibold text-moons-blue hover:underline';
+
   if (!postId) {
-    return <p className="whitespace-pre-wrap break-words">{body}</p>;
+    return (
+      <p className="whitespace-pre-wrap break-words">
+        <MentionText value={body} mentionClassName={mentionClass} />
+      </p>
+    );
   }
 
   const media = post ? postMedia(post) : [];
@@ -46,7 +55,11 @@ export function MessageForwardedPost({ body, isMine }: { body: string; isMine?: 
 
   return (
     <div className="space-y-2">
-      {note ? <p className="whitespace-pre-wrap break-words">{note}</p> : null}
+      {note ? (
+        <p className="whitespace-pre-wrap break-words">
+          <MentionText value={note} mentionClassName={mentionClass} />
+        </p>
+      ) : null}
       <div
         className={`overflow-hidden rounded-xl border ${
           isMine ? 'border-white/25 bg-white/10' : 'border-border/70 bg-black/5'
@@ -61,6 +74,7 @@ export function MessageForwardedPost({ body, isMine }: { body: string; isMine?: 
           />
         ) : href ? (
           <Link href={`/dashboard?post=${postId}`} className="block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={href} alt="" className="max-h-52 w-full object-cover" />
           </Link>
         ) : (

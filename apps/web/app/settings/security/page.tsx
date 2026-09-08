@@ -37,7 +37,7 @@ function StatusItem({
 
 export default function SecuritySettingsPage() {
   const router = useRouter();
-  const { user, ready, updateUser } = useAuth();
+  const { user, ready, updateUser, login, logout } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -46,6 +46,11 @@ export default function SecuritySettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [logoutAllLoading, setLogoutAllLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     if (ready && !user) {
@@ -60,12 +65,29 @@ export default function SecuritySettingsPage() {
     setLoading(true);
 
     try {
-      await authFetch('/auth/set-password', {
+      const result = await authFetch<{
+        success: boolean;
+        message: string;
+        user?: Parameters<typeof login>[0]['user'];
+        accessToken?: string;
+        refreshToken?: string;
+      }>('/auth/set-password', {
         method: 'POST',
         body: JSON.stringify({ password, confirmPassword }),
       });
-      updateUser({ hasPassword: true });
-      setSuccess('Password created successfully. You can now sign in with email and password.');
+      if (result.user && result.accessToken) {
+        login({
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        });
+      } else {
+        updateUser({ hasPassword: true });
+      }
+      setSuccess(
+        result.message ||
+          'Password created successfully. Other devices have been signed out.',
+      );
       setPassword('');
       setConfirmPassword('');
     } catch (err) {
@@ -82,7 +104,13 @@ export default function SecuritySettingsPage() {
     setLoading(true);
 
     try {
-      await authFetch('/auth/change-password', {
+      const result = await authFetch<{
+        success: boolean;
+        message: string;
+        user?: Parameters<typeof login>[0]['user'];
+        accessToken?: string;
+        refreshToken?: string;
+      }>('/auth/change-password', {
         method: 'POST',
         body: JSON.stringify({
           currentPassword,
@@ -90,7 +118,17 @@ export default function SecuritySettingsPage() {
           confirmPassword: confirmNewPassword,
         }),
       });
-      setSuccess('Password changed successfully.');
+      if (result.user && result.accessToken) {
+        login({
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        });
+      }
+      setSuccess(
+        result.message ||
+          'Password changed successfully. Other devices have been signed out.',
+      );
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
@@ -98,6 +136,44 @@ export default function SecuritySettingsPage() {
       setError(err instanceof Error ? err.message : 'Failed to change password');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleLogoutAll() {
+    setError('');
+    setSuccess('');
+    setLogoutAllLoading(true);
+    try {
+      await authFetch('/auth/logout-all', { method: 'POST', body: JSON.stringify({}) });
+      await logout();
+      router.replace('/login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign out all devices');
+      setLogoutAllLoading(false);
+    }
+  }
+
+  async function handleDeleteAccount(e: FormEvent) {
+    e.preventDefault();
+    setDeleteError('');
+    if (deleteConfirm !== 'DELETE') {
+      setDeleteError('Type DELETE in capital letters to confirm.');
+      return;
+    }
+    setDeleteLoading(true);
+    try {
+      await authFetch('/auth/account', {
+        method: 'DELETE',
+        body: JSON.stringify({
+          confirmation: deleteConfirm,
+          ...(user?.hasPassword ? { password: deletePassword } : {}),
+        }),
+      });
+      await logout();
+      router.replace('/login?deleted=1');
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete account');
+      setDeleteLoading(false);
     }
   }
 
@@ -148,7 +224,7 @@ export default function SecuritySettingsPage() {
               <p className="mt-2 text-sm text-moons-muted">
                 {canCreatePassword
                   ? 'Your account was created with Google. Add a password to also sign in with your email.'
-                  : 'Update your password. You will need your current password to make changes.'}
+                  : 'Update your password. This will sign out all other devices.'}
               </p>
 
               {canCreatePassword ? (
@@ -249,6 +325,52 @@ export default function SecuritySettingsPage() {
                 </form>
               )}
             </section>
+
+          <section className="rounded-2xl border border-red-200 bg-red-50/40 p-6 shadow-sm dark:border-red-900/40 dark:bg-red-950/20">
+              <h2 className="text-base font-bold text-heading">Delete account</h2>
+              <p className="mt-2 text-sm text-moons-muted">
+                Permanently delete your MoonsJob account, profile, applications, jobs you posted,
+                messages, and uploaded files. This cannot be undone.
+              </p>
+              <form onSubmit={handleDeleteAccount} className="mt-6 space-y-4">
+                {user.hasPassword ? (
+                  <PasswordField
+                    id="deletePassword"
+                    label="Current password"
+                    value={deletePassword}
+                    onChange={setDeletePassword}
+                    minLength={8}
+                    placeholder="Enter your password"
+                  />
+                ) : null}
+                <div>
+                  <label
+                    htmlFor="deleteConfirm"
+                    className="mb-1.5 block text-sm font-semibold text-heading"
+                  >
+                    Type DELETE to confirm
+                  </label>
+                  <input
+                    id="deleteConfirm"
+                    value={deleteConfirm}
+                    onChange={(e) => setDeleteConfirm(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-heading outline-none focus:border-moons-blue"
+                    placeholder="DELETE"
+                    autoComplete="off"
+                  />
+                </div>
+                {deleteError ? (
+                  <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{deleteError}</p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={deleteLoading || loading || logoutAllLoading}
+                  className="rounded-lg bg-red-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                >
+                  {deleteLoading ? 'Deleting…' : 'Delete my account'}
+                </button>
+              </form>
+            </section>
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-24">
@@ -305,10 +427,28 @@ export default function SecuritySettingsPage() {
             </div>
 
           <div className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-heading">Sessions</h3>
+              <p className="mt-2 text-sm text-moons-muted">
+                Sign out everywhere if you think someone else may have access to your account.
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleLogoutAll()}
+                disabled={logoutAllLoading || loading}
+                className="mt-4 w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300"
+              >
+                {logoutAllLoading ? 'Signing out…' : 'Sign out all devices'}
+              </button>
+            </div>
+
+          <div className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm">
               <h3 className="text-sm font-bold text-heading">Security tips</h3>
               <ul className="mt-4 space-y-3 text-sm text-moons-muted">
                 <li>Use at least 8 characters with a mix of letters, numbers, and symbols.</li>
                 <li>Do not reuse passwords from other websites or apps.</li>
+                <li>
+                  Changing your password signs other devices out automatically.
+                </li>
                 <li>
                   If you signed up with Google, you can still add a password for email login.
                 </li>

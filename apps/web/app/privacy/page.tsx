@@ -55,7 +55,15 @@ export default function PrivacyPage() {
       <StaticSection heading="5. Your rights" icon={<UserCheckIcon />}>
         <p>
           You can access, update, or delete your profile information at any time from your account
-          settings. To request full account deletion, contact{' '}
+          settings. To permanently delete your account, use{' '}
+          <a href="/settings/security" className="font-semibold text-moons-blue hover:underline">
+            Settings → Security → Delete account
+          </a>
+          , or see{' '}
+          <a href="/delete-account" className="font-semibold text-moons-blue hover:underline">
+            Delete account
+          </a>
+          . If you cannot sign in, contact{' '}
           <a
             href="mailto:privacy@moonsjob.com"
             className="font-semibold text-moons-blue hover:underline"

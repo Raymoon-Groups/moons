@@ -15,8 +15,8 @@ import {
   DashTipsList,
 } from '@/components/dash/dash-page-shell';
 import { CandidateProfileReadonly } from '@/components/profile/candidate-profile-readonly';
+import { ResumeDownloadButton } from '@/components/resume-download-button';
 import { authFetch } from '@/lib/api-client';
-import { resolveAssetUrl } from '@/lib/assets';
 import { getStoredUser } from '@/lib/auth';
 import { formatExperience, getResumeDisplayName } from '@/components/profile/profile-shared';
 import type { Profile } from '@/lib/types';
@@ -67,7 +67,7 @@ export default function RecruiterCandidateProfilePage() {
   }
 
   const displayName = profile.fullName?.trim() || profile.email.split('@')[0];
-  const resumeUrl = profile.resumeUrl ? resolveAssetUrl(profile.resumeUrl) : null;
+  const resumeUrl = profile.resumeUrl ?? null;
   const resumeFileName = getResumeDisplayName(profile);
 
   return (
@@ -125,14 +125,11 @@ export default function RecruiterCandidateProfilePage() {
           <DashSidebarPanel title="Actions">
             <div className="flex flex-col gap-2">
               {resumeUrl && resumeFileName && (
-                <a
-                  href={resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl bg-moons-blue px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark hover:shadow-md"
-                >
-                  <span className="truncate">{resumeFileName}</span>
-                </a>
+                <ResumeDownloadButton
+                  url={resumeUrl}
+                  fileName={resumeFileName}
+                  label={resumeFileName}
+                />
               )}
               <button
                 type="button"

@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useMemo, useRef, useState } from 'react';
+import { ResumeDownloadButton } from '@/components/resume-download-button';
 import { SuccessModal } from '@/components/success-modal';
 import { authDelete, authFetch, authUpload } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
@@ -99,7 +100,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
   const [photoKey, setPhotoKey] = useState(0);
 
   const displayName = fullName.trim() || profile.email.split('@')[0];
-  const resumeUrl = profile.resumeUrl ? resolveAssetUrl(profile.resumeUrl) : null;
+  const resumeUrl = profile.resumeUrl ?? null;
   const resumeFileName = getResumeDisplayName(profile, pendingResume, pendingRemoveResume);
   const experienceLabel =
     experienceYears === ''
@@ -534,15 +535,12 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             viewContent={
               <div className="text-sm text-foreground">
                 {resumeUrl && resumeFileName ? (
-                  <a
-                    href={resumeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 font-medium text-moons-blue hover:bg-surface-hover hover:underline"
-                  >
-                    <ResumeDocIcon />
-                    <span className="truncate">{resumeFileName}</span>
-                  </a>
+                  <ResumeDownloadButton
+                    url={resumeUrl}
+                    fileName={resumeFileName}
+                    label={resumeFileName}
+                    className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 font-medium text-moons-blue hover:bg-surface-hover disabled:opacity-60"
+                  />
                 ) : pendingResume ? (
                   <p className="inline-flex max-w-full items-center gap-2">
                     <ResumeDocIcon />
@@ -558,15 +556,12 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             editContent={
               <div className="space-y-4">
                 {resumeUrl && resumeFileName && !pendingResume && (
-                  <a
-                    href={resumeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-moons-blue hover:bg-surface-hover"
-                  >
-                    <ResumeDocIcon />
-                    <span className="truncate">{resumeFileName}</span>
-                  </a>
+                  <ResumeDownloadButton
+                    url={resumeUrl}
+                    fileName={resumeFileName}
+                    label={resumeFileName}
+                    className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-moons-blue hover:bg-surface-hover disabled:opacity-60"
+                  />
                 )}
                 {pendingResume && (
                   <p className="inline-flex max-w-full items-center gap-2 text-sm text-amber-800">

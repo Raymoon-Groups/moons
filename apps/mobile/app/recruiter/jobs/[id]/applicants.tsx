@@ -1,5 +1,4 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
@@ -16,8 +15,8 @@ import { CoverNoteBlock, ScreeningAnswersList } from '@/components/jobs/screenin
 import { LoadingScreen } from '@/components/loading-screen';
 import { StatusBadge } from '@/components/status-badge';
 import { authFetch } from '@/lib/api';
-import { resolveAssetUrl } from '@/lib/assets';
 import { formatRecruiterApplicationStatus } from '@/lib/format';
+import { openResumeFileOrAlert } from '@/lib/open-resume';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { ApplicantRow, JobListing } from '@/lib/types';
@@ -259,10 +258,9 @@ export default function ApplicantsScreen() {
               {profile?.resumeUrl ? (
                 <Pressable
                   style={styles.resumeLink}
-                  onPress={() => {
-                    const url = resolveAssetUrl(profile.resumeUrl);
-                    if (url) Linking.openURL(url);
-                  }}
+                  onPress={() =>
+                    void openResumeFileOrAlert(profile.resumeUrl, profile.resumeFileName)
+                  }
                 >
                   <Text style={styles.resumeLinkText}>Open resume</Text>
                 </Pressable>

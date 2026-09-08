@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
@@ -7,8 +6,8 @@ import {
   type ScreeningAnswer,
   type ScreeningQuestion,
 } from '@moons/shared';
-import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
+import { openResumeFileOrAlert } from '@/lib/open-resume';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -48,7 +47,7 @@ type PreparedAnswer = {
   question?: ScreeningQuestion;
   label: string;
   isResume: boolean;
-  href: string | null;
+  resumePath: string | null;
 };
 
 export function ScreeningAnswersList({
@@ -162,13 +161,14 @@ export function ScreeningAnswersList({
     const question = questionMap.get(answer.questionId);
     const isResume =
       question?.type === ScreeningQuestionType.RESUME ||
-      answer.value.startsWith('/uploads/resumes/');
+      answer.value.startsWith('/uploads/resumes/') ||
+      answer.value.includes('/media/resumes/');
     return {
       answer,
       question,
       label: question?.prompt ?? (isResume ? 'Resume' : 'Answer'),
       isResume,
-      href: isResume ? resolveAssetUrl(answer.value) : null,
+      resumePath: isResume ? answer.value : null,
     };
   });
 
@@ -177,12 +177,12 @@ export function ScreeningAnswersList({
 
   return (
     <View style={[styles.wrap, style]}>
-      {resumeItems.map(({ answer, href, label }) => (
+      {resumeItems.map(({ answer, resumePath, label }) => (
         <Pressable
           key={answer.questionId}
-          disabled={!href}
+          disabled={!resumePath}
           onPress={() => {
-            if (href) void Linking.openURL(href);
+            if (resumePath) void openResumeFileOrAlert(resumePath, answer.fileName);
           }}
           style={styles.resumeRow}
         >
@@ -195,7 +195,7 @@ export function ScreeningAnswersList({
               {answer.fileName || 'View resume'}
             </Text>
           </View>
-          {href ? <Text style={styles.openLink}>Open</Text> : null}
+          {resumePath ? <Text style={styles.openLink}>Open</Text> : null}
         </Pressable>
       ))}
 

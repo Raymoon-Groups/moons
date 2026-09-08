@@ -7,7 +7,9 @@ import {
   isMessageAttachmentTooLarge,
   messageAttachmentTooLargeMessage,
 } from '@moons/shared';
-import { resolveAssetUrl } from '@/lib/assets';
+import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
+import { getAssetAuthToken, resolveAssetUrl } from '@/lib/assets';
+import { useMentionComposer } from '@/lib/use-mention-composer';
 
 function AttachIcon({ className }: { className?: string }) {
   return (
@@ -48,7 +50,11 @@ function DownloadIcon({ className }: { className?: string }) {
 async function downloadAttachment(url: string, fileName: string) {
   const href = resolveAssetUrl(url) ?? url;
   try {
-    const response = await fetch(href);
+    const token = getAssetAuthToken();
+    const response = await fetch(href, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: 'include',
+    });
     if (!response.ok) throw new Error('download failed');
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
@@ -145,7 +151,7 @@ export function MessageComposeField({
   onAttachmentChange,
   onSubmit,
   sending,
-  placeholder,
+  placeholder = 'Write a message… Use @ to mention',
   rows = 2,
   compact = false,
 }: {
@@ -153,13 +159,16 @@ export function MessageComposeField({
   onChange: (value: string) => void;
   attachment: File | null;
   onAttachmentChange: (file: File | null) => void;
-  onSubmit: () => void;
+  onSubmit: (storedBody?: string) => void;
   sending?: boolean;
   placeholder?: string;
   rows?: number;
   compact?: boolean;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const mention = useMentionComposer();
+  const mentionSuggestions = mention.suggestionsFor(value);
   const canSend = Boolean(value.trim() || attachment);
 
   function handleFileSelect(file: File | null) {
@@ -169,6 +178,11 @@ export function MessageComposeField({
       return;
     }
     onAttachmentChange(file);
+  }
+
+  function handleSend() {
+    onSubmit(mention.toStored(value));
+    mention.resetMentions();
   }
 
   return (
@@ -188,6 +202,21 @@ export function MessageComposeField({
           </button>
         </div>
       )}
+
+      <MentionSuggestions
+        people={mentionSuggestions}
+        onSelect={(person) => {
+          const result = mention.pickMention(value, person);
+          onChange(result.text);
+          requestAnimationFrame(() => {
+            const el = textRef.current;
+            if (!el) return;
+            el.focus();
+            el.setSelectionRange(result.caret, result.caret);
+            mention.setCaret(result.caret);
+          });
+        }}
+      />
 
       <div className="flex items-end gap-2">
         <input
@@ -213,8 +242,17 @@ export function MessageComposeField({
           <AttachIcon className="h-4 w-4" />
         </button>
         <textarea
+          ref={textRef}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            onChange(e.target.value);
+            mention.setCaret(e.target.selectionStart ?? e.target.value.length);
+            mention.syncMentionsFromText(e.target.value);
+            mention.ensureLoaded();
+          }}
+          onSelect={(e) =>
+            mention.setCaret((e.target as HTMLTextAreaElement).selectionStart ?? value.length)
+          }
           rows={rows}
           placeholder={placeholder}
           className={`flex-1 resize-none rounded-xl border-0 bg-transparent px-2 py-2 text-sm outline-none placeholder:text-moons-muted focus:ring-0 ${
@@ -223,14 +261,14 @@ export function MessageComposeField({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              if (canSend && !sending) onSubmit();
+              if (canSend && !sending) handleSend();
             }
           }}
         />
         <button
           type="button"
           disabled={sending || !canSend}
-          onClick={onSubmit}
+          onClick={handleSend}
           aria-label="Send message"
           className={`shrink-0 rounded-full bg-moons-blue font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark disabled:opacity-40 ${
             compact ? 'h-10 px-3 text-sm sm:px-4' : 'h-10 px-3 text-sm sm:px-5'
@@ -241,7 +279,8 @@ export function MessageComposeField({
       </div>
       {!compact && (
         <p className="px-2 pb-0.5 pt-1 text-[10px] text-moons-muted">
-          Enter to send · Shift+Enter for new line · Up to {MAX_MESSAGE_ATTACHMENT_LABEL}
+          Enter to send · Shift+Enter for new line · @ to mention · Up to{' '}
+          {MAX_MESSAGE_ATTACHMENT_LABEL}
         </p>
       )}
     </div>

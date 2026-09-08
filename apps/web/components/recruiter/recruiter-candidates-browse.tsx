@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApplicationStatus } from '@moons/shared';
 import type { EducationEntry, WorkExperienceEntry } from '@moons/shared';
 import { formatExperience, getResumeDisplayName } from '@/components/profile/profile-shared';
+import { ResumeDownloadButton } from '@/components/resume-download-button';
 import { DashPageHero } from '@/components/dash/dash-page-shell';
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
@@ -186,7 +187,7 @@ function CandidateCard({
   const profile = row.candidate.profile;
   const name = profile?.fullName ?? row.candidate.email;
   const avatarSrc = resolveAssetUrl(profile?.avatarUrl);
-  const resumeUrl = profile?.resumeUrl ? resolveAssetUrl(profile.resumeUrl) : null;
+  const resumeUrl = profile?.resumeUrl ?? null;
   const resumeFileName = profile ? getResumeDisplayName(profile) : null;
   const exp =
     profile?.experienceYears != null
@@ -370,14 +371,12 @@ function CandidateCard({
             </Link>
 
             {resumeUrl && resumeFileName && (
-              <a
-                href={resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-xl border border-border bg-surface-elevated px-3 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/40 hover:bg-surface"
-              >
-                Download CV
-              </a>
+              <ResumeDownloadButton
+                url={resumeUrl}
+                fileName={resumeFileName}
+                label="Download CV"
+                className="rounded-xl border border-border bg-surface-elevated px-3 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/40 hover:bg-surface disabled:opacity-60"
+              />
             )}
 
             <select

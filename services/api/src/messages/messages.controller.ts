@@ -11,10 +11,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { OnboardingGuard } from '../common/guards/onboarding.guard';
+import { THROTTLE } from '../common/throttle.constants';
 import { SendMessageDto } from './dto/send-message.dto';
 import { MAX_MESSAGE_ATTACHMENT_BYTES } from './message-attachment.limits';
 import { MessagesService } from './messages.service';
@@ -61,6 +63,7 @@ export class MessagesController {
   }
 
   @Post('conversations/:id/messages')
+  @Throttle(THROTTLE.sendMessage)
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiBody({
     schema: {
@@ -82,6 +85,7 @@ export class MessagesController {
   }
 
   @Post('with/:userId')
+  @Throttle(THROTTLE.sendMessage)
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiBody({
     schema: {

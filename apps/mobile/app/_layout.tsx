@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -25,8 +25,7 @@ function RootStack() {
           headerStyle: { backgroundColor: colors.surfaceElevated },
           headerTintColor: colors.heading,
           headerTitleStyle: {
-            fontFamily: Platform.OS === 'web' ? theme.fonts.web.bold : theme.fonts.bold,
-            fontWeight: '700',
+            fontFamily: theme.fonts.bold,
             color: colors.heading,
           },
           headerShadowVisible: false,

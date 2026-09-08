@@ -1,17 +1,23 @@
 import type { AuthResponse, AuthUser } from '@moons/shared';
+import { setAssetAuthToken } from './assets';
 
-const TOKEN_KEY = 'moons_access_token';
-const REFRESH_KEY = 'moons_refresh_token';
+const LEGACY_TOKEN_KEY = 'moons_access_token';
+const LEGACY_REFRESH_KEY = 'moons_refresh_token';
 const USER_KEY = 'moons_user';
 
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
+const SESSION_MAX_AGE = 7 * 24 * 60 * 60;
+
+/** In-memory only — used for media ?access_token= on cross-origin <img> (esp. local dev). Not persisted. */
+let memoryAccessToken: string | null = null;
+
+function clearLegacyTokenStorage() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_REFRESH_KEY);
 }
 
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(REFRESH_KEY);
+export function getAccessToken(): string | null {
+  return memoryAccessToken;
 }
 
 export function getStoredUser(): AuthUser | null {
@@ -25,8 +31,6 @@ export function getStoredUser(): AuthUser | null {
   }
 }
 
-const SESSION_MAX_AGE = 7 * 24 * 60 * 60;
-
 function setSessionCookie(onboardingCompleted: boolean) {
   if (typeof document === 'undefined') return;
   document.cookie = `moons_session=1; path=/; max-age=${SESSION_MAX_AGE}; SameSite=Lax`;
@@ -39,13 +43,21 @@ function clearSessionCookies() {
   document.cookie = 'moons_onboarded=; path=/; max-age=0';
 }
 
+export function hasSessionCookie(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.cookie.split(';').some((part) => part.trim().startsWith('moons_session=1'));
+}
+
+/**
+ * Persist user profile for UI hydration. Auth tokens live in HttpOnly cookies
+ * (set by the API). Access token is kept in memory only for media URLs.
+ */
 export function setAuthSession(data: AuthResponse) {
-  localStorage.setItem(TOKEN_KEY, data.accessToken);
-  if (data.refreshToken) {
-    localStorage.setItem(REFRESH_KEY, data.refreshToken);
-  }
+  clearLegacyTokenStorage();
+  memoryAccessToken = data.accessToken?.trim() ? data.accessToken.trim() : null;
   localStorage.setItem(USER_KEY, JSON.stringify(data.user));
   setSessionCookie(!!data.user.onboardingCompleted);
+  setAssetAuthToken(memoryAccessToken);
 }
 
 export function updateStoredUser(user: AuthUser) {
@@ -54,12 +66,13 @@ export function updateStoredUser(user: AuthUser) {
 }
 
 export function clearAuthSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_KEY);
+  clearLegacyTokenStorage();
+  memoryAccessToken = null;
   localStorage.removeItem(USER_KEY);
   clearSessionCookies();
+  setAssetAuthToken(null);
 }
 
 export function isAuthenticated(): boolean {
-  return !!getAccessToken();
+  return hasSessionCookie() || !!getStoredUser();
 }

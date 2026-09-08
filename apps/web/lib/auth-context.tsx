@@ -9,16 +9,16 @@ import {
   useState,
 } from 'react';
 import type { AuthResponse, AuthUser } from '@moons/shared';
-import { ApiError, authFetch } from './api-client';
+import { ApiError, authFetch, ensureWebSession } from './api-client';
 import {
   clearAuthSession,
-  getAccessToken,
-  getRefreshToken,
   getStoredUser,
+  hasSessionCookie,
   setAuthSession,
   updateStoredUser,
 } from './auth';
 import type { Profile } from './types';
+import { setAssetAuthToken } from './assets';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -54,8 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    const token = getAccessToken();
-    if (!token) return;
+    if (!hasSessionCookie() && !getStoredUser()) return;
 
     try {
       const profile = await authFetch<Profile>('/profiles/me');
@@ -63,23 +62,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       if (err instanceof ApiError && err.code === 'SESSION_EXPIRED') {
         clearAuthSession();
+        setAssetAuthToken(null);
         setUser(null);
       }
     }
   }, [syncUserFromProfile]);
 
   useEffect(() => {
-    const stored = getStoredUser();
-    const token = getAccessToken();
-    if (stored && token) {
-      setUser(stored);
-      const timer = window.setTimeout(() => {
-        refreshProfile();
-      }, 800);
+    let cancelled = false;
+
+    async function hydrate() {
+      const stored = getStoredUser();
+      const hasSession = hasSessionCookie() || !!stored;
+
+      if (!hasSession) {
+        setAssetAuthToken(null);
+        if (!cancelled) setReady(true);
+        return;
+      }
+
+      if (stored) setUser(stored);
+
+      const ok = await ensureWebSession();
+      if (cancelled) return;
+
+      if (!ok) {
+        setUser(null);
+        setReady(true);
+        return;
+      }
+
       setReady(true);
-      return () => window.clearTimeout(timer);
+      window.setTimeout(() => {
+        if (!cancelled) void refreshProfile();
+      }, 800);
     }
-    setReady(true);
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
   }, [refreshProfile]);
 
   const login = useCallback((data: AuthResponse) => {
@@ -98,15 +120,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      const refreshToken = getRefreshToken();
       await authFetch('/auth/logout', {
         method: 'POST',
-        body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+        body: JSON.stringify({}),
       });
     } catch {
       // clear local session even if API call fails
     }
     clearAuthSession();
+    setAssetAuthToken(null);
     setUser(null);
   }, []);
 

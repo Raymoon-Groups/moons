@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeedPost, PostAuthor, PostCommentItem } from '@moons/shared';
+import { storedToEditable } from '@moons/shared';
 import { resolveAssetUrl } from '@/lib/assets';
+import { authFetch } from '@/lib/api-client';
 import {
   addComment,
   createPost,
@@ -19,6 +21,10 @@ import {
 import { fetchConnections, sendConnectionRequest, type ConnectionListItem } from '@/lib/network';
 import { notifyMessagesRefresh, sendMessageToUser } from '@/lib/messages';
 import { useAuth } from '@/lib/auth-context';
+import { PostMediaViewer } from '@/components/feed/post-media-viewer';
+import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
+import { MentionText } from '@/components/mentions/mention-text';
+import { useMentionComposer } from '@/lib/use-mention-composer';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -536,9 +542,34 @@ function ChevronRightIcon({ className }: { className?: string }) {
   );
 }
 
-function MediaCarousel({ media }: { media: FeedPost['media'] }) {
+function MediaCarousel({
+  media,
+  caption,
+  authorName,
+  timeLabel,
+  liked = false,
+  likeCount = 0,
+  commentCount = 0,
+  likeDisabled = false,
+  onLike,
+  onComment,
+  onShare,
+}: {
+  media: FeedPost['media'];
+  caption?: string;
+  authorName?: string | null;
+  timeLabel?: string;
+  liked?: boolean;
+  likeCount?: number;
+  commentCount?: number;
+  likeDisabled?: boolean;
+  onLike?: () => void;
+  onComment?: () => void;
+  onShare?: () => void;
+}) {
   const items = media.slice().sort((a, b) => a.sortOrder - b.sortOrder);
   const [index, setIndex] = useState(0);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setIndex(0);
@@ -546,12 +577,51 @@ function MediaCarousel({ media }: { media: FeedPost['media'] }) {
 
   if (!items.length) return null;
 
+  const openViewer = (i: number) => setViewerIndex(i);
+
+  const viewer = (
+    <PostMediaViewer
+      open={viewerIndex !== null}
+      media={items}
+      initialIndex={viewerIndex ?? 0}
+      caption={caption}
+      authorName={authorName}
+      timeLabel={timeLabel}
+      liked={liked}
+      likeCount={likeCount}
+      commentCount={commentCount}
+      likeDisabled={likeDisabled}
+      onLike={onLike}
+      onComment={() => {
+        setViewerIndex(null);
+        onComment?.();
+      }}
+      onShare={() => {
+        setViewerIndex(null);
+        onShare?.();
+      }}
+      onClose={() => setViewerIndex(null)}
+    />
+  );
+
   const video = items.find((m) => m.type === 'VIDEO');
   if (video && items.length === 1) {
     const src = resolveAssetUrl(video.url);
     if (!src) return null;
     return (
-      <video controls className="mt-3 max-h-[420px] w-full rounded-xl bg-black object-contain" src={src} />
+      <>
+        <div className="relative mt-3 overflow-hidden rounded-xl bg-black">
+          <video controls className="max-h-[420px] w-full object-contain" src={src} />
+          <button
+            type="button"
+            onClick={() => openViewer(0)}
+            className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-black/80"
+          >
+            Open
+          </button>
+        </div>
+        {viewer}
+      </>
     );
   }
 
@@ -559,8 +629,17 @@ function MediaCarousel({ media }: { media: FeedPost['media'] }) {
     const src = resolveAssetUrl(items[0].url);
     if (!src) return null;
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" className="mt-3 max-h-[420px] w-full rounded-xl object-cover" />
+      <>
+        <button type="button" onClick={() => openViewer(0)} className="mt-3 block w-full overflow-hidden rounded-xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt=""
+            className="max-h-[420px] w-full cursor-pointer object-cover transition hover:opacity-95"
+          />
+        </button>
+        {viewer}
+      </>
     );
   }
 
@@ -571,61 +650,75 @@ function MediaCarousel({ media }: { media: FeedPost['media'] }) {
   };
 
   return (
-    <div className="relative mt-3 overflow-hidden rounded-xl bg-surface">
-      <div className="relative flex min-h-[220px] items-center justify-center bg-black/5">
-        {current.type === 'VIDEO' && src ? (
-          <video
-            key={current.id}
-            controls
-            className="max-h-[420px] w-full object-contain"
-            src={src}
-          />
-        ) : src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={current.id}
-            src={src}
-            alt=""
-            className="max-h-[420px] w-full object-contain"
-          />
-        ) : null}
+    <>
+      <div className="relative mt-3 overflow-hidden rounded-xl bg-surface">
+        <div className="relative flex min-h-[220px] items-center justify-center bg-black/5">
+          {current.type === 'VIDEO' && src ? (
+            <>
+              <video
+                key={current.id}
+                controls
+                className="max-h-[420px] w-full object-contain"
+                src={src}
+              />
+              <button
+                type="button"
+                onClick={() => openViewer(index)}
+                className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-black/80"
+              >
+                Open
+              </button>
+            </>
+          ) : src ? (
+            <button type="button" onClick={() => openViewer(index)} className="block w-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={current.id}
+                src={src}
+                alt=""
+                className="max-h-[420px] w-full cursor-pointer object-contain transition hover:opacity-95"
+              />
+            </button>
+          ) : null}
 
-        <button
-          type="button"
-          onClick={() => go(index - 1)}
-          className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow transition hover:bg-black/75"
-          aria-label="Previous media"
-        >
-          <ChevronLeftIcon className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => go(index + 1)}
-          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow transition hover:bg-black/75"
-          aria-label="Next media"
-        >
-          <ChevronRightIcon className="h-5 w-5" />
-        </button>
-
-        <span className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
-          {index + 1} / {items.length}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-center gap-1.5 py-2.5">
-        {items.map((item, i) => (
           <button
-            key={item.id}
             type="button"
-            onClick={() => setIndex(i)}
-            aria-label={`Go to media ${i + 1}`}
-            className={`h-2 rounded-full transition ${
-              i === index ? 'w-5 bg-moons-blue' : 'w-2 bg-border hover:bg-moons-muted'
-            }`}
-          />
-        ))}
+            onClick={() => go(index - 1)}
+            className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow transition hover:bg-black/75"
+            aria-label="Previous media"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => go(index + 1)}
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white shadow transition hover:bg-black/75"
+            aria-label="Next media"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+
+          <span className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+            {index + 1} / {items.length}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5 py-2.5">
+          {items.map((item, i) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setIndex(i)}
+              aria-label={`Go to media ${i + 1}`}
+              className={`h-2 rounded-full transition ${
+                i === index ? 'w-5 bg-moons-blue' : 'w-2 bg-border hover:bg-moons-muted'
+              }`}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+      {viewer}
+    </>
   );
 }
 
@@ -925,6 +1018,8 @@ export function FeedPostCard({
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body);
+  const editMention = useMentionComposer();
+  const editMentionSuggestions = editMention.suggestionsFor(editBody);
   const [showComments, setShowComments] = useState((post.recentComments?.length ?? 0) > 0);
   const [showLikers, setShowLikers] = useState(false);
   const [showForward, setShowForward] = useState(false);
@@ -932,6 +1027,10 @@ export function FeedPostCard({
   const [likers, setLikers] = useState<PostAuthor[]>(post.recentLikers ?? []);
   const [comments, setComments] = useState<PostCommentItem[]>(post.recentComments ?? []);
   const [commentText, setCommentText] = useState('');
+  const commentMention = useMentionComposer();
+  const commentMentionSuggestions = commentMention.suggestionsFor(commentText);
+  const commentInputRef = useRef<HTMLInputElement>(null);
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
   const [commentFile, setCommentFile] = useState<File | null>(null);
   const [commentPreview, setCommentPreview] = useState<string | null>(null);
   const commentFileRef = useRef<HTMLInputElement>(null);
@@ -1002,13 +1101,15 @@ export function FeedPostCard({
 
   async function submitComment(e: FormEvent) {
     e.preventDefault();
-    if (!commentText.trim() && !commentFile) return;
+    const stored = commentMention.toStored(commentText).trim();
+    if (!stored && !commentFile) return;
     setBusy(true);
     setError('');
     try {
-      const created = await addComment(post.id, commentText.trim(), commentFile ?? undefined);
+      const created = await addComment(post.id, stored, commentFile ?? undefined);
       setComments((prev) => [...prev, created]);
       setCommentText('');
+      commentMention.resetMentions();
       setCommentFile(null);
       setShowComments(true);
       onChange({
@@ -1052,7 +1153,7 @@ export function FeedPostCard({
     setBusy(true);
     setError('');
     try {
-      const next = await updatePost(post.id, editBody);
+      const next = await updatePost(post.id, editMention.toStored(editBody));
       onChange(next);
       setEditing(false);
     } catch (err) {
@@ -1099,7 +1200,7 @@ export function FeedPostCard({
     });
   }
 
-  function handleReportComment(commentId: string) {
+  async function handleReportComment(commentId: string) {
     if (
       !confirm(
         'Report this comment as inappropriate or spam? Our team will review it.',
@@ -1107,13 +1208,25 @@ export function FeedPostCard({
     ) {
       return;
     }
-    setReportedCommentIds((prev) => {
-      const next = new Set(prev);
-      next.add(commentId);
-      return next;
-    });
-    setError('');
-    window.alert('Thanks — your report was submitted.');
+    try {
+      await authFetch('/reports', {
+        method: 'POST',
+        body: JSON.stringify({
+          targetType: 'COMMENT',
+          targetId: commentId,
+          reason: 'inappropriate_or_spam',
+        }),
+      });
+      setReportedCommentIds((prev) => {
+        const next = new Set(prev);
+        next.add(commentId);
+        return next;
+      });
+      setError('');
+      window.alert('Thanks — your report was submitted.');
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Could not submit report');
+    }
   }
 
   const original = post.originalPost && !('unavailable' in post.originalPost) ? post.originalPost : null;
@@ -1148,7 +1261,9 @@ export function FeedPostCard({
         <PostMoreMenu
           isMine={isMine}
           onEdit={() => {
-            setEditBody(post.body);
+            const editable = storedToEditable(post.body);
+            setEditBody(editable.text);
+            editMention.resetMentions(editable.mentions);
             setEditing(true);
           }}
           onDelete={() => void handleDelete()}
@@ -1163,11 +1278,35 @@ export function FeedPostCard({
       {editing ? (
         <div className="mt-3 space-y-3">
           <textarea
+            ref={editInputRef}
             value={editBody}
-            onChange={(e) => setEditBody(e.target.value)}
+            onChange={(e) => {
+              setEditBody(e.target.value);
+              editMention.setCaret(e.target.selectionStart ?? e.target.value.length);
+              editMention.syncMentionsFromText(e.target.value);
+              editMention.ensureLoaded();
+            }}
+            onSelect={(e) =>
+              editMention.setCaret((e.target as HTMLTextAreaElement).selectionStart ?? editBody.length)
+            }
             rows={4}
             maxLength={3000}
+            placeholder="Use @ to mention someone in your network"
             className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-heading outline-none ring-moons-blue/30 focus:ring-2"
+          />
+          <MentionSuggestions
+            people={editMentionSuggestions}
+            onSelect={(person) => {
+              const result = editMention.pickMention(editBody, person);
+              setEditBody(result.text);
+              requestAnimationFrame(() => {
+                const el = editInputRef.current;
+                if (!el) return;
+                el.focus();
+                el.setSelectionRange(result.caret, result.caret);
+                editMention.setCaret(result.caret);
+              });
+            }}
           />
           <div className="flex justify-end gap-2">
             <button
@@ -1176,6 +1315,7 @@ export function FeedPostCard({
               onClick={() => {
                 setEditing(false);
                 setEditBody(post.body);
+                editMention.resetMentions();
               }}
               className="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-heading hover:bg-surface disabled:opacity-60"
             >
@@ -1183,7 +1323,7 @@ export function FeedPostCard({
             </button>
             <button
               type="button"
-              disabled={busy || editBody.trim() === post.body.trim()}
+              disabled={busy || editMention.toStored(editBody).trim() === post.body.trim()}
               onClick={() => void handleSaveEdit()}
               className="rounded-full bg-moons-navy px-4 py-1.5 text-sm font-semibold text-white hover:bg-moons-blue-dark disabled:opacity-60"
             >
@@ -1192,9 +1332,23 @@ export function FeedPostCard({
           </div>
         </div>
       ) : post.body ? (
-        <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-heading">{post.body}</p>
+        <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-heading">
+          <MentionText value={post.body} />
+        </p>
       ) : null}
-      <MediaCarousel media={post.media} />
+      <MediaCarousel
+        media={post.media}
+        caption={post.body}
+        authorName={post.author.fullName || 'MoonsJob member'}
+        timeLabel={timeAgo(post.createdAt)}
+        liked={post.likedByMe}
+        likeCount={post.likeCount}
+        commentCount={post.commentCount}
+        likeDisabled={busy}
+        onLike={() => void toggleLike()}
+        onComment={() => void loadComments()}
+        onShare={() => setShowForward(true)}
+      />
 
       {original ? (
         <div className="mt-3 rounded-xl border border-border bg-surface p-3">
@@ -1203,9 +1357,23 @@ export function FeedPostCard({
             Shared from {original.author.fullName || 'a member'}
           </p>
           {original.body ? (
-            <p className="mt-1 whitespace-pre-wrap text-sm text-heading">{original.body}</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-heading">
+              <MentionText value={original.body} />
+            </p>
           ) : null}
-          <MediaCarousel media={original.media} />
+          <MediaCarousel
+            media={original.media}
+            caption={original.body}
+            authorName={original.author.fullName || 'MoonsJob member'}
+            timeLabel={timeAgo(original.createdAt)}
+            liked={post.likedByMe}
+            likeCount={post.likeCount}
+            commentCount={post.commentCount}
+            likeDisabled={busy}
+            onLike={() => void toggleLike()}
+            onComment={() => void loadComments()}
+            onShare={() => setShowForward(true)}
+          />
         </div>
       ) : post.originalPost && 'unavailable' in post.originalPost ? (
         <p className="mt-3 rounded-xl border border-border bg-surface p-3 text-sm text-moons-muted">
@@ -1317,7 +1485,9 @@ export function FeedPostCard({
                   c.attachmentMimeType?.startsWith('image/') &&
                   c.body.trim().startsWith('📎')
                 ) ? (
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-heading">{c.body}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-heading">
+                    <MentionText value={c.body} />
+                  </p>
                 ) : null}
                 {c.attachmentUrl ? (
                   c.attachmentMimeType?.startsWith('image/') ? (
@@ -1400,12 +1570,41 @@ export function FeedPostCard({
                   }}
                 />
               </label>
-              <input
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Write a comment…"
-                className="flex-1 rounded-full border border-border bg-surface px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-moons-blue/30"
-              />
+              <div className="relative min-w-0 flex-1">
+                <input
+                  ref={commentInputRef}
+                  value={commentText}
+                  onChange={(e) => {
+                    setCommentText(e.target.value);
+                    commentMention.setCaret(e.target.selectionStart ?? e.target.value.length);
+                    commentMention.syncMentionsFromText(e.target.value);
+                    commentMention.ensureLoaded();
+                  }}
+                  onSelect={(e) =>
+                    commentMention.setCaret(
+                      (e.target as HTMLInputElement).selectionStart ?? commentText.length,
+                    )
+                  }
+                  placeholder="Write a comment… Use @ to mention"
+                  className="w-full rounded-full border border-border bg-surface px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-moons-blue/30"
+                />
+                <div className="absolute left-0 right-0 top-full z-20">
+                  <MentionSuggestions
+                    people={commentMentionSuggestions}
+                    onSelect={(person) => {
+                      const result = commentMention.pickMention(commentText, person);
+                      setCommentText(result.text);
+                      requestAnimationFrame(() => {
+                        const el = commentInputRef.current;
+                        if (!el) return;
+                        el.focus();
+                        el.setSelectionRange(result.caret, result.caret);
+                        commentMention.setCaret(result.caret);
+                      });
+                    }}
+                  />
+                </div>
+              </div>
               <button
                 type="submit"
                 disabled={busy || (!commentText.trim() && !commentFile)}
@@ -1426,6 +1625,9 @@ export function FeedPostCard({
 
 function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
   const [body, setBody] = useState('');
+  const mention = useMentionComposer();
+  const mentionSuggestions = mention.suggestionsFor(body);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -1480,9 +1682,10 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
     setBusy(true);
     setError('');
     try {
-      const post = await createPost(body, files);
+      const post = await createPost(mention.toStored(body), files);
       onCreated(post);
       setBody('');
+      mention.resetMentions();
       setFiles([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create post');
@@ -1499,14 +1702,37 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
       }`}
     >
       <textarea
+        ref={bodyRef}
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => {
+          setBody(e.target.value);
+          mention.setCaret(e.target.selectionStart ?? e.target.value.length);
+          mention.syncMentionsFromText(e.target.value);
+          mention.ensureLoaded();
+        }}
+        onSelect={(e) =>
+          mention.setCaret((e.target as HTMLTextAreaElement).selectionStart ?? body.length)
+        }
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         rows={2}
         maxLength={3000}
-        placeholder="Share an update with your network…"
+        placeholder="Share an update with your network… Use @ to mention"
         className="w-full resize-none rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-heading outline-none placeholder:text-moons-muted focus:border-moons-blue/40"
+      />
+      <MentionSuggestions
+        people={mentionSuggestions}
+        onSelect={(person) => {
+          const result = mention.pickMention(body, person);
+          setBody(result.text);
+          requestAnimationFrame(() => {
+            const el = bodyRef.current;
+            if (!el) return;
+            el.focus();
+            el.setSelectionRange(result.caret, result.caret);
+            mention.setCaret(result.caret);
+          });
+        }}
       />
 
       {files.length > 0 ? (

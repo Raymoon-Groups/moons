@@ -1,63 +1,64 @@
-import { Platform, type TextStyle } from 'react-native';
+import { Platform, Text, TextInput, type TextStyle } from 'react-native';
 
-const nativeFonts = {
-  regular: 'PlusJakartaSans_400Regular',
-  medium: 'PlusJakartaSans_500Medium',
-  semibold: 'PlusJakartaSans_600SemiBold',
-  bold: 'PlusJakartaSans_700Bold',
-  extrabold: 'PlusJakartaSans_800ExtraBold',
+/**
+ * Same family keys on native + web.
+ * Web maps these names via @font-face in +html.tsx so
+ * `fontFamily: theme.fonts.bold` actually renders bold.
+ */
+export const appFonts = {
+  regular: 'Manrope_400Regular',
+  medium: 'Manrope_500Medium',
+  semibold: 'Manrope_600SemiBold',
+  bold: 'Manrope_700Bold',
+  extrabold: 'Manrope_800ExtraBold',
 } as const;
 
-const nativeDisplayFonts = {
-  medium: 'Outfit_500Medium',
-  semibold: 'Outfit_600SemiBold',
-  bold: 'Outfit_700Bold',
-  extrabold: 'Outfit_800ExtraBold',
+export const appDisplayFonts = {
+  medium: 'SpaceGrotesk_500Medium',
+  semibold: 'SpaceGrotesk_600SemiBold',
+  bold: 'SpaceGrotesk_700Bold',
+  extrabold: 'SpaceGrotesk_700Bold',
 } as const;
 
-const webWeights: Record<keyof typeof nativeFonts, TextStyle['fontWeight']> = {
-  regular: '400',
-  medium: '500',
-  semibold: '600',
-  bold: '700',
-  extrabold: '800',
-};
+export type FontWeight = keyof typeof appFonts;
+export type DisplayFontWeight = keyof typeof appDisplayFonts;
 
-const displayWebWeights: Record<keyof typeof nativeDisplayFonts, TextStyle['fontWeight']> = {
-  medium: '500',
-  semibold: '600',
-  bold: '700',
-  extrabold: '800',
-};
-
-export type FontWeight = keyof typeof nativeFonts;
-export type DisplayFontWeight = keyof typeof nativeDisplayFonts;
-
-/** Cross-platform text style — native uses loaded font files; web uses Google Fonts + fontWeight. */
+/** Body / UI text */
 export function fontStyle(weight: FontWeight): TextStyle {
-  if (Platform.OS === 'web') {
-    return { fontFamily: 'Plus Jakarta Sans', fontWeight: webWeights[weight] };
-  }
-  return { fontFamily: nativeFonts[weight] };
+  return {
+    fontFamily: appFonts[weight],
+    letterSpacing: 0.2,
+  };
 }
 
-/** Modern display type — Outfit (splash / hero). */
-export function displayFontStyle(weight: DisplayFontWeight = 'extrabold'): TextStyle {
-  if (Platform.OS === 'web') {
-    return {
-      fontFamily: 'Outfit',
-      fontWeight: displayWebWeights[weight],
-    };
-  }
-  return { fontFamily: nativeDisplayFonts[weight] };
+/** Display / hero / page titles */
+export function displayFontStyle(weight: DisplayFontWeight = 'bold'): TextStyle {
+  return {
+    fontFamily: appDisplayFonts[weight],
+    letterSpacing: -0.35,
+  };
 }
 
-export const webFonts = {
-  regular: 'Plus Jakarta Sans',
-  medium: 'Plus Jakarta Sans',
-  semibold: 'Plus Jakarta Sans',
-  bold: 'Plus Jakarta Sans',
-  extrabold: 'Plus Jakarta Sans',
-} as const;
+/** @deprecated use appFonts — kept for theme.fonts compatibility */
+export const webFonts = appFonts;
+export const activeFontNames = appFonts;
 
-export const activeFontNames = Platform.OS === 'web' ? webFonts : nativeFonts;
+/**
+ * Force every Text / TextInput to use Manrope unless a style overrides fontFamily.
+ */
+export function applyDefaultAppFonts() {
+  const base = fontStyle('regular');
+
+  const textDefaults = (Text as unknown as { defaultProps?: { style?: unknown } }).defaultProps ?? {};
+  (Text as unknown as { defaultProps: { style?: unknown } }).defaultProps = {
+    ...textDefaults,
+    style: [base, textDefaults.style],
+  };
+
+  const inputDefaults =
+    (TextInput as unknown as { defaultProps?: { style?: unknown } }).defaultProps ?? {};
+  (TextInput as unknown as { defaultProps: { style?: unknown } }).defaultProps = {
+    ...inputDefaults,
+    style: [base, inputDefaults.style],
+  };
+}

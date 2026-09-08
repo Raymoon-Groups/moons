@@ -17,7 +17,8 @@ import {
   ProfileWithUser,
 } from './network.utils';
 
-const DAILY_REQUEST_LIMIT = 20;
+const DAILY_REQUEST_LIMIT = 15;
+const HOURLY_REQUEST_LIMIT = 8;
 
 const CONNECTION_STATUS_PRIORITY: Record<ConnectionStatus, number> = {
   [ConnectionStatus.ACCEPTED]: 4,
@@ -50,12 +51,25 @@ export class ConnectionsService {
   }
 
   private async enforceRateLimit(userId: string) {
-    const key = `network:requests:${userId}:${new Date().toISOString().slice(0, 10)}`;
-    const count = await this.redis.incr(key);
-    if (count === 1) {
-      await this.redis.expire(key, 86_400);
+    const dayKey = `network:requests:${userId}:${new Date().toISOString().slice(0, 10)}`;
+    const hourKey = `network:requests:hour:${userId}:${new Date().toISOString().slice(0, 13)}`;
+
+    const [dayCount, hourCount] = await Promise.all([
+      this.redis.incr(dayKey),
+      this.redis.incr(hourKey),
+    ]);
+    if (dayCount === 1) {
+      await this.redis.expire(dayKey, 86_400);
     }
-    if (count > DAILY_REQUEST_LIMIT) {
+    if (hourCount === 1) {
+      await this.redis.expire(hourKey, 3_600);
+    }
+    if (hourCount > HOURLY_REQUEST_LIMIT) {
+      throw new BadRequestException(
+        `Too many connection requests. Try again in a bit (max ${HOURLY_REQUEST_LIMIT}/hour).`,
+      );
+    }
+    if (dayCount > DAILY_REQUEST_LIMIT) {
       throw new BadRequestException(
         `Daily connection request limit reached (${DAILY_REQUEST_LIMIT})`,
       );
@@ -164,6 +178,7 @@ export class ConnectionsService {
         : `${senderName} wants to connect with you.`,
       linkUrl: note ? `/messages?with=${fromUserId}` : '/network?tab=pending',
       metadata: { connectionId: connection.id, fromUserId },
+      actorId: fromUserId,
     });
 
     return connection;
@@ -205,7 +220,8 @@ export class ConnectionsService {
       title: 'Connection accepted',
       body: `${accepterName} accepted your connection request.`,
       linkUrl: `/network/${userId}`,
-      metadata: { connectionId, userId },
+      metadata: { connectionId, userId, fromUserId: userId },
+      actorId: userId,
     });
 
     if (connection.message?.trim()) {

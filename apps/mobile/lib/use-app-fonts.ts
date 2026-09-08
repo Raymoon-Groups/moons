@@ -1,35 +1,50 @@
-import * as Font from 'expo-font';
-import { useEffect, useState } from 'react';
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+  useFonts as useManropeFonts,
+} from '@expo-google-fonts/manrope';
+import {
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+  useFonts as useSpaceGroteskFonts,
+} from '@expo-google-fonts/space-grotesk';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { applyDefaultAppFonts } from './font-style';
 
-const JAKARTA_BASE =
-  'https://github.com/googlefonts/plus-jakarta-sans/raw/main/fonts/ttf';
-
-async function loadNativeFonts() {
-  await Font.loadAsync({
-    PlusJakartaSans_400Regular: `${JAKARTA_BASE}/PlusJakartaSans-Regular.ttf`,
-    PlusJakartaSans_500Medium: `${JAKARTA_BASE}/PlusJakartaSans-Medium.ttf`,
-    PlusJakartaSans_600SemiBold: `${JAKARTA_BASE}/PlusJakartaSans-SemiBold.ttf`,
-    PlusJakartaSans_700Bold: `${JAKARTA_BASE}/PlusJakartaSans-Bold.ttf`,
-    PlusJakartaSans_800ExtraBold: `${JAKARTA_BASE}/PlusJakartaSans-ExtraBold.ttf`,
-    Outfit_500Medium: require('../assets/fonts/Outfit-Medium.ttf'),
-    Outfit_600SemiBold: require('../assets/fonts/Outfit-SemiBold.ttf'),
-    Outfit_700Bold: require('../assets/fonts/Outfit-Bold.ttf'),
-    Outfit_800ExtraBold: require('../assets/fonts/Outfit-ExtraBold.ttf'),
-  });
+// Apply defaults ASAP on web so first paint isn't system UI fonts.
+if (Platform.OS === 'web') {
+  applyDefaultAppFonts();
 }
 
-/** Loads Plus Jakarta Sans + Outfit on native; web uses +html.tsx Google Fonts link. */
+/**
+ * Native: loads bundled Manrope + Space Grotesk.
+ * Web: fonts come from @font-face in +html.tsx (same family names).
+ */
 export function useAppFonts() {
-  const [ready, setReady] = useState(Platform.OS === 'web');
+  const [manropeLoaded] = useManropeFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+  });
+
+  const [spaceLoaded] = useSpaceGroteskFonts({
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+  });
+
+  const ready = Platform.OS === 'web' ? true : manropeLoaded && spaceLoaded;
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-
-    loadNativeFonts()
-      .then(() => setReady(true))
-      .catch(() => setReady(true));
-  }, []);
+    if (ready) applyDefaultAppFonts();
+  }, [ready]);
 
   return ready;
 }

@@ -165,6 +165,7 @@ export class NetworkProfilesService {
       body: `${viewerName} viewed your profile.`,
       linkUrl: `/profile?networkTab=visitors`,
       metadata: { viewerId },
+      actorId: viewerId,
     });
 
     return { recorded: true };

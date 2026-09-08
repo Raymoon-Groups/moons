@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import {
   Dimensions,
   KeyboardAvoidingView,
@@ -13,14 +13,10 @@ import {
   View,
   type TextInputProps,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthLegalLinks } from './auth-legal-links';
-import { MoonsLogo } from './moons-logo';
-import { ThemeToggle } from './theme-toggle';
 import { displayFontStyle, fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
-import { theme } from '@/lib/theme';
 
 export type AuthHeroVariant = 'signin' | 'signup' | 'forgot';
 
@@ -33,61 +29,72 @@ export function useAuthSurface() {
 }
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const WAVE_H = 44;
-const PANEL = '#14233f';
+const HERO_H = Math.min(228, SCREEN_W * 0.56);
 
-function TopWave({ fill }: { fill: string }) {
-  // Soft dip under the white header into the navy panel
+type HeroMotif = {
+  icon: keyof typeof Ionicons.glyphMap;
+  size: number;
+  iconSize: number;
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+  opacity: number;
+  rotate?: string;
+};
+
+const HERO_MOTIFS: HeroMotif[] = [
+  { icon: 'briefcase-outline', size: 54, iconSize: 24, top: 22, right: 20, opacity: 0.88, rotate: '-8deg' },
+  { icon: 'people-outline', size: 48, iconSize: 22, top: 78, right: 74, opacity: 0.76, rotate: '10deg' },
+  { icon: 'business-outline', size: 44, iconSize: 20, top: 34, left: 16, opacity: 0.7, rotate: '12deg' },
+  { icon: 'document-text-outline', size: 42, iconSize: 18, top: 98, left: 24, opacity: 0.62, rotate: '-6deg' },
+  { icon: 'search-outline', size: 40, iconSize: 18, top: 58, left: 92, opacity: 0.58, rotate: '8deg' },
+  { icon: 'ribbon-outline', size: 38, iconSize: 17, top: 110, right: 28, opacity: 0.52, rotate: '-12deg' },
+];
+
+function AuthHeroBackground() {
+  const { colors } = useTheme();
+
   return (
-    <Svg width={SCREEN_W} height={WAVE_H} viewBox={`0 0 ${SCREEN_W} ${WAVE_H}`} style={styles.wave}>
-      <Path
-        d={`M0 0 C ${SCREEN_W * 0.28} ${WAVE_H * 1.15}, ${SCREEN_W * 0.62} 4, ${SCREEN_W} ${WAVE_H * 0.72} L ${SCREEN_W} ${WAVE_H} L 0 ${WAVE_H} Z`}
-        fill={fill}
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <LinearGradient
+        colors={[colors.navy, '#1b3358', colors.blueDark]}
+        start={{ x: 0.05, y: 0 }}
+        end={{ x: 0.95, y: 1 }}
+        style={StyleSheet.absoluteFill}
       />
-    </Svg>
-  );
-}
-
-function BottomWave({ fill }: { fill: string }) {
-  return (
-    <Svg width={SCREEN_W} height={WAVE_H} viewBox={`0 0 ${SCREEN_W} ${WAVE_H}`} style={styles.wave}>
-      <Path
-        d={`M0 0 L ${SCREEN_W} 0 L ${SCREEN_W} ${WAVE_H * 0.35} C ${SCREEN_W * 0.7} ${WAVE_H * 1.05}, ${SCREEN_W * 0.3} 8, 0 ${WAVE_H} Z`}
-        fill={fill}
+      <LinearGradient
+        colors={['rgba(110,160,239,0.28)', 'transparent']}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.85, y: 0.9 }}
+        style={StyleSheet.absoluteFill}
       />
-    </Svg>
-  );
-}
+      <View style={[styles.glow, styles.glowLeft]} />
+      <View style={[styles.glow, styles.glowRight]} />
+      <View style={styles.orbitOuter} />
+      <View style={styles.orbitInner} />
 
-function AuthModeToggle({ active }: { active: 'signin' | 'signup' }) {
-  return (
-    <View style={styles.toggleTrack}>
-      <Pressable
-        onPress={() => router.replace('/login')}
-        style={[styles.toggleItem, active === 'signin' && styles.toggleItemActive]}
-      >
-        <Text
+      {HERO_MOTIFS.map((motif) => (
+        <View
+          key={motif.icon}
           style={[
-            styles.toggleText,
-            active === 'signin' ? styles.toggleTextActive : styles.toggleTextIdle,
+            styles.motifChip,
+            {
+              width: motif.size,
+              height: motif.size,
+              borderRadius: motif.size / 2,
+              top: motif.top,
+              bottom: motif.bottom,
+              left: motif.left,
+              right: motif.right,
+              opacity: motif.opacity,
+              transform: [{ rotate: motif.rotate ?? '0deg' }],
+            },
           ]}
         >
-          Login
-        </Text>
-      </Pressable>
-      <Pressable
-        onPress={() => router.replace('/register')}
-        style={[styles.toggleItem, active === 'signup' && styles.toggleItemActive]}
-      >
-        <Text
-          style={[
-            styles.toggleText,
-            active === 'signup' ? styles.toggleTextActive : styles.toggleTextIdle,
-          ]}
-        >
-          Sign up
-        </Text>
-      </Pressable>
+          <Ionicons name={motif.icon} size={motif.iconSize} color="rgba(255,255,255,0.92)" />
+        </View>
+      ))}
     </View>
   );
 }
@@ -97,45 +104,28 @@ export function AuthField({
   label,
   ...props
 }: TextInputProps & { icon: keyof typeof Ionicons.glyphMap; label?: string }) {
-  const surface = useAuthSurface();
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const { style, onFocus, onBlur, placeholder, ...rest } = props;
-  const dark = surface === 'dark';
 
   return (
     <View style={styles.fieldBlock}>
-      {label ? (
-        <Text style={[styles.fieldLabel, { color: dark ? 'rgba(255,255,255,0.78)' : colors.muted }]}>
-          {label}
-        </Text>
-      ) : null}
+      {label ? <Text style={[styles.fieldLabel, { color: colors.muted }]}>{label}</Text> : null}
       <View
         style={[
-          styles.underlineField,
+          styles.filledField,
           {
-            borderBottomColor: focused
-              ? colors.blue
-              : dark
-                ? 'rgba(255,255,255,0.28)'
-                : colors.border,
+            backgroundColor: focused ? '#EEF3FA' : '#F4F7FB',
+            borderColor: focused ? 'rgba(63,116,204,0.55)' : 'transparent',
           },
         ]}
       >
-        <Ionicons
-          name={icon}
-          size={18}
-          color={focused ? colors.blue : dark ? 'rgba(255,255,255,0.55)' : colors.muted}
-        />
+        <Ionicons name={icon} size={18} color={focused ? colors.blue : colors.muted} />
         <TextInput
           {...rest}
           placeholder={placeholder}
-          placeholderTextColor={dark ? 'rgba(255,255,255,0.35)' : colors.muted}
-          style={[
-            styles.underlineInput,
-            { color: dark ? '#F5F8FF' : colors.heading },
-            style,
-          ]}
+          placeholderTextColor={colors.silver}
+          style={[styles.filledInput, { color: colors.heading }, style]}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);
@@ -158,47 +148,30 @@ export function AuthPasswordField({
   icon?: keyof typeof Ionicons.glyphMap;
   label?: string;
 }) {
-  const surface = useAuthSurface();
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
   const { style, onFocus, onBlur, placeholder, ...rest } = props;
-  const dark = surface === 'dark';
 
   return (
     <View style={styles.fieldBlock}>
-      {label ? (
-        <Text style={[styles.fieldLabel, { color: dark ? 'rgba(255,255,255,0.78)' : colors.muted }]}>
-          {label}
-        </Text>
-      ) : null}
+      {label ? <Text style={[styles.fieldLabel, { color: colors.muted }]}>{label}</Text> : null}
       <View
         style={[
-          styles.underlineField,
+          styles.filledField,
           {
-            borderBottomColor: focused
-              ? colors.blue
-              : dark
-                ? 'rgba(255,255,255,0.28)'
-                : colors.border,
+            backgroundColor: focused ? '#EEF3FA' : '#F4F7FB',
+            borderColor: focused ? 'rgba(63,116,204,0.55)' : 'transparent',
           },
         ]}
       >
-        <Ionicons
-          name={icon}
-          size={18}
-          color={focused ? colors.blue : dark ? 'rgba(255,255,255,0.55)' : colors.muted}
-        />
+        <Ionicons name={icon} size={18} color={focused ? colors.blue : colors.muted} />
         <TextInput
           {...rest}
           secureTextEntry={!visible}
           placeholder={placeholder}
-          placeholderTextColor={dark ? 'rgba(255,255,255,0.35)' : colors.muted}
-          style={[
-            styles.underlineInput,
-            { color: dark ? '#F5F8FF' : colors.heading },
-            style,
-          ]}
+          placeholderTextColor={colors.silver}
+          style={[styles.filledInput, { color: colors.heading }, style]}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);
@@ -210,14 +183,15 @@ export function AuthPasswordField({
         />
         <Pressable
           onPress={() => setVisible((v) => !v)}
+          style={styles.eyeInline}
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={visible ? 'Hide password' : 'Show password'}
         >
           <Ionicons
             name={visible ? 'eye-off-outline' : 'eye-outline'}
-            size={18}
-            color={dark ? 'rgba(255,255,255,0.55)' : colors.muted}
+            size={20}
+            color={colors.muted}
           />
         </Pressable>
       </View>
@@ -240,51 +214,52 @@ export function AuthLayout({
 }) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const showToggle = variant === 'signin' || variant === 'signup';
+  const heroEyebrow =
+    variant === 'signup' ? 'Create account' : variant === 'forgot' ? 'Password reset' : 'Welcome back';
+  const cardOverlap = 48;
+  const heroHeight = HERO_H + insets.top;
 
   return (
-    <AuthSurfaceContext.Provider value="dark">
-      <View style={[styles.root, { backgroundColor: '#F3F6FB' }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <View style={styles.headerRow}>
-            <MoonsLogo size="lg" />
-            <ThemeToggle />
+    <AuthSurfaceContext.Provider value="light">
+      <View style={styles.root}>
+        {/* Full-bleed header — white sheet overlaps this */}
+        <View style={[styles.hero, { height: heroHeight, paddingTop: insets.top }]}>
+          <AuthHeroBackground />
+          <View style={[styles.heroCopy, { paddingBottom: cardOverlap + 12 }]}>
+            <Text style={styles.heroEyebrow}>{heroEyebrow}</Text>
+            <Text style={styles.heroTitle}>MoonsJob</Text>
+            <Text style={styles.heroSubtitle} numberOfLines={2}>
+              {subtitle}
+            </Text>
           </View>
         </View>
 
-        <TopWave fill={PANEL} />
-
+        {/* White sheet sits above the header with large top radii */}
         <KeyboardAvoidingView
-          style={styles.panel}
+          style={[styles.sheetWrap, { marginTop: -cardOverlap }]}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         >
-          <ScrollView
-            contentContainerStyle={[
-              styles.scroll,
-              { paddingBottom: Math.max(insets.bottom, 18) + 12 },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {showToggle ? (
-              <AuthModeToggle active={variant === 'signup' ? 'signup' : 'signin'} />
-            ) : null}
-
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
-
-            <View style={styles.body}>{children}</View>
-
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
-          </ScrollView>
+          <View style={[styles.sheet, { backgroundColor: colors.white }]}>
+            <ScrollView
+              contentContainerStyle={[
+                styles.scroll,
+                { paddingBottom: Math.max(insets.bottom, 16) + 12 },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <Text style={[styles.cardTitle, { color: colors.heading }]}>{title}</Text>
+              <View style={styles.titleRule} />
+              <View style={styles.body}>{children}</View>
+              {footer ? <View style={styles.footer}>{footer}</View> : null}
+              <View style={styles.legalWrap}>
+                <AuthLegalLinks />
+              </View>
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
-
-        <BottomWave fill="#F3F6FB" />
-
-        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-          <AuthLegalLinks />
-        </View>
       </View>
     </AuthSurfaceContext.Provider>
   );
@@ -293,105 +268,152 @@ export function AuthLayout({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: '#14233f',
   },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: 8,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  wave: {
-    backgroundColor: 'transparent',
-  },
-  panel: {
-    flex: 1,
-    backgroundColor: PANEL,
-  },
-  scroll: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: 8,
-    flexGrow: 1,
-  },
-  toggleTrack: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 999,
-    padding: 4,
-    marginBottom: 22,
+  hero: {
     width: '100%',
-    maxWidth: 280,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 24,
   },
-  toggleItem: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 999,
-    alignItems: 'center',
+  heroCopy: {
+    paddingTop: 12,
+    zIndex: 1,
   },
-  toggleItemActive: {
-    backgroundColor: '#FFFFFF',
+  heroEyebrow: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    ...fontStyle('semibold'),
   },
-  toggleText: {
-    fontSize: 14,
-    ...displayFontStyle('semibold'),
-  },
-  toggleTextActive: {
-    color: PANEL,
-  },
-  toggleTextIdle: {
-    color: '#8EB6FF',
-  },
-  title: {
-    fontSize: 28,
-    color: '#F5F8FF',
-    textAlign: 'center',
-    letterSpacing: -0.6,
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 36,
+    letterSpacing: -1,
     ...displayFontStyle('extrabold'),
   },
-  subtitle: {
+  heroSubtitle: {
     marginTop: 8,
-    marginBottom: 8,
+    color: 'rgba(235,242,255,0.86)',
     fontSize: 14,
     lineHeight: 20,
-    color: 'rgba(214, 224, 240, 0.72)',
-    textAlign: 'center',
+    maxWidth: 320,
     ...fontStyle('regular'),
   },
+  glow: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  glowLeft: {
+    width: 180,
+    height: 180,
+    backgroundColor: 'rgba(240, 186, 96, 0.22)',
+    top: -48,
+    left: -56,
+  },
+  glowRight: {
+    width: 170,
+    height: 170,
+    backgroundColor: 'rgba(78, 196, 180, 0.2)',
+    top: 18,
+    right: -60,
+  },
+  orbitOuter: {
+    position: 'absolute',
+    width: SCREEN_W * 0.72,
+    height: SCREEN_W * 0.72,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    right: -SCREEN_W * 0.22,
+    bottom: -SCREEN_W * 0.28,
+  },
+  orbitInner: {
+    position: 'absolute',
+    width: SCREEN_W * 0.46,
+    height: SCREEN_W * 0.46,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    right: -SCREEN_W * 0.08,
+    bottom: -SCREEN_W * 0.16,
+  },
+  motifChip: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  sheetWrap: {
+    flex: 1,
+    zIndex: 2,
+  },
+  sheet: {
+    flex: 1,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+  },
+  cardTitle: {
+    fontSize: 23,
+    letterSpacing: -0.45,
+    ...displayFontStyle('bold'),
+  },
+  titleRule: {
+    width: 36,
+    height: 3,
+    borderRadius: 99,
+    backgroundColor: '#3f74cc',
+    marginTop: 10,
+    marginBottom: 4,
+  },
   body: {
-    marginTop: theme.spacing.md,
+    marginTop: 14,
   },
   footer: {
-    marginTop: theme.spacing.lg,
+    marginTop: 22,
     alignItems: 'center',
   },
-  bottomBar: {
-    backgroundColor: '#F3F6FB',
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: 4,
+  legalWrap: {
+    marginTop: 20,
+    marginBottom: 6,
   },
   fieldBlock: {
-    marginBottom: 18,
+    marginBottom: 12,
   },
   fieldLabel: {
-    fontSize: 13,
-    marginBottom: 8,
-    ...fontStyle('medium'),
+    fontSize: 12,
+    marginBottom: 7,
+    letterSpacing: 0.2,
+    ...fontStyle('semibold'),
   },
-  underlineField: {
+  filledField: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderBottomWidth: 1.5,
-    paddingBottom: Platform.OS === 'ios' ? 10 : 6,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    minHeight: 52,
   },
-  underlineInput: {
+  filledInput: {
     flex: 1,
     fontSize: 15,
-    paddingVertical: Platform.OS === 'ios' ? 4 : 8,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
     ...fontStyle('regular'),
+  },
+  eyeInline: {
+    padding: 4,
+    marginRight: -2,
   },
 });

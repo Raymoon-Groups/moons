@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { extractForwardedPostId, stripForwardedPostUrl, type FeedPost } from '@moons/shared';
+import { MentionText } from '@/components/mentions/mention-text';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { fetchPost } from '@/lib/posts';
@@ -45,7 +46,12 @@ export function MessageForwardedPost({
   }, [postId]);
 
   if (!postId) {
-    return <Text style={[styles.body, { color: textColor }, fontStyle('regular')]}>{body}</Text>;
+    return (
+      <MentionText
+        value={body}
+        style={[styles.body, { color: textColor }, fontStyle('regular')]}
+      />
+    );
   }
 
   const media = post ? postMedia(post) : [];
@@ -56,7 +62,10 @@ export function MessageForwardedPost({
   return (
     <View style={{ gap: 8 }}>
       {note ? (
-        <Text style={[styles.body, { color: textColor }, fontStyle('regular')]}>{note}</Text>
+        <MentionText
+          value={note}
+          style={[styles.body, { color: textColor }, fontStyle('regular')]}
+        />
       ) : null}
       <Pressable
         onPress={() => router.push(`/post/${postId}` as never)}

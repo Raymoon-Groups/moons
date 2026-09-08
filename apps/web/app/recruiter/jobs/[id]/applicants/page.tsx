@@ -12,6 +12,7 @@ import {
   ScreeningAnswersList,
 } from '@/components/jobs/screening-answers-list';
 import { getResumeDisplayName } from '@/components/profile/profile-shared';
+import { ResumeDownloadButton } from '@/components/resume-download-button';
 import type { JobListing } from '@/lib/jobs';
 import type { ApplicantRow } from '@/lib/types';
 
@@ -93,7 +94,7 @@ function ApplicantCard({
   const profile = app.candidate.profile;
   const name = profile?.fullName ?? app.candidate.email;
   const avatarSrc = resolveAssetUrl(profile?.avatarUrl);
-  const resumeUrl = profile?.resumeUrl ? resolveAssetUrl(profile.resumeUrl) : null;
+  const resumeUrl = profile?.resumeUrl ?? null;
   const resumeFileName = profile ? getResumeDisplayName(profile) : null;
   const expLabel =
     profile?.experienceYears != null
@@ -195,27 +196,12 @@ function ApplicantCard({
               View full profile
             </Link>
             {resumeUrl && resumeFileName && (
-              <a
-                href={resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface-elevated px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/40 hover:bg-surface-hover"
-              >
-                <svg
-                  className="h-4 w-4 shrink-0 text-moons-blue"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                <span className="truncate">{resumeFileName}</span>
-              </a>
+              <ResumeDownloadButton
+                url={resumeUrl}
+                fileName={resumeFileName}
+                label={resumeFileName}
+                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface-elevated px-4 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/40 hover:bg-surface-hover disabled:opacity-60"
+              />
             )}
 
             <label className="mt-1 block border-t border-border/60 pt-3">

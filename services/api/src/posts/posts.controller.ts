@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,10 +15,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { OnboardingGuard } from '../common/guards/onboarding.guard';
+import { THROTTLE } from '../common/throttle.constants';
 import { CreateCommentDto, CreatePostDto, SharePostDto, UpdatePostDto } from './dto/posts.dto';
 import { PostsService } from './posts.service';
 
@@ -53,6 +56,7 @@ export class PostsController {
   }
 
   @Post()
+  @Throttle(THROTTLE.createPost)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -66,7 +70,7 @@ export class PostsController {
   @UseInterceptors(
     FilesInterceptor('media', 10, {
       storage: memoryStorage(),
-      limits: { fileSize: 50 * 1024 * 1024 },
+      limits: { fileSize: 100 * 1024 * 1024 },
     }),
   )
   create(
@@ -92,11 +96,13 @@ export class PostsController {
   }
 
   @Post(':id/like')
+  @Throttle(THROTTLE.engage)
   like(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.posts.likePost(user.sub, id);
   }
 
   @Delete(':id/like')
+  @Throttle(THROTTLE.engage)
   unlike(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.posts.unlikePost(user.sub, id);
   }
@@ -122,6 +128,7 @@ export class PostsController {
   }
 
   @Post(':id/comments')
+  @Throttle(THROTTLE.engage)
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiBody({
     schema: {
@@ -175,6 +182,7 @@ export class PostsController {
   }
 
   @Post(':id/share')
+  @Throttle(THROTTLE.engage)
   share(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,

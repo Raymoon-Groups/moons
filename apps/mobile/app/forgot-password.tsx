@@ -67,15 +67,15 @@ export default function ForgotPasswordScreen() {
   return (
     <AuthLayout
       variant="forgot"
-      title={step === 'email' ? 'Forget Password' : 'Reset Password'}
+      title={step === 'email' ? 'Forgot password' : 'Set new password'}
       subtitle={
         step === 'email'
-          ? "Don't worry, it happens. Please enter the email associated with your MoonsJob account."
+          ? 'Enter your account email and we’ll send a reset code.'
           : `Enter the code sent to ${email} and choose a new password.`
       }
       footer={
         <View style={styles.footer}>
-          <Text style={styles.footerText}>You remember your password? </Text>
+          <Text style={styles.footerText}>Remembered it? </Text>
           <LinkText onPress={() => router.push('/login')}>Sign in</LinkText>
         </View>
       }
@@ -94,7 +94,6 @@ export default function ForgotPasswordScreen() {
           {error ? <ErrorText>{error}</ErrorText> : null}
           {info ? <InfoText>{info}</InfoText> : null}
           <PrimaryButton
-            tone="soft"
             label={loading ? 'Sending…' : 'Send OTP'}
             onPress={handleSendReset}
             loading={loading}
@@ -124,7 +123,6 @@ export default function ForgotPasswordScreen() {
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
           <PrimaryButton
-            tone="soft"
             label={loading ? 'Resetting…' : 'Reset password'}
             onPress={handleResetPassword}
             loading={loading}

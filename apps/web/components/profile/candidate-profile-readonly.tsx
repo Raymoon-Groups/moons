@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { ResumeDownloadButton } from '@/components/resume-download-button';
 import { resolveAssetUrl } from '@/lib/assets';
 import type { Profile } from '@/lib/types';
 import { formatExperience, getResumeDisplayName } from './profile-shared';
@@ -27,7 +28,7 @@ function DetailItem({ label, value }: { label: string; value?: string | null }) 
 export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
   const displayName = profile.fullName?.trim() || profile.email.split('@')[0];
   const avatarSrc = profile.avatarUrl ? resolveAssetUrl(profile.avatarUrl) : null;
-  const resumeUrl = profile.resumeUrl ? resolveAssetUrl(profile.resumeUrl) : null;
+  const resumeUrl = profile.resumeUrl ?? null;
   const resumeFileName = getResumeDisplayName(profile);
 
   return (
@@ -71,14 +72,12 @@ export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
             </div>
 
             {resumeUrl && resumeFileName && (
-              <a
-                href={resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex max-w-full rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
-              >
-                <span className="truncate">{resumeFileName}</span>
-              </a>
+              <ResumeDownloadButton
+                url={resumeUrl}
+                fileName={resumeFileName}
+                label={resumeFileName}
+                className="mt-4 inline-flex max-w-full rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
+              />
             )}
           </div>
         </div>

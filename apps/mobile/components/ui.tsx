@@ -81,7 +81,7 @@ function useUiStyles() {
           borderRadius: theme.radius.full,
           paddingVertical: 16,
           alignItems: 'center',
-          marginTop: 14,
+          marginTop: 16,
           ...theme.shadow.button,
         },
         primaryButtonSoft: {
@@ -89,7 +89,18 @@ function useUiStyles() {
           shadowColor: '#04101f',
           shadowOpacity: 0.18,
         },
-        primaryButtonText: { color: '#fff', fontFamily: theme.fonts.bold, fontSize: 15, letterSpacing: 0.2 },
+        primaryButtonNavy: {
+          backgroundColor: '#14233f',
+          shadowColor: '#0b1729',
+          shadowOpacity: 0.22,
+          shadowRadius: 14,
+        },
+        primaryButtonText: {
+          color: '#fff',
+          fontFamily: theme.fonts.bold,
+          fontSize: 15,
+          letterSpacing: 0.25,
+        },
         primaryButtonTextSoft: { color: '#14233f' },
         secondaryButton: {
           borderRadius: theme.radius.full,
@@ -126,12 +137,12 @@ function useUiStyles() {
         },
         error: { color: colors.error, fontSize: 14, lineHeight: 20, fontFamily: theme.fonts.regular },
         info: { color: colors.success, fontSize: 14, lineHeight: 20, fontFamily: theme.fonts.regular },
-        dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
+        dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 16 },
         dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
         dividerLineOnDark: { backgroundColor: 'rgba(255,255,255,0.22)' },
         dividerText: { fontSize: 12, fontFamily: theme.fonts.medium, color: colors.muted },
         dividerTextOnDark: { color: 'rgba(214,224,240,0.7)' },
-        link: { color: colors.blue, fontFamily: theme.fonts.bold, fontSize: 14 },
+        link: { color: colors.blue, fontFamily: theme.fonts.semibold, fontSize: 14 },
         linkOnDark: { color: '#8EB6FF' },
         labelOnDark: { color: 'rgba(245,248,255,0.82)' },
       }),
@@ -264,7 +275,9 @@ export function PrimaryButton({
   tone?: 'brand' | 'soft';
 }) {
   const styles = useUiStyles();
+  const surface = useAuthSurface();
   const soft = tone === 'soft';
+  const navyCta = !soft && surface === 'light';
   return (
     <Pressable
       onPress={onPress}
@@ -272,6 +285,7 @@ export function PrimaryButton({
       style={({ pressed }) => [
         styles.primaryButton,
         soft && styles.primaryButtonSoft,
+        navyCta && styles.primaryButtonNavy,
         (loading || disabled) && styles.buttonDisabled,
         pressed && styles.buttonPressed,
       ]}

@@ -1,11 +1,11 @@
 import { Image } from 'expo-image';
-import * as Linking from 'expo-linking';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SectionCard } from '@/components/profile/section-card';
 import { SecondaryButton } from '@/components/ui';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
+import { openResumeFileOrAlert } from '@/lib/open-resume';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { Profile } from '@/lib/types';
@@ -33,7 +33,7 @@ export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
   const { colors } = useTheme();
   const displayName = profile.fullName?.trim() || profile.email.split('@')[0];
   const avatarSrc = profile.avatarUrl ? resolveAssetUrl(profile.avatarUrl) : null;
-  const resumeUrl = profile.resumeUrl ? resolveAssetUrl(profile.resumeUrl) : null;
+  const resumeUrl = profile.resumeUrl ?? null;
   const resumeFileName = profile.resumeFileName ?? 'View resume';
 
   const styles = useMemo(
@@ -121,7 +121,10 @@ export function CandidateProfileReadonly({ profile }: { profile: Profile }) {
             {profile.phone ? <Text style={styles.contact}>{profile.phone}</Text> : null}
             {resumeUrl ? (
               <View style={{ marginTop: 10 }}>
-                <SecondaryButton label={resumeFileName} onPress={() => Linking.openURL(resumeUrl)} />
+                <SecondaryButton
+                  label={resumeFileName}
+                  onPress={() => void openResumeFileOrAlert(resumeUrl, resumeFileName)}
+                />
               </View>
             ) : null}
           </View>

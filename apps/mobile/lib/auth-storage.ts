@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import type { AuthUser } from '@moons/shared';
+import { setAssetAuthToken } from './assets';
 
 const ACCESS_KEY = 'moons_access_token';
 const REFRESH_KEY = 'moons_refresh_token';
@@ -59,10 +60,12 @@ export async function setAuthSession(data: {
     await setItem(REFRESH_KEY, data.refreshToken);
   }
   await setItem(USER_KEY, JSON.stringify(data.user));
+  setAssetAuthToken(data.accessToken);
 }
 
 export async function clearAuthSession() {
   await deleteItem(ACCESS_KEY);
   await deleteItem(REFRESH_KEY);
   await deleteItem(USER_KEY);
+  setAssetAuthToken(null);
 }

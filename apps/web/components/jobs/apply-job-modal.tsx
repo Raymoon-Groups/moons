@@ -6,7 +6,7 @@ import {
   type ScreeningAnswer,
   type ScreeningQuestion,
 } from '@moons/shared';
-import { resolveAssetUrl } from '@/lib/assets';
+import { ResumeDownloadButton } from '@/components/resume-download-button';
 import { authFetch, authUpload } from '@/lib/api-client';
 import type { JobListing } from '@/lib/jobs';
 import { notifyNotificationsRefresh } from '@/lib/notifications';
@@ -383,19 +383,18 @@ export function ApplyJobModal({
                   {questions.map((question) => {
                     const value = answers[question.id]?.trim() ?? '';
                     const isResume = question.type === ScreeningQuestionType.RESUME;
-                    const href = isResume ? resolveAssetUrl(value) : null;
                     return (
                       <div key={question.id} className="border-t border-border/50 pt-3 first:border-t-0 first:pt-0">
                         <p className="text-xs font-semibold text-heading">{question.prompt}</p>
-                        {href ? (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-flex text-sm text-moons-blue hover:underline"
-                          >
-                            {resumeMeta?.fileName || 'View resume'}
-                          </a>
+                        {isResume && value ? (
+                          <div className="mt-1">
+                            <ResumeDownloadButton
+                              url={value}
+                              fileName={resumeMeta?.fileName}
+                              label={resumeMeta?.fileName || 'View resume'}
+                              className="inline-flex text-sm font-medium text-moons-blue hover:underline disabled:opacity-60"
+                            />
+                          </div>
                         ) : (
                           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
                             {value || <span className="text-moons-muted">—</span>}
