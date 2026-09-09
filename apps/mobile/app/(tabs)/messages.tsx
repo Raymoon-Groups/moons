@@ -21,8 +21,9 @@ import {
   MESSAGE_INBOX_POLL_MS,
   type ConversationPreview,
 } from '@/lib/messages';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { subscribeRefresh } from '@/lib/refresh-events';
-import { useTabScreenPadding } from '@/lib/tab-screen-padding';
+import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -30,6 +31,8 @@ export default function MessagesScreen() {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const bottomPadding = useTabScreenPadding();
+  const topPadding = useTabScreenTopPadding();
+  const navScroll = useNavChromeScrollProps();
   const params = useLocalSearchParams<{ with?: string; conversation?: string }>();
   const [items, setItems] = useState<ConversationPreview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,12 +156,12 @@ export default function MessagesScreen() {
           data={items}
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
-            styles.list,
-            { paddingBottom: bottomPadding, flexGrow: 1 },
+            { paddingBottom: bottomPadding, paddingTop: topPadding, flexGrow: 1 },
             items.length === 0 && styles.listEmpty,
           ]}
           style={{ backgroundColor: inboxBg }}
           showsVerticalScrollIndicator={false}
+          {...navScroll}
           extraData={items}
           ItemSeparatorComponent={() => (
             <View
@@ -210,9 +213,6 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: {
-    paddingTop: 0,
-  },
   listEmpty: {
     justifyContent: 'center',
   },

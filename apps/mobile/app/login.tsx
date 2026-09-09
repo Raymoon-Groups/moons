@@ -130,7 +130,7 @@ export default function LoginScreen() {
   return (
     <AuthLayout
       variant="signin"
-      title="Sign in"
+      title="Welcome back"
       subtitle="Find roles, connect with employers, and grow your career."
       footer={
         <View style={styles.footer}>

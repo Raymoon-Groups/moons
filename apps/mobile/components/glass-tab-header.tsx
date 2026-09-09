@@ -1,21 +1,63 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, usePathname, useSegments } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  runOnJS,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { UserRole } from '@moons/shared';
 import { NotificationBell } from '@/components/notification-bell';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { resolveAvatarUrl } from '@/lib/assets';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
+import {
+  navChromeHideProgress,
+  useResetNavChromeOnNavigate,
+} from '@/lib/nav-chrome';
 import { useNavIndicators } from '@/lib/nav-indicators';
 import { useTheme } from '@/lib/theme-context';
-import { theme } from '@/lib/theme';
 
-export function GlassTabHeader({ title }: { title: string }) {
+/** Approx. bar row height (excluding safe area). Used for list top padding. */
+export const GLASS_TAB_HEADER_BAR_HEIGHT = 52;
+
+function resolveTitle(pathname: string, segments: string[], isRecruiter: boolean): string {
+  const path = pathname.toLowerCase();
+  const joined = segments.join('/').toLowerCase();
+
+  if (path.includes('/profile') || joined.includes('profile') || path.includes('/settings')) {
+    return 'Profile';
+  }
+  if (path.includes('/message') || joined.includes('messages')) return 'Messaging';
+  if (path.includes('/network') || joined.includes('network')) return 'My Network';
+  if (path.includes('/companies') || joined.includes('companies')) return 'Companies';
+  if (path.includes('/recruiter/candidates') || joined.includes('candidates')) {
+    return 'Candidates';
+  }
+  if (joined.includes('my-jobs') || (isRecruiter && (path.includes('/job') || joined.includes('jobs')))) {
+    return 'My jobs';
+  }
+  if (path.includes('/job') || joined.includes('jobs') || joined.includes('applications')) {
+    return 'Jobs';
+  }
+  if (joined.includes('(tabs)') || path.includes('/(tabs)') || path.endsWith('/')) {
+    return 'Feed';
+  }
+  return 'MoonsJob';
+}
+
+/**
+ * Full-width top app bar. Rendered as an absolute overlay (not React Navigation header)
+ * so hide-on-scroll translateY works reliably.
+ */
+export function PersistentGlassTabHeader() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const { indicators } = useNavIndicators();
   const pathname = usePathname();
   const segments = useSegments() as unknown as string[];
@@ -24,6 +66,28 @@ export function GlassTabHeader({ title }: { title: string }) {
   const iconSize = compact ? 18 : 20;
   const btnSize = compact ? 34 : 38;
   const avatarSize = compact ? 30 : 34;
+  const measuredHeight = useSharedValue(insets.top + GLASS_TAB_HEADER_BAR_HEIGHT);
+  const [chromeInteractive, setChromeInteractive] = useState(true);
+
+  useResetNavChromeOnNavigate();
+
+  useAnimatedReaction(
+    () => navChromeHideProgress.value > 0.55,
+    (hidden, prev) => {
+      if (hidden !== prev) {
+        runOnJS(setChromeInteractive)(!hidden);
+      }
+    },
+  );
+
+  const first = segments[0];
+  const isRecruiter = user?.role === UserRole.RECRUITER;
+  const showOnTabs = Boolean(ready && user && first === '(tabs)');
+
+  const title = useMemo(
+    () => resolveTitle(pathname, segments, Boolean(isRecruiter)),
+    [pathname, segments, isRecruiter],
+  );
 
   const profileActive =
     pathname.toLowerCase().includes('/profile') ||
@@ -33,26 +97,34 @@ export function GlassTabHeader({ title }: { title: string }) {
   const name = user?.fullName?.trim() || user?.email || 'Me';
   const avatarUri = resolveAvatarUrl(user?.avatarUrl, user?.avatarVersion);
 
+  const chromeStyle = useAnimatedStyle(() => {
+    const h = Math.max(measuredHeight.value, 1);
+    const t = navChromeHideProgress.value;
+    return {
+      transform: [{ translateY: -h * t }],
+    };
+  });
+
+  if (!showOnTabs) return null;
+
   return (
-    <View
+    <Animated.View
+      pointerEvents={chromeInteractive ? 'box-none' : 'none'}
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        if (h > 0) measuredHeight.value = h;
+      }}
       style={[
         styles.wrap,
         {
           paddingTop: Math.max(insets.top, 8),
-          backgroundColor: colors.background,
+          backgroundColor: isDark ? 'rgba(28, 35, 48, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+          borderBottomColor: colors.border,
         },
+        chromeStyle,
       ]}
     >
-      <View
-        style={[
-          styles.bar,
-          {
-            backgroundColor: isDark ? 'rgba(28, 35, 48, 0.94)' : 'rgba(255, 255, 255, 0.94)',
-            borderColor: colors.border,
-          },
-          theme.shadow.soft,
-        ]}
-      >
+      <View style={styles.bar} pointerEvents="auto">
         <Text
           numberOfLines={1}
           style={[styles.title, { color: colors.heading }, fontStyle('semibold')]}
@@ -69,7 +141,6 @@ export function GlassTabHeader({ title }: { title: string }) {
             <Ionicons name="search" size={iconSize} color={colors.heading} />
           </Pressable>
           <NotificationBell hasUnread={indicators.bell} compact={compact} bare />
-          <ThemeToggle size={btnSize} bare />
           <Pressable
             onPress={() => router.push('/(tabs)/profile')}
             style={[
@@ -93,7 +164,11 @@ export function GlassTabHeader({ title }: { title: string }) {
                   height: avatarSize,
                   borderRadius: avatarSize / 2,
                   backgroundColor: isDark ? colors.surface : `${colors.blue}14`,
-                  borderColor: profileActive ? colors.blue : isDark ? colors.border : 'rgba(15,28,51,0.08)',
+                  borderColor: profileActive
+                    ? colors.blue
+                    : isDark
+                      ? colors.border
+                      : 'rgba(15,28,51,0.08)',
                 },
               ]}
             >
@@ -108,25 +183,35 @@ export function GlassTabHeader({ title }: { title: string }) {
           </Pressable>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
+}
+
+/** @deprecated Use PersistentGlassTabHeader — kept so old imports don't break mid-refactor. */
+export function GlassTabHeader({ title }: { title: string }) {
+  return <PersistentGlassTabHeader />;
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingHorizontal: 12,
-    paddingBottom: 10,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    width: '100%',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    elevation: 8,
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    minHeight: 52,
+    width: '100%',
+    minHeight: GLASS_TAB_HEADER_BAR_HEIGHT,
     paddingLeft: 16,
-    paddingRight: 6,
+    paddingRight: 10,
     paddingVertical: 6,
-    borderRadius: theme.radius.full,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   title: {
     flex: 1,

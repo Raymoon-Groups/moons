@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { normalizeUploadMime } from '../common/upload-mime';
+import { extractMentionUserIds, mentionPlainPreview } from '../common/mentions';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -426,9 +427,68 @@ export class PostsService {
       include: this.postInclude(userId),
     });
 
-    void this.notifyConnectionsOfNewPost(userId, post.id, text, media);
+    const mentionedIds = extractMentionUserIds(text);
+    void this.notifyConnectionsOfNewPost(userId, post.id, text, media, mentionedIds).catch(() => undefined);
+    void this.notifyMentions(userId, text, {
+      postId: post.id,
+      source: 'post',
+    }).catch(() => undefined);
 
     return this.serializePost(post, userId);
+  }
+
+  private async notifyMentions(
+    actorId: string,
+    text: string,
+    opts: {
+      postId: string;
+      commentId?: string;
+      source: 'post' | 'comment' | 'share';
+      excludeUserIds?: string[];
+    },
+  ) {
+    const mentionedIds = extractMentionUserIds(text).filter(
+      (id) => id !== actorId && !(opts.excludeUserIds ?? []).includes(id),
+    );
+    if (!mentionedIds.length) return;
+
+    const existingUsers = await this.prisma.user.findMany({
+      where: { id: { in: mentionedIds } },
+      select: { id: true },
+    });
+    const validIds = existingUsers.map((u) => u.id);
+    if (!validIds.length) return;
+
+    const authorProfile = await this.prisma.profile.findUnique({ where: { userId: actorId } });
+    const name = authorProfile?.fullName?.trim() || 'Someone';
+    const preview = mentionPlainPreview(text);
+    const body =
+      opts.source === 'comment'
+        ? preview
+          ? `${name} mentioned you in a comment: ${preview}`
+          : `${name} mentioned you in a comment`
+        : preview
+          ? `${name} mentioned you: ${preview}`
+          : `${name} mentioned you in a post`;
+
+    await Promise.all(
+      validIds.map((userId) =>
+        this.notifications.create({
+          userId,
+          type: NotificationType.POST_MENTION,
+          title: 'You were mentioned',
+          body,
+          linkUrl: `/dashboard?post=${opts.postId}`,
+          metadata: {
+            postId: opts.postId,
+            ...(opts.commentId ? { commentId: opts.commentId } : {}),
+            fromUserId: actorId,
+            source: opts.source,
+          },
+          actorId,
+        }),
+      ),
+    );
   }
 
   private async notifyConnectionsOfNewPost(
@@ -436,6 +496,7 @@ export class PostsService {
     postId: string,
     body: string,
     media: Array<{ type: PostMediaType }>,
+    excludeUserIds: string[] = [],
   ) {
     const [connections, authorProfile, blocked] = await Promise.all([
       this.prisma.connection.findMany({
@@ -449,9 +510,10 @@ export class PostsService {
       this.getBlockedIds(authorId),
     ]);
 
+    const excluded = new Set(excludeUserIds);
     const recipientIds = connections
       .map((c) => (c.fromUserId === authorId ? c.toUserId : c.fromUserId))
-      .filter((id) => id !== authorId && !blocked.has(id))
+      .filter((id) => id !== authorId && !blocked.has(id) && !excluded.has(id))
       .slice(0, 50);
 
     if (!recipientIds.length) return;
@@ -460,10 +522,11 @@ export class PostsService {
     const hasVideo = media.some((item) => item.type === PostMediaType.VIDEO);
     const hasImage = media.some((item) => item.type === PostMediaType.IMAGE);
     const trimmedBody = body.trim();
+    const previewText = mentionPlainPreview(trimmedBody) || trimmedBody;
 
     let notificationBody: string;
-    if (trimmedBody) {
-      const preview = trimmedBody.length > 80 ? `${trimmedBody.slice(0, 80)}…` : trimmedBody;
+    if (previewText) {
+      const preview = previewText.length > 80 ? `${previewText.slice(0, 80)}…` : previewText;
       notificationBody = `${name} posted: ${preview}`;
     } else if (hasVideo) {
       notificationBody = `${name} shared a new video`;
@@ -785,7 +848,11 @@ export class PostsService {
       return created;
     });
 
-    if (post.authorId !== userId) {
+    const mentionedIds = commentBody ? extractMentionUserIds(commentBody) : [];
+    const authorMentioned = mentionedIds.includes(post.authorId);
+
+    // Prefer a mention notification when the post author is @mentioned.
+    if (post.authorId !== userId && !authorMentioned) {
       const name = comment.author.profile?.fullName?.trim() || 'Someone';
       await this.notifications.create({
         userId: post.authorId,
@@ -798,6 +865,14 @@ export class PostsService {
         metadata: { postId: targetId, commentId: comment.id, fromUserId: userId },
         actorId: userId,
       });
+    }
+
+    if (commentBody) {
+      void this.notifyMentions(userId, commentBody, {
+        postId: targetId,
+        commentId: comment.id,
+        source: 'comment',
+      }).catch(() => undefined);
     }
 
     return this.mapComment(comment, userId);
@@ -972,6 +1047,13 @@ export class PostsService {
         metadata: { postId: shared.id, originalPostId: rootId, fromUserId: userId },
         actorId: userId,
       });
+    }
+
+    if (text) {
+      void this.notifyMentions(userId, text, {
+        postId: shared.id,
+        source: 'share',
+      }).catch(() => undefined);
     }
 
     return this.serializePost(shared, userId);

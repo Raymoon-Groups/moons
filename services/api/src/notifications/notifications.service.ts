@@ -28,6 +28,7 @@ export const BELL_NOTIFICATION_TYPES: NotificationType[] = [
   NotificationType.POST_COMMENT,
   NotificationType.POST_SHARE,
   NotificationType.POST_CREATED,
+  NotificationType.POST_MENTION,
 ];
 
 /** User-to-user types that are easy to spam. */
@@ -39,6 +40,7 @@ const SOCIAL_ABUSE_TYPES = new Set<NotificationType>([
   NotificationType.POST_COMMENT,
   NotificationType.POST_SHARE,
   NotificationType.POST_CREATED,
+  NotificationType.POST_MENTION,
   NotificationType.NETWORK_SUGGESTION,
 ]);
 

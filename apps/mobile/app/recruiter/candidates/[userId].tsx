@@ -6,12 +6,14 @@ import { CandidateProfileReadonly } from '@/components/profile/candidate-profile
 import { LoadingScreen } from '@/components/loading-screen';
 import { authFetch } from '@/lib/api';
 import { fontStyle } from '@/lib/font-style';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { Profile } from '@/lib/types';
 
 export default function CandidateProfileScreen() {
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding(24);
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,10 @@ export default function CandidateProfileScreen() {
 
   return (
     <AppScreen>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]}
+        showsVerticalScrollIndicator={false}
+      >
         <CandidateProfileReadonly profile={profile} />
       </ScrollView>
     </AppScreen>
@@ -47,5 +52,5 @@ export default function CandidateProfileScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { padding: theme.spacing.md, paddingBottom: 32 },
+  container: { padding: theme.spacing.md },
 });

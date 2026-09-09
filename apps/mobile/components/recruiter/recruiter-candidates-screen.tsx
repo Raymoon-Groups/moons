@@ -29,6 +29,8 @@ import {
 } from '@/lib/recruiter-candidates';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
+import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import type { JobListing } from '@/lib/types';
 
 const STATUS_FILTERS = [
@@ -227,6 +229,9 @@ function CandidateCard({
 
 export function RecruiterCandidatesScreen({ showHeader = true }: { showHeader?: boolean }) {
   const { colors } = useTheme();
+  const topPadding = useTabScreenTopPadding();
+  const bottomPadding = useTabScreenPadding(28);
+  const navScroll = useNavChromeScrollProps();
   const [rows, setRows] = useState<RecruiterCandidateRow[]>([]);
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -337,9 +342,14 @@ export function RecruiterCandidatesScreen({ showHeader = true }: { showHeader?: 
     <FlatList
       data={rows}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={{ padding: theme.spacing.md, paddingBottom: 32 }}
+      contentContainerStyle={{
+        padding: theme.spacing.md,
+        paddingBottom: bottomPadding,
+        paddingTop: topPadding,
+      }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}
       ListHeaderComponent={header}
+      {...navScroll}
       ListEmptyComponent={
         <EmptyState icon="people-outline" title="No candidates found" message="Try adjusting your filters." />
       }

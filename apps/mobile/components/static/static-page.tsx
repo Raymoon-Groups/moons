@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fontStyle } from '@/lib/font-style';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -20,6 +22,8 @@ export function StaticPageScreen({
   children: ReactNode;
 }) {
   const { colors, isDark } = useTheme();
+  const bottomPadding = useTabScreenPadding(28);
+  const navScroll = useNavChromeScrollProps();
   const gradient = isDark
     ? (['#3568b8', '#4a7fd4', '#2d5aa8'] as const)
     : (['#4a7fd4', '#5b8fd9', '#3568b8'] as const);
@@ -27,8 +31,9 @@ export function StaticPageScreen({
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]}
       showsVerticalScrollIndicator={false}
+      {...navScroll}
     >
       <LinearGradient colors={gradient} style={styles.hero}>
         <Text style={[styles.eyebrow, fontStyle('semibold')]}>{eyebrow}</Text>
@@ -111,7 +116,7 @@ export function StaticEmailLink({ email }: { email: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: theme.spacing.md, paddingBottom: 40 },
+  container: { padding: theme.spacing.md },
   hero: {
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,

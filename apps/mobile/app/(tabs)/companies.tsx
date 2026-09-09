@@ -18,8 +18,9 @@ import { EmptyState } from '@/components/portal-ui';
 import { apiFetch } from '@/lib/api';
 import { COMPANY_CATEGORIES, filterCompanies, type CompanySortKey } from '@/lib/companies-filters';
 import { fontStyle } from '@/lib/font-style';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { useTheme } from '@/lib/theme-context';
-import { useTabScreenPadding } from '@/lib/tab-screen-padding';
+import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { CompaniesPage, CompanyListing } from '@/lib/types';
 
@@ -35,6 +36,8 @@ function formatCount(n: number) {
 export default function CompaniesScreen() {
   const { colors, isDark } = useTheme();
   const bottomPadding = useTabScreenPadding();
+  const topPadding = useTabScreenTopPadding();
+  const navScroll = useNavChromeScrollProps();
   const params = useLocalSearchParams<{ q?: string | string[] }>();
   const paramQ = useMemo(() => {
     const raw = params.q;
@@ -116,7 +119,7 @@ export default function CompaniesScreen() {
       StyleSheet.create({
         center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
         list: { flex: 1 },
-        listContent: { paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm },
+        listContent: { paddingHorizontal: theme.spacing.md },
         header: { marginBottom: 4 },
         searchRow: {
           flexDirection: 'row',
@@ -316,7 +319,8 @@ export default function CompaniesScreen() {
         data={filtered}
         keyExtractor={(item, index) => item.recruiterId || `company-${index}`}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding }]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding, paddingTop: topPadding }]}
+        {...navScroll}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />
         }

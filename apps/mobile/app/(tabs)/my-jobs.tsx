@@ -15,14 +15,17 @@ import { AppScreen } from '@/components/app-screen';
 import { JobCard } from '@/components/job-card';
 import { EmptyState, ScreenHeader } from '@/components/portal-ui';
 import { authFetch } from '@/lib/api';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { useTheme } from '@/lib/theme-context';
-import { useTabScreenPadding } from '@/lib/tab-screen-padding';
+import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { JobListing } from '@/lib/types';
 
 export default function MyJobsScreen() {
   const { colors } = useTheme();
   const bottomPadding = useTabScreenPadding();
+  const topPadding = useTabScreenTopPadding();
+  const navScroll = useNavChromeScrollProps();
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +35,7 @@ export default function MyJobsScreen() {
       StyleSheet.create({
         center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
         list: { flex: 1 },
-        listContent: { padding: theme.spacing.md, paddingBottom: bottomPadding },
+        listContent: { padding: theme.spacing.md, paddingBottom: bottomPadding, paddingTop: topPadding },
         header: { marginBottom: theme.spacing.md },
         postButton: {
           flexDirection: 'row',
@@ -50,7 +53,7 @@ export default function MyJobsScreen() {
         actionText: { color: colors.blue, fontFamily: theme.fonts.bold, fontSize: 13 },
         danger: { color: colors.error, fontFamily: theme.fonts.bold, fontSize: 13 },
       }),
-    [colors, bottomPadding],
+    [colors, bottomPadding, topPadding],
   );
 
   const load = useCallback(async (isRefresh = false) => {
@@ -101,6 +104,7 @@ export default function MyJobsScreen() {
         data={jobs}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        {...navScroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />}
         ListHeaderComponent={
           <View style={styles.header}>

@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
 import { IncomingMessageSoundListener } from '@/components/incoming-message-sound-listener';
 import { PersistentBottomPillNav } from '@/components/bottom-pill-tab-bar';
+import { PersistentGlassTabHeader } from '@/components/glass-tab-header';
 import { ConnectionSuccessHost } from '@/components/network/connection-success-host';
 import { AuthProvider } from '@/lib/auth-context';
 import { SavedJobsProvider } from '@/lib/saved-jobs-context';
@@ -86,6 +87,7 @@ function AppRoot() {
           <ConnectionSuccessHost />
           <View style={{ flex: 1 }}>
             <RootStack />
+            <PersistentGlassTabHeader />
             <PersistentBottomPillNav />
           </View>
         </SavedJobsProvider>

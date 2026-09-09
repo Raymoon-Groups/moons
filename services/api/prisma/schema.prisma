@@ -48,6 +48,7 @@ enum NotificationType {
   POST_COMMENT
   POST_SHARE
   POST_CREATED
+  POST_MENTION
 }
 
 enum PostMediaType {

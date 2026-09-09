@@ -16,8 +16,9 @@ import { PostCard } from '@/components/feed/post-card';
 import { PostSkeleton } from '@/components/feed/post-skeleton';
 import { EmptyState } from '@/components/portal-ui';
 import { fontStyle } from '@/lib/font-style';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { fetchFeed } from '@/lib/posts';
-import { useTabScreenPadding } from '@/lib/tab-screen-padding';
+import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 
 /** Drops duplicate posts and repeat shares of the same original post. */
@@ -37,6 +38,8 @@ function dedupePosts(items: FeedPost[]) {
 export default function FeedScreen() {
   const { colors } = useTheme();
   const bottomPadding = useTabScreenPadding();
+  const topPadding = useTabScreenTopPadding();
+  const navScroll = useNavChromeScrollProps();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -89,13 +92,14 @@ export default function FeedScreen() {
           keyExtractor={(item) => item.id}
           style={{ backgroundColor: colors.background }}
           contentContainerStyle={{
-            paddingTop: 10,
+            paddingTop: topPadding,
             paddingBottom: bottomPadding,
             flexGrow: 1,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          {...navScroll}
           viewabilityConfig={viewabilityConfig}
           onViewableItemsChanged={onViewableItemsChanged}
           refreshControl={

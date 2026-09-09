@@ -674,7 +674,7 @@ function MessagesPageInner() {
                       onAttachmentChange={setAttachment}
                       onSubmit={(storedBody) => void handleSend(undefined, storedBody)}
                       sending={sending}
-                      placeholder={`Message ${displayName.split(' ')[0]}… Use @ to mention`}
+                      placeholder={`Message ${displayName.split(' ')[0]}…`}
                     />
                   </form>
                 ) : !threadDetail?.canReply && messages.length > 0 ? (

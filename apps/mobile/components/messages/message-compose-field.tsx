@@ -10,12 +10,10 @@ import {
   View,
 } from 'react-native';
 import { AttachmentPickerModal } from '@/components/messages/attachment-picker-modal';
-import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
 import type { MessageAttachment } from '@/lib/messages';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
-import { useMentionComposer } from '@/lib/use-mention-composer';
 
 export function MessageComposeField({
   value,
@@ -25,7 +23,7 @@ export function MessageComposeField({
   onSubmit,
   sending,
   editable = true,
-  placeholder = 'Type here… Use @ to mention',
+  placeholder = 'Type here…',
   inputId,
   onFocus,
 }: {
@@ -42,8 +40,6 @@ export function MessageComposeField({
 }) {
   const { colors, isDark } = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const mention = useMentionComposer();
-  const mentionSuggestions = mention.suggestionsFor(value);
   const canSend = Boolean(value.trim() || attachment);
   const enabled = editable && !sending;
 
@@ -57,8 +53,7 @@ export function MessageComposeField({
   }
 
   function handleSend() {
-    onSubmit(mention.toStored(value));
-    mention.resetMentions();
+    onSubmit(value);
   }
 
   return (
@@ -92,14 +87,6 @@ export function MessageComposeField({
         </View>
       ) : null}
 
-      <MentionSuggestions
-        people={mentionSuggestions}
-        onSelect={(person) => {
-          const result = mention.pickMention(value, person);
-          onChange(result.text);
-        }}
-      />
-
       <View style={styles.row}>
         <View
           style={[
@@ -114,13 +101,7 @@ export function MessageComposeField({
           <TextInput
             nativeID={inputId}
             value={value}
-            onChangeText={(text) => {
-              onChange(text);
-              mention.setCaret(text.length);
-              mention.syncMentionsFromText(text);
-              mention.ensureLoaded();
-            }}
-            onSelectionChange={(e) => mention.setCaret(e.nativeEvent.selection.end)}
+            onChangeText={onChange}
             onFocus={onFocus}
             placeholder={placeholder}
             placeholderTextColor={colors.muted}

@@ -7,6 +7,8 @@ import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-nati
 import Animated, {
   Easing,
   interpolate,
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -14,6 +16,10 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
+import {
+  navChromeHideProgress,
+  useResetNavChromeOnNavigate,
+} from '@/lib/nav-chrome';
 import { useNavIndicators } from '@/lib/nav-indicators';
 import { useTheme } from '@/lib/theme-context';
 
@@ -26,6 +32,8 @@ type PillItem = {
 };
 
 const ITEM_COUNT = 5;
+/** Approximate height of the fixed bottom bar (for screen bottom padding). */
+export const BOTTOM_PILL_TAB_BAR_HEIGHT = 70;
 /** Active tab gets more width; the rest share what’s left. */
 const ACTIVE_SHARE = 0.38;
 const INACTIVE_SHARE = (1 - ACTIVE_SHARE) / (ITEM_COUNT - 1);
@@ -250,22 +258,40 @@ function PillNavigation({
     if (w > 0 && Math.abs(w - rowWidth) > 0.5) setRowWidth(w);
   }
 
+  const barHeight = useSharedValue(BOTTOM_PILL_TAB_BAR_HEIGHT);
+  const [chromeInteractive, setChromeInteractive] = useState(true);
+
+  useAnimatedReaction(
+    () => navChromeHideProgress.value > 0.55,
+    (hidden, prev) => {
+      if (hidden !== prev) {
+        runOnJS(setChromeInteractive)(!hidden);
+      }
+    },
+  );
+
+  const chromeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: barHeight.value * navChromeHideProgress.value }],
+  }));
+
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}
+    <Animated.View
+      pointerEvents={chromeInteractive ? 'box-none' : 'none'}
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        if (h > 0) barHeight.value = h;
+      }}
+      style={[
+        styles.wrap,
+        {
+          paddingBottom: Math.max(insets.bottom, 8),
+          backgroundColor: barBg,
+          borderTopColor: isDark ? colors.border : 'rgba(20, 35, 63, 0.08)',
+        },
+        chromeStyle,
+      ]}
     >
-      <View
-        style={[
-          styles.pill,
-          {
-            backgroundColor: barBg,
-            shadowColor: colors.navy,
-            borderColor: isDark ? colors.border : 'rgba(20, 35, 63, 0.08)',
-            borderWidth: StyleSheet.hairlineWidth,
-          },
-        ]}
-      >
+      <View style={styles.pill}>
         <View style={styles.row} onLayout={onRowLayout}>
           {items.map((item) => {
             const active = activeRoute === item.routeName;
@@ -292,7 +318,7 @@ function PillNavigation({
           })}
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -321,6 +347,8 @@ export function PersistentBottomPillNav() {
   const routeSegments = segments as unknown as string[];
   const first = routeSegments[0];
 
+  useResetNavChromeOnNavigate();
+
   if (!ready || !user) return null;
   if (!first || AUTH_OR_GATE_SEGMENTS.has(first)) return null;
   if (first === 'index' && (pathname === '/' || pathname === '')) return null;
@@ -338,9 +366,6 @@ export function PersistentBottomPillNav() {
   );
 }
 
-/** Approximate height of the floating pill bar (for screen bottom padding). */
-export const BOTTOM_PILL_TAB_BAR_HEIGHT = 78;
-
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
@@ -348,24 +373,22 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 1000,
-    backgroundColor: 'transparent',
-    paddingHorizontal: 18,
-    paddingTop: 8,
+    width: '100%',
+    paddingHorizontal: 0,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   pill: {
     width: '100%',
-    borderRadius: 999,
-    paddingVertical: 7,
+    borderRadius: 0,
+    paddingVertical: 4,
     paddingHorizontal: 8,
-    shadowOpacity: 0.26,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 14,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 48,
+    width: '100%',
   },
   itemWrap: {
     height: '100%',

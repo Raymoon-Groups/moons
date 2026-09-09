@@ -34,9 +34,10 @@ import {
   type ConnectionListItem,
   type PendingRequestItem,
 } from '@/lib/network';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { useNavIndicators } from '@/lib/nav-indicators';
 import { subscribeRefresh } from '@/lib/refresh-events';
-import { useTabScreenPadding } from '@/lib/tab-screen-padding';
+import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -98,6 +99,8 @@ function SectionHeader({
 export default function NetworkScreen() {
   const { colors, isDark } = useTheme();
   const bottomPadding = useTabScreenPadding();
+  const topPadding = useTabScreenTopPadding();
+  const navScroll = useNavChromeScrollProps();
   const { acknowledgeNetworkBadge } = useNavIndicators();
   const params = useLocalSearchParams<{ tab?: string; q?: string | string[] }>();
 
@@ -358,8 +361,9 @@ export default function NetworkScreen() {
           style={{ backgroundColor: pageBg }}
           data={listData as { id: string; person?: NetworkUserCard }[]}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPadding }]}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPadding, paddingTop: topPadding }]}
           showsVerticalScrollIndicator={false}
+          {...navScroll}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -709,7 +713,6 @@ export default function NetworkScreen() {
 const styles = StyleSheet.create({
   list: {
     paddingHorizontal: theme.spacing.md,
-    paddingTop: 4,
   },
   centered: {
     flex: 1,

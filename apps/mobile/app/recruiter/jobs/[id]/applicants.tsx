@@ -17,6 +17,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { authFetch } from '@/lib/api';
 import { formatRecruiterApplicationStatus } from '@/lib/format';
 import { openResumeFileOrAlert } from '@/lib/open-resume';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { ApplicantRow, JobListing } from '@/lib/types';
@@ -36,6 +37,7 @@ function formatExperience(years: number | null | undefined) {
 
 export default function ApplicantsScreen() {
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding(24);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [job, setJob] = useState<JobListing | null>(null);
   const [applicants, setApplicants] = useState<ApplicantRow[]>([]);
@@ -58,7 +60,7 @@ export default function ApplicantsScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        list: { padding: theme.spacing.md, paddingBottom: 32 },
+        list: { padding: theme.spacing.md },
         empty: { textAlign: 'center', color: colors.muted, marginTop: 40 },
         header: { marginBottom: theme.spacing.md },
         jobTitle: { fontSize: 18, fontFamily: theme.fonts.bold, color: colors.heading },
@@ -162,7 +164,7 @@ export default function ApplicantsScreen() {
         data={applicants}
         keyExtractor={(item) => item.id}
         style={{ flex: 1 }}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: bottomPadding }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} />}
         ListHeaderComponent={
           <>

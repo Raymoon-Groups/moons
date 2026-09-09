@@ -21,11 +21,11 @@ import { ViewableAvatar } from '@/components/profile/protected-avatar-viewer';
 import { ProfilePostsSection } from '@/components/feed/profile-posts-section';
 import { ProfileRing } from '@/components/profile-ring';
 import { PrimaryBanner, SectionTitle } from '@/components/portal-ui';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { useProfile } from '@/lib/use-profile';
-import { useTabScreenPadding } from '@/lib/tab-screen-padding';
+import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
@@ -47,6 +47,8 @@ export default function ProfileScreen() {
   const { colors, isDark } = useTheme();
   const { profile, name, avatarUrl, logoUrl, refresh } = useProfile();
   const bottomPadding = useTabScreenPadding();
+  const topPadding = useTabScreenTopPadding();
+  const navScroll = useNavChromeScrollProps();
   const isRecruiter = user?.role === UserRole.RECRUITER;
   const [contentTab, setContentTab] = useState<ProfileContentTab>('background');
 
@@ -79,6 +81,7 @@ export default function ProfileScreen() {
         container: {
           padding: theme.spacing.md,
           paddingBottom: bottomPadding,
+          paddingTop: topPadding,
           backgroundColor: isDark ? 'transparent' : '#F7FAFC',
         },
         infoCard: {
@@ -97,19 +100,6 @@ export default function ProfileScreen() {
           paddingVertical: 8,
         },
         skillText: { fontSize: 12 },
-        themeRow: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-          borderRadius: 18,
-          borderWidth: 0,
-          padding: 16,
-          marginBottom: 16,
-          ...theme.shadow.soft,
-        },
-        themeCopy: { flex: 1, minWidth: 0 },
-        themeLabel: { fontSize: 15 },
-        themeHint: { marginTop: 2, fontSize: 12 },
         logout: {
           marginTop: 8,
           borderRadius: theme.radius.full,
@@ -208,7 +198,7 @@ export default function ProfileScreen() {
         },
         recruiterName: { fontSize: 14, marginTop: 1 },
       }),
-    [bottomPadding, isDark],
+    [bottomPadding, topPadding, isDark],
   );
 
   async function handleLogout() {
@@ -222,7 +212,11 @@ export default function ProfileScreen() {
   if (isRecruiter) {
     return (
       <AppScreen>
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          {...navScroll}
+        >
           <LinearGradient colors={heroColors} style={[styles.hero, { borderColor: colors.border }]}>
             <View style={styles.heroBody}>
               <ProfileRing
@@ -284,17 +278,6 @@ export default function ProfileScreen() {
             emptyMessage="You have not posted anything yet. Share an update from your feed."
           />
 
-          <SectionTitle>Preferences</SectionTitle>
-          <View style={[styles.themeRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-            <View style={styles.themeCopy}>
-              <Text style={[styles.themeLabel, { color: colors.heading }, fontStyle('bold')]}>Appearance</Text>
-              <Text style={[styles.themeHint, { color: colors.muted }, fontStyle('regular')]}>
-                {isDark ? 'Dark mode' : 'Light mode'}
-              </Text>
-            </View>
-            <ThemeToggle />
-          </View>
-
           <SectionTitle>Account</SectionTitle>
           <MenuRow
             icon="people"
@@ -305,7 +288,7 @@ export default function ProfileScreen() {
           <MenuRow
             icon="settings"
             label="Settings"
-            subtitle="Edit profile, security & legal"
+            subtitle="Edit profile, security, appearance & legal"
             onPress={() => router.push('/settings')}
           />
           <MenuRow
@@ -338,6 +321,7 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: isDark ? undefined : '#F7FAFC' }}
+        {...navScroll}
       >
         <ProfileHeroCard
           name={name}
@@ -471,17 +455,6 @@ export default function ProfileScreen() {
               userId={user.id}
               emptyMessage="You have not posted anything yet. Share an update from your feed."
             />
-
-            <SectionTitle>Preferences</SectionTitle>
-            <View style={[styles.themeRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-              <View style={styles.themeCopy}>
-                <Text style={[styles.themeLabel, { color: colors.heading }, fontStyle('bold')]}>Appearance</Text>
-                <Text style={[styles.themeHint, { color: colors.muted }, fontStyle('regular')]}>
-                  {isDark ? 'Dark mode' : 'Light mode'}
-                </Text>
-              </View>
-              <ThemeToggle />
-            </View>
           </View>
         ) : null}
 

@@ -239,7 +239,7 @@ export function MessageComposeModal({
             onAttachmentChange={setAttachment}
             onSubmit={(storedBody) => void handleSend(storedBody)}
             sending={loading}
-            placeholder={`Write a message to ${firstName}… Use @ to mention`}
+            placeholder={`Write a message to ${firstName}…`}
             rows={5}
             compact
           />

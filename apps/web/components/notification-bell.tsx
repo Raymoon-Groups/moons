@@ -42,6 +42,8 @@ function notificationIcon(type: NotificationType) {
       return '⊕';
     case NotificationType.CONNECTION_ACCEPTED:
       return '🤝';
+    case NotificationType.POST_MENTION:
+      return '@';
     default:
       return '•';
   }
@@ -65,6 +67,8 @@ function iconStyles(type: NotificationType) {
       return 'bg-indigo-100 text-indigo-700';
     case NotificationType.CONNECTION_ACCEPTED:
       return 'bg-teal-100 text-teal-700';
+    case NotificationType.POST_MENTION:
+      return 'bg-amber-100 text-amber-800';
     default:
       return 'bg-surface text-moons-muted';
   }

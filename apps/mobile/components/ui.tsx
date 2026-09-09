@@ -13,9 +13,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthSurface } from '@/components/auth-layout';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
-import { useAuthSurface } from '@/components/auth-layout';
 
 function useUiStyles() {
   const { colors } = useTheme();
@@ -161,6 +162,7 @@ export function Screen({
 }) {
   const styles = useUiStyles();
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding(12);
 
   const content = (
     <KeyboardAvoidingView
@@ -175,7 +177,7 @@ export function Screen({
 
   return (
     <ScrollView
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
       keyboardShouldPersistTaps="handled"
       style={{ flex: 1, backgroundColor: colors.background }}
       showsVerticalScrollIndicator={false}

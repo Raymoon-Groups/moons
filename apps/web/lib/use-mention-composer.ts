@@ -44,10 +44,16 @@ async function loadMentionPeople(): Promise<MentionPerson[]> {
 
 export function useMentionComposer(initialMentions: MentionRef[] = []) {
   const [mentions, setMentions] = useState<MentionRef[]>(initialMentions);
+  const mentionsRef = useRef<MentionRef[]>(initialMentions);
   const [people, setPeople] = useState<MentionPerson[]>(cachedConnections ?? []);
   const [caret, setCaret] = useState(0);
   const [loaded, setLoaded] = useState(Boolean(cachedConnections));
   const loadingRef = useRef(false);
+
+  const writeMentions = useCallback((next: MentionRef[]) => {
+    mentionsRef.current = next;
+    setMentions(next);
+  }, []);
 
   const ensureLoaded = useCallback(() => {
     if (loaded || loadingRef.current) return;
@@ -82,23 +88,29 @@ export function useMentionComposer(initialMentions: MentionRef[] = []) {
       const current = getActiveMention(text, nextCaret);
       if (!current) return { text, caret: nextCaret };
       const result = insertMentionText(text, nextCaret, current.start, person.fullName);
-      setMentions((prev) => {
-        const without = prev.filter((m) => m.userId !== person.userId);
-        return [...without, { userId: person.userId, displayName: person.fullName }];
-      });
+      const without = mentionsRef.current.filter((m) => m.userId !== person.userId);
+      writeMentions([...without, { userId: person.userId, displayName: person.fullName }]);
       setCaret(result.caret);
       return { text: result.text, caret: result.caret };
     },
-    [caret],
+    [caret, writeMentions],
   );
 
-  const toStored = useCallback((text: string) => editableToStored(text, mentions), [mentions]);
+  const toStored = useCallback((text: string) => editableToStored(text, mentionsRef.current), []);
 
-  const resetMentions = useCallback((next: MentionRef[] = []) => setMentions(next), []);
+  const resetMentions = useCallback(
+    (next: MentionRef[] = []) => {
+      writeMentions(next);
+    },
+    [writeMentions],
+  );
 
-  const syncMentionsFromText = useCallback((text: string) => {
-    setMentions((prev) => prev.filter((m) => text.includes(`@${m.displayName}`)));
-  }, []);
+  const syncMentionsFromText = useCallback(
+    (text: string) => {
+      writeMentions(mentionsRef.current.filter((m) => text.includes(`@${m.displayName}`)));
+    },
+    [writeMentions],
+  );
 
   return {
     mentions,

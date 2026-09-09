@@ -558,7 +558,7 @@ export default function MessageThreadScreen() {
                 onSubmit={(storedBody) => void handleSend(storedBody)}
                 sending={sending}
                 editable={detail.canReply}
-                placeholder={detail.canReply ? 'Type here… Use @ to mention' : 'Connect to reply'}
+                placeholder={detail.canReply ? 'Type here…' : 'Connect to reply'}
                 onFocus={() => scrollToLatest(true)}
               />
             </View>

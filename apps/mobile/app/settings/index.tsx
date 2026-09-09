@@ -1,7 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { fontStyle } from '@/lib/font-style';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import { apiFetch, ApiError } from '@/lib/api';
@@ -16,7 +19,9 @@ const LEGAL_LINKS = [
 ] as const;
 
 export default function SettingsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const bottomPadding = useTabScreenPadding(24);
+  const navScroll = useNavChromeScrollProps();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -44,9 +49,23 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]}
       showsVerticalScrollIndicator={false}
+      {...navScroll}
     >
+      <Text style={[styles.heading, { color: colors.muted }, fontStyle('bold')]}>Preferences</Text>
+      <View
+        style={[styles.themeRow, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+      >
+        <View style={styles.themeCopy}>
+          <Text style={[styles.label, { color: colors.heading }, fontStyle('bold')]}>Appearance</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }, fontStyle('regular')]}>
+            {isDark ? 'Dark mode' : 'Light mode'}
+          </Text>
+        </View>
+        <ThemeToggle />
+      </View>
+
       <Text style={[styles.heading, { color: colors.muted }, fontStyle('bold')]}>Account</Text>
 
       <MenuLink
@@ -80,7 +99,9 @@ export default function SettingsScreen() {
         colors={colors}
       />
 
-      <Text style={[styles.heading, { color: colors.muted, marginTop: 8 }, fontStyle('bold')]}>Company</Text>
+      <Text style={[styles.heading, { color: colors.muted, marginTop: 8 }, fontStyle('bold')]}>
+        Company
+      </Text>
       {LEGAL_LINKS.map((link) => (
         <MenuLink
           key={link.route}
@@ -90,9 +111,18 @@ export default function SettingsScreen() {
         />
       ))}
 
-      <View style={[styles.newsletter, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-        <Text style={[{ color: colors.heading, fontSize: 16 }, fontStyle('bold')]}>Job alerts & updates</Text>
-        <Text style={[{ color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 19 }, fontStyle('regular')]}>
+      <View
+        style={[styles.newsletter, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+      >
+        <Text style={[{ color: colors.heading, fontSize: 16 }, fontStyle('bold')]}>
+          Job alerts & updates
+        </Text>
+        <Text
+          style={[
+            { color: colors.muted, fontSize: 13, marginTop: 6, lineHeight: 19 },
+            fontStyle('regular'),
+          ]}
+        >
           Subscribe to get the latest jobs and platform news in your inbox.
         </Text>
         {subscribed ? (
@@ -111,7 +141,11 @@ export default function SettingsScreen() {
               />
             </View>
             {newsletterError ? (
-              <Text style={[{ color: colors.error, fontSize: 12, marginTop: 8 }, fontStyle('medium')]}>{newsletterError}</Text>
+              <Text
+                style={[{ color: colors.error, fontSize: 12, marginTop: 8 }, fontStyle('medium')]}
+              >
+                {newsletterError}
+              </Text>
             ) : null}
             <View style={{ marginTop: 12 }}>
               <PrimaryButton
@@ -152,7 +186,7 @@ function MenuLink({
 }
 
 const styles = StyleSheet.create({
-  container: { padding: theme.spacing.md, paddingBottom: 32 },
+  container: { padding: theme.spacing.md },
   heading: {
     fontSize: 12,
     textTransform: 'uppercase',
@@ -167,6 +201,16 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 16 },
   subtitle: { marginTop: 4, fontSize: 13 },
+  themeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    padding: theme.spacing.md,
+    marginBottom: 16,
+  },
+  themeCopy: { flex: 1, minWidth: 0 },
   newsletter: {
     borderRadius: theme.radius.lg,
     borderWidth: 1,

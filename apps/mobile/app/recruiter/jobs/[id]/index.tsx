@@ -7,6 +7,7 @@ import { authFetch } from '@/lib/api';
 import { fontStyle } from '@/lib/font-style';
 import { formatEmploymentType } from '@/lib/format';
 import { stripHtml } from '@/lib/html-text';
+import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { JobListing } from '@/lib/types';
@@ -14,13 +15,14 @@ import type { JobListing } from '@/lib/types';
 export default function RecruiterJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
+  const bottomPadding = useTabScreenPadding(24);
   const [job, setJob] = useState<JobListing | null>(null);
   const [loading, setLoading] = useState(true);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        container: { padding: theme.spacing.md, paddingBottom: 40 },
+        container: { padding: theme.spacing.md },
         status: { fontSize: 12, ...fontStyle('bold'), color: colors.blue },
         title: { marginTop: 6, fontSize: 22, ...fontStyle('extrabold'), color: colors.heading },
         meta: { marginTop: 8, fontSize: 14, color: colors.muted },
@@ -71,7 +73,7 @@ export default function RecruiterJobDetailScreen() {
 
   return (
     <AppScreen>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]}>
         <Text style={styles.status}>{job.status === 'PUBLISHED' ? 'Live' : job.status}</Text>
         <Text style={styles.title}>{job.title}</Text>
         <Text style={styles.meta}>

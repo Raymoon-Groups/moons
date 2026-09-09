@@ -6,7 +6,7 @@ import { RecruiterCandidatesScreen } from '@/components/recruiter/recruiter-cand
 export default function CandidatesTabScreen() {
   return (
     <AppScreen>
-      <AuthenticatedScreen>
+      <AuthenticatedScreen padBottom={false}>
         <RecruiterCandidatesScreen />
       </AuthenticatedScreen>
     </AppScreen>

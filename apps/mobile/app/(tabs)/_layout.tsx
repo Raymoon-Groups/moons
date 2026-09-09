@@ -1,15 +1,8 @@
 import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { UserRole } from '@moons/shared';
-import { GlassTabHeader } from '@/components/glass-tab-header';
 import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
-
-function resolveHeaderTitle(options: { headerTitle?: unknown; title?: string }) {
-  if (typeof options.headerTitle === 'string') return options.headerTitle;
-  if (typeof options.title === 'string') return options.title;
-  return '';
-}
 
 export default function TabsLayout() {
   const { user, ready } = useAuth();
@@ -31,8 +24,7 @@ export default function TabsLayout() {
     <Tabs
       tabBar={() => null}
       screenOptions={{
-        header: ({ options }) => <GlassTabHeader title={resolveHeaderTitle(options)} />,
-        headerShadowVisible: false,
+        headerShown: false,
         sceneStyle: { backgroundColor: colors.background },
       }}
     >
@@ -40,14 +32,12 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Feed',
-          headerTitle: 'Feed',
         }}
       />
       <Tabs.Screen
         name="jobs"
         options={{
           title: 'Jobs',
-          headerTitle: 'Jobs',
           href: isRecruiter ? null : undefined,
         }}
       />
@@ -55,7 +45,6 @@ export default function TabsLayout() {
         name="applications"
         options={{
           title: 'Applied',
-          headerTitle: 'Applications',
           href: null,
         }}
       />
@@ -63,7 +52,6 @@ export default function TabsLayout() {
         name="my-jobs"
         options={{
           title: 'Jobs',
-          headerTitle: 'My jobs',
           href: isRecruiter ? undefined : null,
         }}
       />
@@ -71,21 +59,18 @@ export default function TabsLayout() {
         name="network"
         options={{
           title: 'Network',
-          headerTitle: 'My Network',
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
           title: 'Messages',
-          headerTitle: 'Messaging',
         }}
       />
       <Tabs.Screen
         name="companies"
         options={{
           title: 'Companies',
-          headerTitle: 'Companies',
           href: isRecruiter ? null : undefined,
         }}
       />
@@ -93,7 +78,6 @@ export default function TabsLayout() {
         name="candidates"
         options={{
           title: 'Candidates',
-          headerTitle: 'Candidates',
           href: isRecruiter ? undefined : null,
         }}
       />
@@ -101,7 +85,6 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          headerTitle: 'Profile',
           href: null,
         }}
       />

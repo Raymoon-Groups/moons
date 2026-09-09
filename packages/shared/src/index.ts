@@ -83,6 +83,7 @@ export enum NotificationType {
   POST_COMMENT = 'POST_COMMENT',
   POST_SHARE = 'POST_SHARE',
   POST_CREATED = 'POST_CREATED',
+  POST_MENTION = 'POST_MENTION',
 }
 
 export enum PostMediaType {

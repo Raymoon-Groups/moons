@@ -2,10 +2,24 @@
 
 import Link from 'next/link';
 import { SettingsShell } from '@/components/settings/settings-shell';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function SettingsPage() {
   return (
-    <SettingsShell title="Settings" subtitle="Manage your account and security.">
+    <SettingsShell title="Settings" subtitle="Manage your account, appearance, and security.">
+      <section className="rounded-2xl border border-border bg-surface-elevated p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-moons-muted">
+              Preferences
+            </p>
+            <h2 className="mt-2 text-lg font-bold text-heading">Appearance</h2>
+            <p className="mt-1 text-sm text-moons-muted">Switch between light and dark mode.</p>
+          </div>
+          <ThemeToggle />
+        </div>
+      </section>
+
       <section className="grid gap-4 sm:grid-cols-2">
         <Link
           href="/settings/security"

@@ -29,7 +29,8 @@ export function useAuthSurface() {
 }
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const HERO_H = Math.min(228, SCREEN_W * 0.56);
+/** Compact height, but enough room for larger header type. */
+const HERO_H = Math.min(210, Math.max(190, SCREEN_W * 0.5));
 
 type HeroMotif = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -44,12 +45,9 @@ type HeroMotif = {
 };
 
 const HERO_MOTIFS: HeroMotif[] = [
-  { icon: 'briefcase-outline', size: 54, iconSize: 24, top: 22, right: 20, opacity: 0.88, rotate: '-8deg' },
-  { icon: 'people-outline', size: 48, iconSize: 22, top: 78, right: 74, opacity: 0.76, rotate: '10deg' },
-  { icon: 'business-outline', size: 44, iconSize: 20, top: 34, left: 16, opacity: 0.7, rotate: '12deg' },
-  { icon: 'document-text-outline', size: 42, iconSize: 18, top: 98, left: 24, opacity: 0.62, rotate: '-6deg' },
-  { icon: 'search-outline', size: 40, iconSize: 18, top: 58, left: 92, opacity: 0.58, rotate: '8deg' },
-  { icon: 'ribbon-outline', size: 38, iconSize: 17, top: 110, right: 28, opacity: 0.52, rotate: '-12deg' },
+  { icon: 'briefcase-outline', size: 48, iconSize: 22, top: 12, right: 16, opacity: 0.88, rotate: '-8deg' },
+  { icon: 'people-outline', size: 42, iconSize: 19, top: 62, right: 68, opacity: 0.76, rotate: '10deg' },
+  { icon: 'ribbon-outline', size: 36, iconSize: 16, top: 96, right: 22, opacity: 0.52, rotate: '-12deg' },
 ];
 
 function AuthHeroBackground() {
@@ -74,6 +72,7 @@ function AuthHeroBackground() {
       <View style={styles.orbitOuter} />
       <View style={styles.orbitInner} />
 
+      {/* Dim decorative icons so they don’t wash out header text */}
       {HERO_MOTIFS.map((motif) => (
         <View
           key={motif.icon}
@@ -87,12 +86,12 @@ function AuthHeroBackground() {
               bottom: motif.bottom,
               left: motif.left,
               right: motif.right,
-              opacity: motif.opacity,
+              opacity: motif.opacity * 0.45,
               transform: [{ rotate: motif.rotate ?? '0deg' }],
             },
           ]}
         >
-          <Ionicons name={motif.icon} size={motif.iconSize} color="rgba(255,255,255,0.92)" />
+          <Ionicons name={motif.icon} size={motif.iconSize} color="rgba(255,255,255,0.75)" />
         </View>
       ))}
     </View>
@@ -215,8 +214,8 @@ export function AuthLayout({
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const heroEyebrow =
-    variant === 'signup' ? 'Create account' : variant === 'forgot' ? 'Password reset' : 'Welcome back';
-  const cardOverlap = 48;
+    variant === 'signup' ? 'Join MoonsJob' : variant === 'forgot' ? 'Password reset' : 'Sign in';
+  const cardOverlap = 28;
   const heroHeight = HERO_H + insets.top;
 
   return (
@@ -225,9 +224,11 @@ export function AuthLayout({
         {/* Full-bleed header — white sheet overlaps this */}
         <View style={[styles.hero, { height: heroHeight, paddingTop: insets.top }]}>
           <AuthHeroBackground />
-          <View style={[styles.heroCopy, { paddingBottom: cardOverlap + 12 }]}>
+          <View style={[styles.heroCopy, { paddingBottom: cardOverlap }]}>
             <Text style={styles.heroEyebrow}>{heroEyebrow}</Text>
-            <Text style={styles.heroTitle}>MoonsJob</Text>
+            <Text style={styles.heroTitle} allowFontScaling={false}>
+              MoonsJob
+            </Text>
             <Text style={styles.heroSubtitle} numberOfLines={2}>
               {subtitle}
             </Text>
@@ -248,9 +249,15 @@ export function AuthLayout({
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              bounces={false}
+              bounces
             >
-              <Text style={[styles.cardTitle, { color: colors.heading }]}>{title}</Text>
+              <Text
+                style={[styles.cardTitle, { color: colors.heading }]}
+                allowFontScaling
+                maxFontSizeMultiplier={1.25}
+              >
+                {title}
+              </Text>
               <View style={styles.titleRule} />
               <View style={styles.body}>{children}</View>
               {footer ? <View style={styles.footer}>{footer}</View> : null}
@@ -273,33 +280,48 @@ const styles = StyleSheet.create({
   hero: {
     width: '100%',
     overflow: 'hidden',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     paddingHorizontal: 24,
   },
   heroCopy: {
-    paddingTop: 12,
-    zIndex: 1,
+    zIndex: 2,
+    paddingRight: 12,
+    justifyContent: 'center',
   },
   heroEyebrow: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 18,
+    letterSpacing: 0.5,
     marginBottom: 6,
+    textAlign: 'left',
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
     ...fontStyle('semibold'),
   },
   heroTitle: {
     color: '#FFFFFF',
     fontSize: 36,
+    lineHeight: 42,
     letterSpacing: -1,
+    textAlign: 'left',
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
     ...displayFontStyle('extrabold'),
   },
   heroSubtitle: {
-    marginTop: 8,
-    color: 'rgba(235,242,255,0.86)',
-    fontSize: 14,
-    lineHeight: 20,
-    maxWidth: 320,
+    marginTop: 6,
+    color: '#F2F6FF',
+    fontSize: 15,
+    lineHeight: 21,
+    maxWidth: 310,
+    alignSelf: 'flex-start',
+    textAlign: 'left',
+    textShadowColor: 'rgba(0,0,0,0.28)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
     ...fontStyle('regular'),
   },
   glow: {
@@ -362,16 +384,17 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 28,
+    paddingTop: 20,
   },
   cardTitle: {
-    fontSize: 23,
-    letterSpacing: -0.45,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.4,
     ...displayFontStyle('bold'),
   },
   titleRule: {
-    width: 36,
-    height: 3,
+    width: 40,
+    height: 3.5,
     borderRadius: 99,
     backgroundColor: '#3f74cc',
     marginTop: 10,
@@ -393,6 +416,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 12,
+    lineHeight: 16,
     marginBottom: 7,
     letterSpacing: 0.2,
     ...fontStyle('semibold'),
@@ -408,7 +432,9 @@ const styles = StyleSheet.create({
   },
   filledInput: {
     flex: 1,
+    minWidth: 0,
     fontSize: 15,
+    lineHeight: 20,
     paddingVertical: Platform.OS === 'ios' ? 14 : 10,
     ...fontStyle('regular'),
   },

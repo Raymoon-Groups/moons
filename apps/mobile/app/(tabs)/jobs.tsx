@@ -19,9 +19,10 @@ import { EmptyState } from '@/components/portal-ui';
 import { apiFetch } from '@/lib/api';
 import { EXPERIENCE_FILTER_OPTIONS } from '@/lib/experience-options';
 import { fontStyle } from '@/lib/font-style';
+import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { useSavedJobs } from '@/lib/saved-jobs-context';
 import { useTheme } from '@/lib/theme-context';
-import { useTabScreenPadding } from '@/lib/tab-screen-padding';
+import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { JobListing, JobsPage } from '@/lib/types';
 
@@ -46,6 +47,8 @@ function formatVacancyCount(n: number) {
 export default function JobsScreen() {
   const { colors, isDark } = useTheme();
   const bottomPadding = useTabScreenPadding();
+  const topPadding = useTabScreenTopPadding();
+  const navScroll = useNavChromeScrollProps();
   const { savedCount } = useSavedJobs();
   const params = useLocalSearchParams<{ q?: string | string[] }>();
   const paramQ = Array.isArray(params.q) ? params.q[0] : params.q;
@@ -202,7 +205,8 @@ export default function JobsScreen() {
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="always"
         keyboardDismissMode="none"
-        contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding }]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding, paddingTop: topPadding }]}
+        {...navScroll}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />
         }
@@ -231,7 +235,7 @@ export default function JobsScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   list: { flex: 1 },
-  listContent: { paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm },
+  listContent: { paddingHorizontal: theme.spacing.md },
   header: { marginBottom: 4 },
   metaRow: {
     flexDirection: 'row',
