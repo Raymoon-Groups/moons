@@ -1,3 +1,4 @@
+import { INDIAN_CITIES, INDIAN_CITY_OPTIONS, type IndianCity } from '@moons/shared';
 import { apiFetch } from '@/lib/api';
 
 export interface LocationSuggestion {
@@ -5,32 +6,7 @@ export interface LocationSuggestion {
   state?: string;
 }
 
-const INDIAN_CITIES: LocationSuggestion[] = [
-  { name: 'Gurugram', state: 'Haryana' },
-  { name: 'Gurgaon', state: 'Haryana' },
-  { name: 'Bangalore', state: 'Karnataka' },
-  { name: 'Bengaluru', state: 'Karnataka' },
-  { name: 'Mumbai', state: 'Maharashtra' },
-  { name: 'Delhi', state: 'Delhi' },
-  { name: 'New Delhi', state: 'Delhi' },
-  { name: 'Noida', state: 'Uttar Pradesh' },
-  { name: 'Greater Noida', state: 'Uttar Pradesh' },
-  { name: 'Hyderabad', state: 'Telangana' },
-  { name: 'Pune', state: 'Maharashtra' },
-  { name: 'Chennai', state: 'Tamil Nadu' },
-  { name: 'Kolkata', state: 'West Bengal' },
-  { name: 'Ahmedabad', state: 'Gujarat' },
-  { name: 'Jaipur', state: 'Rajasthan' },
-  { name: 'Chandigarh', state: 'Chandigarh' },
-  { name: 'Lucknow', state: 'Uttar Pradesh' },
-  { name: 'Indore', state: 'Madhya Pradesh' },
-  { name: 'Bhopal', state: 'Madhya Pradesh' },
-  { name: 'Nagpur', state: 'Maharashtra' },
-  { name: 'Coimbatore', state: 'Tamil Nadu' },
-  { name: 'Kochi', state: 'Kerala' },
-  { name: 'Remote' },
-  { name: 'Work from home' },
-];
+export { INDIAN_CITY_OPTIONS };
 
 function scoreCity(city: LocationSuggestion, q: string): number {
   const name = city.name.toLowerCase();
@@ -46,12 +22,16 @@ export function filterStaticLocations(query: string, limit = 8): LocationSuggest
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];
 
-  return INDIAN_CITIES.filter((city) => scoreCity(city, q) > 0)
+  return (INDIAN_CITIES as IndianCity[])
+    .filter((city) => scoreCity(city, q) > 0)
     .sort((a, b) => scoreCity(b, q) - scoreCity(a, q))
     .slice(0, limit);
 }
 
-export async function fetchLocationSuggestions(query: string, limit = 8): Promise<LocationSuggestion[]> {
+export async function fetchLocationSuggestions(
+  query: string,
+  limit = 8,
+): Promise<LocationSuggestion[]> {
   const q = query.trim();
   if (q.length < 2) return [];
 

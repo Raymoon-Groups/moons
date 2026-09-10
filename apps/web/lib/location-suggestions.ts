@@ -1,3 +1,4 @@
+import { INDIAN_CITIES, INDIAN_CITY_OPTIONS, type IndianCity } from '@moons/shared';
 import { apiFetch } from './api-client';
 
 export interface LocationSuggestion {
@@ -5,70 +6,7 @@ export interface LocationSuggestion {
   state?: string;
 }
 
-/** Major Indian cities + common job locations (Naukri-style autocomplete source) */
-const INDIAN_CITIES: LocationSuggestion[] = [
-  { name: 'Gurugram', state: 'Haryana' },
-  { name: 'Gurgaon', state: 'Haryana' },
-  { name: 'Bangalore', state: 'Karnataka' },
-  { name: 'Bengaluru', state: 'Karnataka' },
-  { name: 'Mumbai', state: 'Maharashtra' },
-  { name: 'Delhi', state: 'Delhi' },
-  { name: 'New Delhi', state: 'Delhi' },
-  { name: 'Noida', state: 'Uttar Pradesh' },
-  { name: 'Greater Noida', state: 'Uttar Pradesh' },
-  { name: 'Hyderabad', state: 'Telangana' },
-  { name: 'Pune', state: 'Maharashtra' },
-  { name: 'Chennai', state: 'Tamil Nadu' },
-  { name: 'Kolkata', state: 'West Bengal' },
-  { name: 'Ahmedabad', state: 'Gujarat' },
-  { name: 'Jaipur', state: 'Rajasthan' },
-  { name: 'Chandigarh', state: 'Chandigarh' },
-  { name: 'Lucknow', state: 'Uttar Pradesh' },
-  { name: 'Indore', state: 'Madhya Pradesh' },
-  { name: 'Bhopal', state: 'Madhya Pradesh' },
-  { name: 'Nagpur', state: 'Maharashtra' },
-  { name: 'Coimbatore', state: 'Tamil Nadu' },
-  { name: 'Kochi', state: 'Kerala' },
-  { name: 'Thiruvananthapuram', state: 'Kerala' },
-  { name: 'Visakhapatnam', state: 'Andhra Pradesh' },
-  { name: 'Vijayawada', state: 'Andhra Pradesh' },
-  { name: 'Patna', state: 'Bihar' },
-  { name: 'Bhubaneswar', state: 'Odisha' },
-  { name: 'Cuttack', state: 'Odisha' },
-  { name: 'Surat', state: 'Gujarat' },
-  { name: 'Vadodara', state: 'Gujarat' },
-  { name: 'Rajkot', state: 'Gujarat' },
-  { name: 'Nashik', state: 'Maharashtra' },
-  { name: 'Thane', state: 'Maharashtra' },
-  { name: 'Faridabad', state: 'Haryana' },
-  { name: 'Ghaziabad', state: 'Uttar Pradesh' },
-  { name: 'Agra', state: 'Uttar Pradesh' },
-  { name: 'Kanpur', state: 'Uttar Pradesh' },
-  { name: 'Varanasi', state: 'Uttar Pradesh' },
-  { name: 'Dehradun', state: 'Uttarakhand' },
-  { name: 'Mohali', state: 'Punjab' },
-  { name: 'Ludhiana', state: 'Punjab' },
-  { name: 'Amritsar', state: 'Punjab' },
-  { name: 'Jodhpur', state: 'Rajasthan' },
-  { name: 'Udaipur', state: 'Rajasthan' },
-  { name: 'Raipur', state: 'Chhattisgarh' },
-  { name: 'Ranchi', state: 'Jharkhand' },
-  { name: 'Guwahati', state: 'Assam' },
-  { name: 'Mysore', state: 'Karnataka' },
-  { name: 'Mysuru', state: 'Karnataka' },
-  { name: 'Mangalore', state: 'Karnataka' },
-  { name: 'Hubli', state: 'Karnataka' },
-  { name: 'Madurai', state: 'Tamil Nadu' },
-  { name: 'Trichy', state: 'Tamil Nadu' },
-  { name: 'Trivandrum', state: 'Kerala' },
-  { name: 'Remote' },
-  { name: 'Work from home' },
-];
-
-/** Sorted city names for select dropdowns (onboarding, profile, etc.) */
-export const INDIAN_CITY_OPTIONS = Array.from(
-  new Set(INDIAN_CITIES.map((city) => city.name)),
-).sort((a, b) => a.localeCompare(b));
+export { INDIAN_CITY_OPTIONS };
 
 function scoreCity(city: LocationSuggestion, q: string): number {
   const name = city.name.toLowerCase();
@@ -84,7 +22,8 @@ export function filterStaticLocations(query: string, limit = 8): LocationSuggest
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];
 
-  return INDIAN_CITIES.filter((city) => scoreCity(city, q) > 0)
+  return (INDIAN_CITIES as IndianCity[])
+    .filter((city) => scoreCity(city, q) > 0)
     .sort((a, b) => scoreCity(b, q) - scoreCity(a, q))
     .slice(0, limit);
 }

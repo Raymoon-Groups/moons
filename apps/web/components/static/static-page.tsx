@@ -111,7 +111,7 @@ export function StaticSection({
         </div>
       ) : null}
       <div
-        className={`space-y-3 text-[15px] leading-relaxed text-moons-muted [&_a]:font-semibold [&_a]:text-moons-blue [&_li]:marker:text-moons-blue [&_ul]:space-y-2 [&_ul]:pl-1 ${
+        className={`space-y-3 text-[15px] leading-relaxed text-moons-muted [&_a]:font-semibold [&_a]:text-moons-blue [&_a[class*='bg-moons-blue']]:!text-white [&_li]:marker:text-moons-blue [&_ul]:space-y-2 [&_ul]:pl-1 ${
           heading ? 'mt-4' : ''
         }`}
       >

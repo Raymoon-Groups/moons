@@ -50,10 +50,10 @@ export default function FraudAlertPage() {
         <p>
           If you come across a suspicious job posting or message, report it to us at{' '}
           <a
-            href="mailto:fraud@moonsjob.com"
+            href="mailto:support@moonsjob.com"
             className="font-semibold text-moons-blue hover:underline"
           >
-            fraud@moonsjob.com
+            support@moonsjob.com
           </a>
           . Your reports help keep the community safe.
         </p>

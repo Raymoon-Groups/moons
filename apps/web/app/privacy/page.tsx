@@ -65,10 +65,10 @@ export default function PrivacyPage() {
           </a>
           . If you cannot sign in, contact{' '}
           <a
-            href="mailto:privacy@moonsjob.com"
+            href="mailto:support@moonsjob.com"
             className="font-semibold text-moons-blue hover:underline"
           >
-            privacy@moonsjob.com
+            support@moonsjob.com
           </a>
           .
         </p>

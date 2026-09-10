@@ -10,6 +10,7 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
@@ -447,21 +448,6 @@ function HeroArt({
               onPress={() => onInteract('job', 'Backend Developer at Pixelwave')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatD }], marginTop: -8 }}>
-            <JobPreviewCard
-              compact
-              title="Data Analyst"
-              company="BrightCart"
-              meta="Pune · Hybrid"
-              salary="₹10–14 LPA"
-              tags={['SQL', 'Python']}
-              logo="B"
-              logoColor="#D97757"
-              deep={t.deep}
-              style={{ width: CARD_W * 0.9, alignSelf: 'flex-end' }}
-              onPress={() => onInteract('job', 'Data Analyst at BrightCart')}
-            />
-          </Animated.View>
           <Pressable
             onPress={() => onInteract('job', '2.4k+ live jobs')}
             style={[styles.statPillInline, { backgroundColor: '#FFFFFF' }]}
@@ -694,22 +680,6 @@ function HeroArt({
               onPress={() => onInteract('job', 'HR Business Partner at CloudNest')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatD }], marginTop: -8 }}>
-            <CandidatePreviewCard
-              compact
-              name="Sana Qureshi"
-              role="UI Engineer · 2 yrs"
-              location="Hyderabad"
-              skills={['CSS', 'Motion']}
-              initials="SQ"
-              avatarColor="#EF6F8A"
-              match="96% match"
-              deep={t.deep}
-              accent={t.accent}
-              style={{ width: CARD_W * 0.9, alignSelf: 'flex-end' }}
-              onPress={() => onInteract('candidate', 'Sana Qureshi')}
-            />
-          </Animated.View>
         </View>
       )}
     </View>
@@ -904,12 +874,13 @@ export function AppIntro({ onComplete }: AppIntroProps) {
     Animated.parallel([
       Animated.timing(sheetOpacity, {
         toValue: 0,
-        duration: 160,
+        duration: 180,
         useNativeDriver: true,
       }),
       Animated.timing(sheetY, {
-        toValue: 40,
-        duration: 160,
+        toValue: 420,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
     ]).start(({ finished }) => {
@@ -918,6 +889,60 @@ export function AppIntro({ onComplete }: AppIntroProps) {
       armTimer();
     });
   }, [armTimer, sheetOpacity, sheetY]);
+
+  const closeAuthGateRef = useRef(closeAuthGate);
+  closeAuthGateRef.current = closeAuthGate;
+
+  const sheetPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderGrant: () => {
+        sheetY.stopAnimation();
+        sheetOpacity.stopAnimation();
+      },
+      onPanResponderMove: (_, g) => {
+        const dy = Math.max(0, g.dy);
+        sheetY.setValue(dy);
+        sheetOpacity.setValue(Math.max(0.35, 1 - dy / 280));
+      },
+      onPanResponderRelease: (_, g) => {
+        const shouldClose = g.dy > 90 || g.vy > 0.9;
+        if (shouldClose) {
+          closeAuthGateRef.current();
+          return;
+        }
+        Animated.parallel([
+          Animated.spring(sheetY, {
+            toValue: 0,
+            friction: 8,
+            tension: 90,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sheetOpacity, {
+            toValue: 1,
+            duration: 160,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.parallel([
+          Animated.spring(sheetY, {
+            toValue: 0,
+            friction: 8,
+            tension: 90,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sheetOpacity, {
+            toValue: 1,
+            duration: 160,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      },
+    }),
+  ).current;
 
   const onMomentumEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -1036,7 +1061,9 @@ export function AppIntro({ onComplete }: AppIntroProps) {
               },
             ]}
           >
-            <View style={styles.gateHandle} />
+            <View style={styles.gateHandleHit} {...sheetPan.panHandlers}>
+              <View style={styles.gateHandle} />
+            </View>
             <View style={[styles.gateIconWrap, { backgroundColor: `${active.theme.accent}22` }]}>
               <Ionicons
                 name={
@@ -1173,13 +1200,18 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     ...theme.shadow.card,
   },
+  gateHandleHit: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingBottom: 16,
+    marginHorizontal: -8,
+  },
   gateHandle: {
-    alignSelf: 'center',
     width: 42,
     height: 4,
     borderRadius: 99,
     backgroundColor: '#D7DEE8',
-    marginBottom: 14,
   },
   gateIconWrap: {
     width: 44,

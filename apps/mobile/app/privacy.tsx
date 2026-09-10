@@ -55,7 +55,7 @@ export default function PrivacyScreen() {
           You can access, update, or delete your profile information at any time from your account
           settings. To permanently delete your account, open Settings → Delete account in the app.
           If you cannot sign in, contact{' '}
-          <Text style={[{ color: colors.blue }, fontStyle('semibold')]}>privacy@moonsjob.com</Text>.
+          <Text style={[{ color: colors.blue }, fontStyle('semibold')]}>support@moonsjob.com</Text>.
         </Text>
       </StaticSection>
     </StaticPageScreen>

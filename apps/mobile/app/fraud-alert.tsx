@@ -49,7 +49,7 @@ export default function FraudAlertScreen() {
       <StaticSection heading="Report suspicious activity">
         <Text style={[{ color: colors.muted, fontSize: 15, lineHeight: 22 }, fontStyle('regular')]}>
           If you come across a suspicious job posting or message, report it to us at{' '}
-          <Text style={[{ color: colors.blue }, fontStyle('semibold')]}>fraud@moonsjob.com</Text>.
+          <Text style={[{ color: colors.blue }, fontStyle('semibold')]}>support@moonsjob.com</Text>.
           Your reports help keep the community safe.
         </Text>
       </StaticSection>

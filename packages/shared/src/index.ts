@@ -1,3 +1,9 @@
+export {
+  INDIAN_CITIES,
+  INDIAN_CITY_OPTIONS,
+  type IndianCity,
+} from './indian-cities';
+
 export enum UserRole {
   CANDIDATE = 'CANDIDATE',
   RECRUITER = 'RECRUITER',

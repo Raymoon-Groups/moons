@@ -17,22 +17,12 @@ export default function ContactPage() {
     >
       <StaticSection heading="Email us" icon={<MailIcon />}>
         <p>
-          For general enquiries and support, email{' '}
+          For support, partnerships, press, or general enquiries, email{' '}
           <a
             href="mailto:support@moonsjob.com"
             className="font-semibold text-moons-blue hover:underline"
           >
             support@moonsjob.com
-          </a>
-          .
-        </p>
-        <p>
-          For partnerships and press, email{' '}
-          <a
-            href="mailto:hello@moonsjob.com"
-            className="font-semibold text-moons-blue hover:underline"
-          >
-            hello@moonsjob.com
           </a>
           .
         </p>
@@ -43,10 +33,10 @@ export default function ContactPage() {
           Looking to hire? Create a recruiter account to post jobs and reach qualified candidates.
           For enterprise hiring plans, contact{' '}
           <a
-            href="mailto:sales@moonsjob.com"
+            href="mailto:support@moonsjob.com"
             className="font-semibold text-moons-blue hover:underline"
           >
-            sales@moonsjob.com
+            support@moonsjob.com
           </a>
           .
         </p>

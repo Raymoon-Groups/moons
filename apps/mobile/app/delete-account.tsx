@@ -130,7 +130,7 @@ export default function DeleteAccountScreen() {
       ) : (
         <StaticSection heading="Sign in required">
           <StaticParagraph>
-            Sign in to delete your account from the app, or email privacy@moonsjob.com if you cannot
+            Sign in to delete your account from the app, or email support@moonsjob.com if you cannot
             access it.
           </StaticParagraph>
           <PrimaryButton label="Go to login" onPress={() => router.push('/login')} />
@@ -163,10 +163,8 @@ export default function DeleteAccountScreen() {
       </StaticSection>
 
       <StaticSection heading="Contact">
-        <StaticParagraph>
-          Questions: privacy@moonsjob.com or support@moonsjob.com.
-        </StaticParagraph>
-        <StaticEmailLink email="privacy@moonsjob.com" />
+        <StaticParagraph>Questions: support@moonsjob.com.</StaticParagraph>
+        <StaticEmailLink email="support@moonsjob.com" />
       </StaticSection>
     </StaticPageScreen>
   );

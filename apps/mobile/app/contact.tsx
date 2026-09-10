@@ -25,14 +25,16 @@ export default function ContactScreen() {
       subtitle="Questions, feedback, or need a hand? Reach out and our team will get back to you as soon as possible."
     >
       <StaticSection heading="Email us">
-        <EmailRow label="For general enquiries and support:" email="support@moonsjob.com" />
-        <EmailRow label="For partnerships and press:" email="hello@moonsjob.com" />
+        <EmailRow
+          label="For support, partnerships, press, or general enquiries:"
+          email="support@moonsjob.com"
+        />
       </StaticSection>
 
       <StaticSection heading="For employers">
         <StaticParagraph>
           Looking to hire? Create a recruiter account to post jobs and reach qualified candidates.
-          For enterprise hiring plans, contact sales@moonsjob.com.
+          For enterprise hiring plans, contact support@moonsjob.com.
         </StaticParagraph>
       </StaticSection>
 

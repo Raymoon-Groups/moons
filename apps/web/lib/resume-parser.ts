@@ -8,6 +8,8 @@
  *  3. Everything runs in the browser — no backend call.
  */
 
+import { INDIAN_CITY_OPTIONS } from '@moons/shared';
+
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 export interface ParsedResume {
@@ -218,10 +220,8 @@ function extractName(lines: string[], email: string | null): string | null {
 // ─── Location ─────────────────────────────────────────────────────────────────
 
 const KNOWN_CITIES = [
-  'New Delhi','Delhi NCR','Delhi','Mumbai','Bangalore','Bengaluru','Hyderabad','Chennai',
-  'Kolkata','Pune','Ahmedabad','Jaipur','Noida','Gurugram','Gurgaon','Chandigarh','Lucknow',
-  'Indore','Bhopal','Coimbatore','Kochi','Surat','Vadodara','Nagpur','Patna','Bhubaneswar',
-  'Visakhapatnam','Mysuru','Mysore','Ranchi','Dehradun','Mohali','Faridabad','Meerut',
+  ...INDIAN_CITY_OPTIONS,
+  'Delhi NCR',
   'New York','San Francisco','Los Angeles','Chicago','Seattle','Austin','Boston','London',
   'Dubai','Abu Dhabi','Singapore','Toronto','Sydney','Berlin','Amsterdam',
 ];

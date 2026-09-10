@@ -253,7 +253,7 @@ const swipeStyles = StyleSheet.create({
   label: {
     fontSize: 14,
     letterSpacing: 0.2,
-    ...displayFontStyle('semibold'),
+    ...displayFontStyle('bold'),
   },
   thumb: {
     position: 'absolute',

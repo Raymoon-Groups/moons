@@ -48,7 +48,7 @@ export default function DeleteAccountPage() {
         <p className="mt-4">
           <Link
             href="/settings/security"
-            className="inline-flex rounded-lg bg-moons-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-blue-dark"
+            className="inline-flex rounded-lg bg-moons-blue px-5 py-2.5 text-sm font-semibold !text-white transition hover:bg-moons-blue-dark"
           >
             Go to Security settings
           </Link>
@@ -59,10 +59,10 @@ export default function DeleteAccountPage() {
         <p>
           If you cannot sign in, email{' '}
           <a
-            href="mailto:privacy@moonsjob.com?subject=MoonsJob%20account%20deletion%20request"
+            href="mailto:support@moonsjob.com?subject=MoonsJob%20account%20deletion%20request"
             className="font-semibold text-moons-blue hover:underline"
           >
-            privacy@moonsjob.com
+            support@moonsjob.com
           </a>{' '}
           from your registered address with subject{' '}
           <strong>MoonsJob account deletion request</strong>. We will verify ownership and process
@@ -106,13 +106,6 @@ export default function DeleteAccountPage() {
       <StaticSection heading="Contact" icon={<UserCheckIcon />}>
         <p>
           Questions about deletion or privacy:{' '}
-          <a
-            href="mailto:privacy@moonsjob.com"
-            className="font-semibold text-moons-blue hover:underline"
-          >
-            privacy@moonsjob.com
-          </a>{' '}
-          or{' '}
           <a
             href="mailto:support@moonsjob.com"
             className="font-semibold text-moons-blue hover:underline"
