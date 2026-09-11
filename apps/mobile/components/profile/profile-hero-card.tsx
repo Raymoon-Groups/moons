@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
-import { ViewableAvatar } from '@/components/profile/protected-avatar-viewer';
+import { EditableProfilePhoto } from '@/components/profile/editable-profile-photo';
 import { resolveAvatarUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
@@ -21,6 +21,7 @@ export function ProfileHeroCard({
   editable = true,
   onEdit,
   onBannerUpdated,
+  onAvatarUpdated,
 }: {
   name: string;
   title?: string | null;
@@ -32,6 +33,7 @@ export function ProfileHeroCard({
   editable?: boolean;
   onEdit?: () => void;
   onBannerUpdated?: (bannerUrl: string | null, updatedAt: string) => void;
+  onAvatarUpdated?: () => void;
 }) {
   const { colors, isDark } = useTheme();
   const uri = resolveAvatarUrl(avatarUrl);
@@ -67,7 +69,13 @@ export function ProfileHeroCard({
       <View style={styles.body}>
         <View style={styles.topRow}>
           <View style={styles.avatarBlock}>
-            <ViewableAvatar uri={uri} name={name}>
+            <EditableProfilePhoto
+              uri={uri}
+              name={name}
+              kind="avatar"
+              editable={editable}
+              onUpdated={onAvatarUpdated}
+            >
               <View
                 style={[
                   styles.avatarRing,
@@ -85,7 +93,7 @@ export function ProfileHeroCard({
                   </Text>
                 )}
               </View>
-            </ViewableAvatar>
+            </EditableProfilePhoto>
             {percent > 0 ? (
               <View
                 style={[

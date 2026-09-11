@@ -25,6 +25,8 @@ const MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
   '.webp': 'image/webp',
   '.gif': 'image/gif',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
   '.mp4': 'video/mp4',
   '.webm': 'video/webm',
   '.mov': 'video/quicktime',
@@ -61,18 +63,23 @@ export class FilesService {
 
     const ext = extname(filename).toLowerCase();
     const mimeType = MIME_BY_EXT[ext] ?? 'application/octet-stream';
-    const stream = createReadStream(absolute);
+    const { size } = statSync(absolute);
     const isResume = category === 'resumes';
     const inline =
       !isResume && (mimeType.startsWith('image/') || mimeType.startsWith('video/'));
 
     return {
-      stream,
+      absolutePath: absolute,
+      size,
       mimeType,
       filename,
       contentDisposition: inline
         ? `inline; filename="${filename}"`
         : `attachment; filename="${filename}"`,
+      createStream: (start?: number, end?: number) => {
+        if (start == null) return createReadStream(absolute);
+        return createReadStream(absolute, { start, end });
+      },
     };
   }
 

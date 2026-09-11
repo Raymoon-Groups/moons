@@ -3,8 +3,10 @@
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { DashBackLink } from '@/components/dash/dash-page-shell';
 import { ProfilePostsSection } from '@/components/feed/profile-posts-section';
+import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
 import { ProfileNetworkSection } from '@/components/profile/profile-network-section';
 import { useAuth } from '@/lib/auth-context';
+import { ImageCropModal } from '@/components/image-crop-modal';
 import { ImageLightbox } from '@/components/image-lightbox';
 import { resolveAssetUrl } from '@/lib/assets';
 import type { Profile } from '@/lib/types';
@@ -431,8 +433,9 @@ interface ProfilePhotoSectionProps {
   metaLine: string;
   saving: boolean;
   onPhotoChange: (file: File | null, remove: boolean) => void;
-  onSave: () => void;
+  onSave: (file?: File | null) => void;
   onError: (message: string) => void;
+  onBannerUpdated?: (bannerUrl: string | null, updatedAt: string) => void;
 }
 
 function CameraIcon({ className }: { className?: string }) {
@@ -466,12 +469,16 @@ export function ProfilePhotoSection({
   onPhotoChange,
   onSave,
   onError,
+  onBannerUpdated,
 }: ProfilePhotoSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropMeta, setCropMeta] = useState<{ name: string; type: string } | null>(null);
+  const [localError, setLocalError] = useState('');
 
   const savedAvatarUrl = profile?.avatarUrl
     ? `${resolveAssetUrl(profile.avatarUrl)}?v=${new Date(profile.updatedAt).getTime()}`
@@ -485,20 +492,48 @@ export function ProfilePhotoSection({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setLocalError('Only JPG, PNG or WEBP images are allowed');
       onError('Only JPG, PNG or WEBP images are allowed');
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      onError('Image must be 2 MB or smaller');
+    if (file.size > 12 * 1024 * 1024) {
+      setLocalError('Image must be 12 MB or smaller');
+      onError('Image must be 12 MB or smaller');
       return;
     }
+    setLocalError('');
     onError('');
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(URL.createObjectURL(file));
+    setCropMeta({ name: file.name, type: file.type });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function handleCropCancel() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropMeta(null);
+  }
+
+  function handleCropComplete(file: File) {
+    if (file.size > 2 * 1024 * 1024) {
+      const msg = 'Cropped image must be 2 MB or smaller. Try zooming in or using a smaller photo.';
+      setLocalError(msg);
+      onError(msg);
+      handleCropCancel();
+      return;
+    }
     if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropMeta(null);
     setPendingPhoto(file);
     setPendingPreview(URL.createObjectURL(file));
     setPendingRemove(false);
+    setLocalError('');
     onPhotoChange(file, false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    onError('');
+    onSave(file);
   }
 
   function handleRemove() {
@@ -524,7 +559,21 @@ export function ProfilePhotoSection({
         alt={displayName}
         onClose={() => setShowLightbox(false)}
       />
+      <ImageCropModal
+        open={!!cropSrc}
+        imageSrc={cropSrc}
+        fileName={cropMeta?.name ?? 'avatar.jpg'}
+        aspect="avatar"
+        onCancel={handleCropCancel}
+        onComplete={handleCropComplete}
+      />
       <section id="photo" className={cardClass}>
+        <CoverPhotoBanner
+          bannerUrl={profile?.bannerUrl ?? null}
+          updatedAt={profile?.updatedAt ?? null}
+          editable
+          onUpdated={onBannerUpdated}
+        />
         <div className="relative overflow-hidden border-b border-border/50 bg-gradient-to-br from-moons-blue/10 via-surface-elevated to-moons-navy/5 px-6 py-6 sm:px-8">
           <div
             className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-moons-blue/15 blur-3xl"
@@ -606,13 +655,17 @@ export function ProfilePhotoSection({
               )}
             </div>
             <p className="mt-2.5 text-xs leading-relaxed text-moons-muted">
-              At least 800×800 px recommended. JPG, PNG or WEBP is allowed.
+              At least 800×800 px recommended. JPG, PNG or WEBP · crop & zoom after selecting.
             </p>
+            {localError ? <p className="mt-2 text-sm text-red-500">{localError}</p> : null}
+            {saving ? (
+              <p className="mt-2 text-sm font-medium text-moons-blue">Saving photo…</p>
+            ) : null}
             {pendingPhoto && (
               <div className="mt-3">
                 <button
                   type="button"
-                  onClick={onSave}
+                  onClick={() => onSave()}
                   disabled={saving}
                   className="rounded-lg bg-moons-navy px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue disabled:opacity-60"
                 >
@@ -628,7 +681,7 @@ export function ProfilePhotoSection({
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={onSave}
+                    onClick={() => onSave()}
                     disabled={saving}
                     className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
                   >
@@ -664,7 +717,7 @@ interface CompanyLogoSectionProps {
   companyName: string;
   saving: boolean;
   onLogoChange: (file: File | null, remove: boolean) => void;
-  onSave: () => void;
+  onSave: (file?: File | null) => void;
   onError: (message: string) => void;
 }
 
@@ -681,6 +734,8 @@ export function CompanyLogoSection({
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropMeta, setCropMeta] = useState<{ name: string; type: string } | null>(null);
 
   const savedLogoUrl = profile?.companyLogoUrl
     ? `${resolveAssetUrl(profile.companyLogoUrl)}?v=${new Date(profile.updatedAt).getTime()}`
@@ -697,17 +752,39 @@ export function CompanyLogoSection({
       onError('Only JPG, PNG or WEBP images are allowed');
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      onError('Image must be 2 MB or smaller');
+    if (file.size > 12 * 1024 * 1024) {
+      onError('Image must be 12 MB or smaller');
       return;
     }
     onError('');
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(URL.createObjectURL(file));
+    setCropMeta({ name: file.name, type: file.type });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function handleCropCancel() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropMeta(null);
+  }
+
+  function handleCropComplete(file: File) {
+    if (file.size > 2 * 1024 * 1024) {
+      onError('Cropped image must be 2 MB or smaller. Try zooming in or using a smaller photo.');
+      handleCropCancel();
+      return;
+    }
     if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropMeta(null);
     setPendingLogo(file);
     setPendingPreview(URL.createObjectURL(file));
     setPendingRemove(false);
     onLogoChange(file, false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    onError('');
+    onSave(file);
   }
 
   function handleRemove() {
@@ -732,6 +809,14 @@ export function CompanyLogoSection({
         src={displayUrl}
         alt={`${companyName} logo`}
         onClose={() => setShowLightbox(false)}
+      />
+      <ImageCropModal
+        open={!!cropSrc}
+        imageSrc={cropSrc}
+        fileName={cropMeta?.name ?? 'logo.jpg'}
+        aspect="logo"
+        onCancel={handleCropCancel}
+        onComplete={handleCropComplete}
       />
       <section id="branding" className={`${cardClass} p-6`}>
         <h3 className="mb-4 text-base font-bold text-heading">Company logo</h3>
@@ -776,7 +861,7 @@ export function CompanyLogoSection({
               <div className="mt-3">
                 <button
                   type="button"
-                  onClick={onSave}
+                  onClick={() => onSave()}
                   disabled={saving}
                   className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
                 >
@@ -790,7 +875,7 @@ export function CompanyLogoSection({
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={onSave}
+                    onClick={() => onSave()}
                     disabled={saving}
                     className="rounded-lg bg-moons-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:opacity-60"
                   >

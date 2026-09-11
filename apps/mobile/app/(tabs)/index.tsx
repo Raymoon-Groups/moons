@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,7 +11,9 @@ import {
 import type { FeedPost } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { AuthenticatedScreen } from '@/components/authenticated-screen';
-import { FeedComposer } from '@/components/feed/feed-composer';
+import { FeedComposer, type FeedUploadState } from '@/components/feed/feed-composer';
+import { InlineUploadProgress } from '@/components/feed/inline-upload-progress';
+import { MoonsPlusPromoCard } from '@/components/feed/moons-plus-promo';
 import { PostCard } from '@/components/feed/post-card';
 import { PostSkeleton } from '@/components/feed/post-skeleton';
 import { EmptyState } from '@/components/portal-ui';
@@ -35,6 +37,22 @@ function dedupePosts(items: FeedPost[]) {
   });
 }
 
+type FeedRow =
+  | { type: 'post'; post: FeedPost; key: string }
+  | { type: 'moons-plus'; key: string };
+
+/** Inserts Moons Plus after ~2 posts so everyone sees the teaser mid-scroll. */
+function buildFeedRows(posts: FeedPost[]): FeedRow[] {
+  const rows: FeedRow[] = posts.map((post) => ({ type: 'post', post, key: post.id }));
+  if (rows.length === 0) {
+    rows.push({ type: 'moons-plus', key: 'moons-plus' });
+    return rows;
+  }
+  const insertAt = posts.length >= 2 ? 2 : rows.length;
+  rows.splice(insertAt, 0, { type: 'moons-plus', key: 'moons-plus' });
+  return rows;
+}
+
 export default function FeedScreen() {
   const { colors } = useTheme();
   const bottomPadding = useTabScreenPadding();
@@ -47,17 +65,35 @@ export default function FeedScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [visiblePostIds, setVisiblePostIds] = useState<Set<string>>(() => new Set());
+  const [upload, setUpload] = useState<FeedUploadState>(null);
+  const uploadHoldRef = useRef<(() => void) | null>(null);
+
+  function waitForUploadHold() {
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        uploadHoldRef.current = null;
+        resolve();
+      };
+      uploadHoldRef.current = finish;
+      // Fallback if the progress banner remounts or never reaches success.
+      setTimeout(finish, 4500);
+    });
+  }
+
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 55,
     minimumViewTime: 100,
   }).current;
   const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken<FeedPost>[] }) => {
+    ({ viewableItems }: { viewableItems: ViewToken<FeedRow>[] }) => {
       setVisiblePostIds(
         new Set(
           viewableItems
-            .filter((token) => token.isViewable && token.item)
-            .map((token) => token.item.id),
+            .filter((token) => token.isViewable && token.item?.type === 'post')
+            .map((token) => (token.item as Extract<FeedRow, { type: 'post' }>).post.id),
         ),
       );
     },
@@ -84,15 +120,49 @@ export default function FeedScreen() {
     void load(1, false);
   }, [load]);
 
+  const rows = useMemo(() => {
+    // Keep list empty while first load so skeletons (ListEmptyComponent) can show.
+    if (loading && posts.length === 0) return [];
+    return buildFeedRows(posts);
+  }, [loading, posts]);
+
+  const listHeader = (
+    <View style={{ paddingBottom: 4 }}>
+      <FeedComposer
+        uploading={!!upload}
+        onUploadChange={setUpload}
+        waitForUploadHold={waitForUploadHold}
+        onPosted={async (created) => {
+          setPosts((prev) => dedupePosts([created, ...prev]));
+          await load(1, false);
+        }}
+      />
+    </View>
+  );
+
   return (
     <AppScreen>
       <AuthenticatedScreen padBottom={false}>
+        {/* Keep progress outside FlatList so it always paints when upload state changes. */}
+        {upload ? (
+          <View style={{ paddingTop: topPadding, zIndex: 20 }}>
+            <InlineUploadProgress
+              progress={upload.progress}
+              label={upload.label}
+              onSuccessHoldComplete={() => {
+                uploadHoldRef.current?.();
+              }}
+            />
+          </View>
+        ) : null}
+
         <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id}
-          style={{ backgroundColor: colors.background }}
+          data={rows}
+          extraData={upload}
+          keyExtractor={(item) => item.key}
+          style={{ backgroundColor: colors.background, flex: 1 }}
           contentContainerStyle={{
-            paddingTop: topPadding,
+            paddingTop: upload ? 8 : topPadding,
             paddingBottom: bottomPadding,
             flexGrow: 1,
           }}
@@ -112,40 +182,38 @@ export default function FeedScreen() {
               tintColor={colors.blue}
             />
           }
-          ListHeaderComponent={
-            <View style={{ paddingBottom: 4 }}>
-              <FeedComposer
-                onPosted={(created) => setPosts((prev) => dedupePosts([created, ...prev]))}
+          ListHeaderComponent={listHeader}
+          renderItem={({ item }) =>
+            item.type === 'moons-plus' ? (
+              <MoonsPlusPromoCard />
+            ) : (
+              <PostCard
+                post={item.post}
+                isVisible={visiblePostIds.has(item.post.id)}
+                onChange={(next) =>
+                  setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))
+                }
+                onRemove={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
               />
-            </View>
+            )
           }
-          renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              isVisible={visiblePostIds.has(item.id)}
-              onChange={(next) => setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))}
-              onRemove={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
-            />
-          )}
           ListEmptyComponent={
             loading ? (
-              <View>
+              <View style={{ paddingTop: 8 }}>
                 <PostSkeleton />
                 <PostSkeleton />
               </View>
-            ) : (
-              <View style={{ paddingHorizontal: 24, paddingTop: 32 }}>
-                <EmptyState
-                  icon="newspaper-outline"
-                  title="Nothing in your feed yet"
-                  message="Create a post or connect with more people to start seeing updates here."
-                />
-              </View>
-            )
+            ) : null
           }
           ListFooterComponent={
             loadingMore ? (
               <ActivityIndicator color={colors.blue} style={{ marginVertical: 22 }} />
+            ) : posts.length === 0 && !loading ? (
+              <EmptyState
+                icon="newspaper-outline"
+                title="Nothing in your feed yet"
+                message="Create a post or connect with more people to start seeing updates here."
+              />
             ) : posts.length > 0 && !hasMore ? (
               <Text
                 style={{

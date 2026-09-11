@@ -110,16 +110,17 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
     setShowSuccess(true);
   }
 
-  async function saveAvatarOnly() {
-    if (!pendingPhoto && !pendingRemovePhoto) return;
+  async function saveAvatarOnly(file?: File | null) {
+    const photo = file !== undefined ? file : pendingPhoto;
+    if (!photo && !pendingRemovePhoto) return;
     setSaving(true);
     setError('');
     try {
-      if (pendingRemovePhoto) {
+      if (pendingRemovePhoto && !photo) {
         await authDelete<Profile>('/profiles/me/avatar');
-      } else if (pendingPhoto) {
+      } else if (photo) {
         const formData = new FormData();
-        formData.append('avatar', pendingPhoto);
+        formData.append('avatar', photo);
         await authUpload<Profile>('/profiles/me/avatar', formData);
       }
       setPendingPhoto(null);
@@ -133,16 +134,17 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
     }
   }
 
-  async function saveLogoOnly() {
-    if (!pendingLogo && !pendingRemoveLogo) return;
+  async function saveLogoOnly(file?: File | null) {
+    const logo = file !== undefined ? file : pendingLogo;
+    if (!logo && !pendingRemoveLogo) return;
     setSaving(true);
     setError('');
     try {
-      if (pendingRemoveLogo) {
+      if (pendingRemoveLogo && !logo) {
         await authDelete<Profile>('/profiles/me/company-logo');
-      } else if (pendingLogo) {
+      } else if (logo) {
         const formData = new FormData();
-        formData.append('logo', pendingLogo);
+        formData.append('logo', logo);
         await authUpload<Profile>('/profiles/me/company-logo', formData);
       }
       setPendingLogo(null);
@@ -240,6 +242,10 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
             }}
             onSave={saveAvatarOnly}
             onError={setError}
+            onBannerUpdated={(bannerUrl, updatedAt) => {
+              setProfile((prev) => ({ ...prev, bannerUrl, updatedAt }));
+              onSaved({ ...profile, bannerUrl, updatedAt });
+            }}
           />
 
           <EditableCard

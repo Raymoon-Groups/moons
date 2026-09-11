@@ -237,12 +237,12 @@ export function PostMediaViewer({
                 type="button"
                 onClick={onShare}
                 className="flex flex-col items-center gap-1"
-                aria-label="Share"
+                aria-label="Forward"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm">
                   <ShareIcon className="h-5 w-5" />
                 </span>
-                <span className="text-xs font-semibold text-white">Share</span>
+                <span className="text-xs font-semibold text-white">Forward</span>
               </button>
             ) : null}
           </div>

@@ -3,10 +3,16 @@
 interface SuccessModalProps {
   open: boolean;
   message: string;
+  title?: string;
   onClose: () => void;
 }
 
-export function SuccessModal({ open, message, onClose }: SuccessModalProps) {
+export function SuccessModal({
+  open,
+  message,
+  title = 'Saved successfully!',
+  onClose,
+}: SuccessModalProps) {
   if (!open) return null;
 
   return (
@@ -21,7 +27,7 @@ export function SuccessModal({ open, message, onClose }: SuccessModalProps) {
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-2xl text-green-600">
           ✓
         </div>
-        <h2 className="mt-4 text-lg font-bold text-heading">Saved successfully!</h2>
+        <h2 className="mt-4 text-lg font-bold text-heading">{title}</h2>
         <p className="mt-2 text-sm text-foreground">{message}</p>
         <button
           type="button"

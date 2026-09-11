@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Image,
   Modal,
   Pressable,
@@ -19,6 +18,10 @@ import { storedToEditable } from '@moons/shared';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { CommentOptionsSheet } from '@/components/feed/comment-options-sheet';
 import { ForwardPostModal } from '@/components/feed/forward-post-modal';
+import {
+  FeedMediaCarousel,
+  FeedMediaImage,
+} from '@/components/feed/feed-media';
 import { InlineFeedVideo } from '@/components/feed/inline-feed-video';
 import { MediaViewer } from '@/components/feed/media-viewer';
 import { PostCommentsSheet } from '@/components/feed/post-comments-sheet';
@@ -228,25 +231,7 @@ export function PostCard({
         },
         media: {
           width: mediaWidth,
-          aspectRatio: 16 / 10,
           backgroundColor: isDark ? colors.surface : colors.surfaceHover,
-        },
-        mediaCarousel: { marginTop: 0 },
-        mediaDotRow: {
-          flexDirection: 'row',
-          justifyContent: 'center',
-          gap: 5,
-          paddingVertical: 10,
-        },
-        mediaDot: {
-          width: 6,
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: colors.border,
-        },
-        mediaDotActive: {
-          backgroundColor: colors.blue,
-          width: 16,
         },
         counts: {
           flexDirection: 'row',
@@ -600,7 +585,6 @@ export function PostCard({
   }
 
   const original = post.originalPost && !('unavailable' in post.originalPost) ? post.originalPost : null;
-  const [carouselIndex, setCarouselIndex] = useState(0);
 
   return (
     <View style={styles.card}>
@@ -681,68 +665,29 @@ export function PostCard({
               resolveAssetUrl(post.media[0].url) ? (
                 <InlineFeedVideo
                   uri={resolveAssetUrl(post.media[0].url)!}
+                  width={mediaWidth}
                   playing={isVisible && viewerIndex === null}
-                  style={styles.media}
                   onPress={() => setViewerIndex(0)}
                 />
               ) : null
             ) : (
-              <Pressable onPress={() => setViewerIndex(0)}>
-                <Image
-                  source={{ uri: resolveAssetUrl(post.media[0].url) ?? undefined }}
-                  style={styles.media}
-                  resizeMode="cover"
-                />
-              </Pressable>
+              <FeedMediaImage
+                uri={resolveAssetUrl(post.media[0].url)}
+                width={mediaWidth}
+                onPress={() => setViewerIndex(0)}
+              />
             )}
           </View>
         ) : (
           <View style={styles.mediaWrap}>
-            <FlatList
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              data={post.media}
-              keyExtractor={(item) => item.id}
-              style={styles.mediaCarousel}
-              snapToInterval={mediaWidth}
-              decelerationRate="fast"
-              onMomentumScrollEnd={(e) => {
-                const next = Math.round(e.nativeEvent.contentOffset.x / mediaWidth);
-                setCarouselIndex(next);
-              }}
-              renderItem={({ item, index }) => {
-                const uri = resolveAssetUrl(item.url);
-                return (
-                  <View style={{ width: mediaWidth }}>
-                    {item.type === 'VIDEO' && uri ? (
-                      <InlineFeedVideo
-                        uri={uri}
-                        playing={isVisible && viewerIndex === null && carouselIndex === index}
-                        style={styles.media}
-                        onPress={() => setViewerIndex(index)}
-                      />
-                    ) : (
-                      <Pressable onPress={() => setViewerIndex(index)}>
-                        <Image
-                          source={{ uri: uri ?? undefined }}
-                          style={styles.media}
-                          resizeMode="cover"
-                        />
-                      </Pressable>
-                    )}
-                  </View>
-                );
-              }}
+            <FeedMediaCarousel
+              media={post.media}
+              width={mediaWidth}
+              isVisible={isVisible && viewerIndex === null}
+              onOpenViewer={setViewerIndex}
+              dotColor={colors.border}
+              activeDotColor={colors.blue}
             />
-            <View style={styles.mediaDotRow}>
-              {post.media.map((item, index) => (
-                <View
-                  key={item.id}
-                  style={[styles.mediaDot, index === carouselIndex && styles.mediaDotActive]}
-                />
-              ))}
-            </View>
           </View>
         )
       ) : null}
@@ -782,18 +727,20 @@ export function PostCard({
             original.media[0].type === 'VIDEO' && resolveAssetUrl(original.media[0].url) ? (
               <InlineFeedVideo
                 uri={resolveAssetUrl(original.media[0].url)!}
+                width={mediaWidth - 24}
                 playing={isVisible && sharedViewerIndex === null}
-                style={[styles.media, { width: '100%', aspectRatio: 16 / 9, marginTop: 10, borderRadius: 10 }]}
+                style={{ marginTop: 10, borderRadius: 10 }}
                 onPress={() => setSharedViewerIndex(0)}
               />
             ) : original.media[0].type !== 'VIDEO' ? (
-              <Pressable onPress={() => setSharedViewerIndex(0)}>
-                <Image
-                  source={{ uri: resolveAssetUrl(original.media[0].url) ?? undefined }}
-                  style={[styles.media, { width: '100%', aspectRatio: 16 / 9, marginTop: 10, borderRadius: 10 }]}
-                  resizeMode="cover"
+              <View style={{ marginTop: 10 }}>
+                <FeedMediaImage
+                  uri={resolveAssetUrl(original.media[0].url)}
+                  width={mediaWidth - 24}
+                  borderRadius={10}
+                  onPress={() => setSharedViewerIndex(0)}
                 />
-              </Pressable>
+              </View>
             ) : null
           ) : null}
         </Pressable>
@@ -872,7 +819,7 @@ export function PostCard({
         }}
         onShare={() => {
           setViewerIndex(null);
-          setShowOptions(true);
+          setShowForward(true);
         }}
         onClose={() => setViewerIndex(null)}
       />
@@ -896,7 +843,7 @@ export function PostCard({
           }}
           onShare={() => {
             setSharedViewerIndex(null);
-            setShowOptions(true);
+            setShowForward(true);
           }}
           onClose={() => setSharedViewerIndex(null)}
         />
@@ -1024,9 +971,14 @@ export function PostCard({
           />
           <Text style={[styles.actionText, showComments && styles.liked]}>Comment</Text>
         </Pressable>
-        <Pressable style={styles.actionBtn} onPress={() => setShowOptions(true)}>
-          <Ionicons name="share-social-outline" size={18} color={mutedAction} />
-          <Text style={styles.actionText}>Share</Text>
+        <Pressable
+          style={styles.actionBtn}
+          onPress={() => setShowForward(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Forward post"
+        >
+          <Ionicons name="arrow-redo-outline" size={18} color={mutedAction} />
+          <Text style={styles.actionText}>Forward</Text>
         </Pressable>
       </View>
 

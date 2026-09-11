@@ -22,6 +22,7 @@ export type LocalMediaFile = {
   uri: string;
   name: string;
   mimeType: string;
+  size?: number;
 };
 
 export function fetchFeed(page = 1, limit = 20) {
@@ -41,13 +42,31 @@ export async function createPost(
   files: LocalMediaFile[],
   onProgress?: (progress: number) => void,
 ) {
-  onProgress?.(0);
   const form = new FormData();
-  form.append('body', body.trim());
-  for (const file of files) {
-    await appendUploadFile(form, 'media', file);
+  const trimmed = body.trim();
+  if (trimmed) form.append('body', trimmed);
+
+  if (files.length > 0) {
+    onProgress?.(6);
+    for (let i = 0; i < files.length; i += 1) {
+      await appendUploadFile(form, 'media', files[i]);
+      onProgress?.(Math.round(6 + ((i + 1) / files.length) * 10));
+    }
+    return authUploadWithProgress<FeedPost>('/posts', form, (p) => {
+      // Keep preparing at 6-16, map upload into 16-96, leave room for finishing.
+      onProgress?.(Math.min(96, Math.round(16 + (p / 100) * 80)));
+    });
   }
-  return authUploadWithProgress<FeedPost>('/posts', form, onProgress);
+
+  if (!trimmed) {
+    throw new Error('Add text, an image, or a video to post');
+  }
+
+  onProgress?.(40);
+  const result = await authUploadWithProgress<FeedPost>('/posts', form, (p) => {
+    onProgress?.(Math.min(96, Math.max(40, Math.round(40 + (p / 100) * 56))));
+  });
+  return result;
 }
 
 export function deletePost(postId: string) {

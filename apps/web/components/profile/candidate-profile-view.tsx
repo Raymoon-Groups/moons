@@ -186,16 +186,17 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
     setPendingRemoveResume(false);
   }
 
-  async function saveAvatarOnly() {
-    if (!pendingPhoto && !pendingRemovePhoto) return;
+  async function saveAvatarOnly(file?: File | null) {
+    const photo = file !== undefined ? file : pendingPhoto;
+    if (!photo && !pendingRemovePhoto) return;
     setSaving(true);
     setError('');
     try {
-      if (pendingRemovePhoto) {
+      if (pendingRemovePhoto && !photo) {
         await authDelete<Profile>('/profiles/me/avatar');
-      } else if (pendingPhoto) {
+      } else if (photo) {
         const formData = new FormData();
-        formData.append('avatar', pendingPhoto);
+        formData.append('avatar', photo);
         await authUpload<Profile>('/profiles/me/avatar', formData);
       }
       const saved = await authFetch<Profile>('/profiles/me');
@@ -301,6 +302,10 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
             }}
             onSave={saveAvatarOnly}
             onError={setError}
+            onBannerUpdated={(bannerUrl, updatedAt) => {
+              setProfile((prev) => ({ ...prev, bannerUrl, updatedAt }));
+              onSaved({ ...profile, bannerUrl, updatedAt });
+            }}
           />
 
           <OpenOnMoonsToggle profile={profile} onUpdated={(saved) => { setProfile(saved); onSaved(saved); }} />

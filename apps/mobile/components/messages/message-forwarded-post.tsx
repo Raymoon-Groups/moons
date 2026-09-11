@@ -73,7 +73,7 @@ export function MessageForwardedPost({
       >
         {href ? (
           <View style={styles.media}>
-            <Image source={{ uri: href }} style={styles.image} contentFit="cover" />
+            <Image source={{ uri: href }} style={styles.image} contentFit="contain" />
             {isVideo ? (
               <View style={styles.play}>
                 <Ionicons name="play" size={22} color="#fff" />

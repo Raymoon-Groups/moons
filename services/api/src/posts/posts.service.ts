@@ -5,31 +5,30 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConnectionStatus, NotificationType, PostMediaType, Prisma } from '@prisma/client';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { extname, join } from 'path';
+import { basename, extname, join } from 'path';
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { normalizeUploadMime } from '../common/upload-mime';
 import { extractMentionUserIds, mentionPlainPreview } from '../common/mentions';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  MAX_POST_IMAGE_BYTES,
+  MAX_POST_IMAGES,
+  MAX_POST_VIDEO_BYTES,
+  MAX_POST_VIDEOS,
+  POST_IMAGE_MIME_TYPES,
+  POST_VIDEO_MIME_TYPES,
+  postImageTooLargeMessage,
+  postVideoTooLargeMessage,
+} from './post-media.limits';
 
 const POST_UPLOAD_DIR = join(process.cwd(), 'uploads', 'posts');
 const COMMENT_UPLOAD_DIR = join(process.cwd(), 'uploads', 'comment-attachments');
-const MAX_IMAGES = 10;
-const MAX_VIDEOS = 1;
-const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const MAX_COMMENT_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
-const IMAGE_MIME = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'image/heic',
-  'image/heif',
-]);
-const VIDEO_MIME = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
+const IMAGE_MIME = new Set<string>(POST_IMAGE_MIME_TYPES);
+const VIDEO_MIME = new Set<string>(POST_VIDEO_MIME_TYPES);
 const COMMENT_ATTACHMENT_MIME = new Set([
   'application/pdf',
   'application/msword',
@@ -349,62 +348,105 @@ export class PostsService {
       sortOrder: number;
     }>;
 
-    const images = files.filter((f) => IMAGE_MIME.has(normalizeUploadMime(f.mimetype, f.originalname || '')));
-    const videos = files.filter((f) => VIDEO_MIME.has(normalizeUploadMime(f.mimetype, f.originalname || '')));
-    const invalid = files.filter((f) => {
-      const mime = normalizeUploadMime(f.mimetype, f.originalname || '');
-      return !IMAGE_MIME.has(mime) && !VIDEO_MIME.has(mime);
-    });
-
-    if (invalid.length) {
-      throw new BadRequestException('Only JPEG, PNG, WEBP, GIF, HEIC images and MP4/WEBM/MOV videos are allowed');
-    }
-    if (images.length && videos.length) {
-      throw new BadRequestException('A post can include images or one video, not both');
-    }
-    if (videos.length > MAX_VIDEOS) {
-      throw new BadRequestException('Only one video per post is allowed');
-    }
-    if (images.length > MAX_IMAGES) {
-      throw new BadRequestException(`Maximum ${MAX_IMAGES} images per post`);
-    }
-
-    this.ensureUploadDir();
-    const saved: Array<{
-      type: PostMediaType;
-      url: string;
-      fileName: string;
-      mimeType: string;
-      sortOrder: number;
-    }> = [];
-
-    files.forEach((file, index) => {
-      const mimeType = normalizeUploadMime(file.mimetype, file.originalname || '');
-      const isVideo = VIDEO_MIME.has(mimeType);
-      if (isVideo && file.size > MAX_VIDEO_BYTES) {
-        throw new BadRequestException('Video must be 100MB or smaller');
+    const cleanupUploaded = () => {
+      for (const file of files) {
+        if (file.path && existsSync(file.path)) {
+          try {
+            unlinkSync(file.path);
+          } catch {
+            // ignore cleanup failures
+          }
+        }
       }
-      if (!isVideo && file.size > MAX_IMAGE_BYTES) {
-        throw new BadRequestException('Each image must be 15MB or smaller');
-      }
-      const ext = extname(file.originalname || '').toLowerCase() || (isVideo ? '.mp4' : '.jpg');
-      const filename = `${randomUUID()}${ext}`;
-      writeFileSync(join(POST_UPLOAD_DIR, filename), file.buffer);
-      saved.push({
-        type: isVideo ? PostMediaType.VIDEO : PostMediaType.IMAGE,
-        url: `/uploads/posts/${filename}`,
-        fileName: file.originalname || filename,
-        mimeType,
-        sortOrder: index,
+    };
+
+    try {
+      const images = files.filter((f) =>
+        IMAGE_MIME.has(normalizeUploadMime(f.mimetype, f.originalname || '')),
+      );
+      const videos = files.filter((f) =>
+        VIDEO_MIME.has(normalizeUploadMime(f.mimetype, f.originalname || '')),
+      );
+      const invalid = files.filter((f) => {
+        const mime = normalizeUploadMime(f.mimetype, f.originalname || '');
+        return !IMAGE_MIME.has(mime) && !VIDEO_MIME.has(mime);
       });
-    });
 
-    return saved;
+      if (invalid.length) {
+        throw new BadRequestException(
+          'Only JPEG, PNG, WEBP, GIF, HEIC images and MP4/WEBM/MOV videos are allowed',
+        );
+      }
+      if (images.length && videos.length) {
+        throw new BadRequestException('A post can include images or one video, not both');
+      }
+      if (videos.length > MAX_POST_VIDEOS) {
+        throw new BadRequestException('Only one video per post is allowed');
+      }
+      if (images.length > MAX_POST_IMAGES) {
+        throw new BadRequestException(`Maximum ${MAX_POST_IMAGES} images per post`);
+      }
+
+      this.ensureUploadDir();
+      const saved: Array<{
+        type: PostMediaType;
+        url: string;
+        fileName: string;
+        mimeType: string;
+        sortOrder: number;
+      }> = [];
+
+      files.forEach((file, index) => {
+        const mimeType = normalizeUploadMime(file.mimetype, file.originalname || '');
+        const isVideo = VIDEO_MIME.has(mimeType);
+        const size = file.size || file.buffer?.length || 0;
+        if (isVideo && size > MAX_POST_VIDEO_BYTES) {
+          throw new BadRequestException(postVideoTooLargeMessage());
+        }
+        if (!isVideo && size > MAX_POST_IMAGE_BYTES) {
+          throw new BadRequestException(postImageTooLargeMessage());
+        }
+
+        let filename: string;
+        if (file.path) {
+          // Disk storage already wrote the file under uploads/posts.
+          filename = basename(file.path);
+        } else {
+          const ext =
+            extname(file.originalname || '').toLowerCase() || (isVideo ? '.mp4' : '.jpg');
+          filename = `${randomUUID()}${ext}`;
+          if (!file.buffer?.length) {
+            throw new BadRequestException(
+              'Uploaded file could not be read. Please choose the photo again.',
+            );
+          }
+          writeFileSync(join(POST_UPLOAD_DIR, filename), file.buffer);
+        }
+
+        saved.push({
+          type: isVideo ? PostMediaType.VIDEO : PostMediaType.IMAGE,
+          url: `/uploads/posts/${filename}`,
+          fileName: file.originalname || filename,
+          mimeType,
+          sortOrder: index,
+        });
+      });
+
+      return saved;
+    } catch (error) {
+      cleanupUploaded();
+      throw error;
+    }
   }
 
   async createPost(userId: string, body: string | undefined, files: Express.Multer.File[] = []) {
     const text = (body ?? '').trim();
-    if (files.some((file) => !file.buffer?.length)) {
+    if (
+      files.some((file) => {
+        const size = file.size || file.buffer?.length || 0;
+        return size <= 0;
+      })
+    ) {
       throw new BadRequestException(
         'Uploaded file could not be read. Please choose the photo again.',
       );

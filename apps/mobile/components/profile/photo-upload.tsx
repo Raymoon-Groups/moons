@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ensurePhotoLibraryAccess } from '@/lib/image-picker-access';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ImageCropModal } from '@/components/image-crop-modal';
 import { PrimaryButton, SecondaryButton } from '@/components/ui';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
@@ -11,6 +12,12 @@ import { theme } from '@/lib/theme';
 import type { Profile } from '@/lib/types';
 
 type PickedImage = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
+type CropDraft = {
   uri: string;
   name: string;
   type: string;
@@ -37,6 +44,7 @@ export function ProfilePhotoUpload({
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState(false);
   const [hasPending, setHasPending] = useState(false);
+  const [cropDraft, setCropDraft] = useState<CropDraft | null>(null);
 
   const savedUrl = profile.avatarUrl
     ? `${resolveAssetUrl(profile.avatarUrl)}?v=${new Date(profile.updatedAt).getTime()}`
@@ -79,9 +87,8 @@ export function ProfilePhotoUpload({
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.9,
+      allowsEditing: false,
+      quality: 1,
     });
 
     if (result.canceled || !result.assets[0]) return;
@@ -92,23 +99,31 @@ export function ProfilePhotoUpload({
       onError('Only JPG, PNG or WEBP images are allowed');
       return;
     }
-    if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
-      onError('Image must be 2 MB or smaller');
+    if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024) {
+      onError('Image must be 8 MB or smaller before cropping');
       return;
     }
 
     onError('');
-    setPreviewUri(asset.uri);
+    setCropDraft({
+      uri: asset.uri,
+      name: asset.fileName ?? 'avatar.jpg',
+      type: mime,
+    });
+  }
+
+  function handleCropComplete(result: { uri: string }) {
+    if (!cropDraft) return;
+    const next = {
+      uri: result.uri,
+      name: cropDraft.name.replace(/\.[^.]+$/, '') + '.jpg',
+      type: 'image/jpeg',
+    };
+    setCropDraft(null);
+    setPreviewUri(next.uri);
     setPendingRemove(false);
     setHasPending(true);
-    onPick(
-      {
-        uri: asset.uri,
-        name: asset.fileName ?? 'avatar.jpg',
-        type: mime,
-      },
-      false,
-    );
+    onPick(next, false);
   }
 
   function handleRemove() {
@@ -149,7 +164,7 @@ export function ProfilePhotoUpload({
         </View>
         <View style={styles.info}>
           <Text style={styles.title}>Profile photo</Text>
-          <Text style={styles.hint}>JPG, PNG or WEBP · max 2 MB</Text>
+          <Text style={styles.hint}>JPG, PNG or WEBP · crop & zoom after pick</Text>
           <View style={styles.actions}>
             <SecondaryButton label="Upload photo" onPress={pickImage} />
             {(savedUrl || previewUri) && !pendingRemove ? (
@@ -170,6 +185,13 @@ export function ProfilePhotoUpload({
           <SecondaryButton label="Undo" onPress={handleUndoRemove} />
         </View>
       ) : null}
+      <ImageCropModal
+        visible={!!cropDraft}
+        uri={cropDraft?.uri ?? null}
+        aspect="avatar"
+        onCancel={() => setCropDraft(null)}
+        onComplete={handleCropComplete}
+      />
     </View>
   );
 }
@@ -195,6 +217,7 @@ export function CompanyLogoUpload({
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState(false);
   const [hasPending, setHasPending] = useState(false);
+  const [cropDraft, setCropDraft] = useState<CropDraft | null>(null);
 
   const savedUrl = profile.companyLogoUrl
     ? `${resolveAssetUrl(profile.companyLogoUrl)}?v=${new Date(profile.updatedAt).getTime()}`
@@ -236,9 +259,8 @@ export function CompanyLogoUpload({
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.9,
+      allowsEditing: false,
+      quality: 1,
     });
 
     if (result.canceled || !result.assets[0]) return;
@@ -249,23 +271,31 @@ export function CompanyLogoUpload({
       onError('Only JPG, PNG or WEBP images are allowed');
       return;
     }
-    if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
-      onError('Image must be 2 MB or smaller');
+    if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024) {
+      onError('Image must be 8 MB or smaller before cropping');
       return;
     }
 
     onError('');
-    setPreviewUri(asset.uri);
+    setCropDraft({
+      uri: asset.uri,
+      name: asset.fileName ?? 'logo.jpg',
+      type: mime,
+    });
+  }
+
+  function handleCropComplete(result: { uri: string }) {
+    if (!cropDraft) return;
+    const next = {
+      uri: result.uri,
+      name: cropDraft.name.replace(/\.[^.]+$/, '') + '.jpg',
+      type: 'image/jpeg',
+    };
+    setCropDraft(null);
+    setPreviewUri(next.uri);
     setPendingRemove(false);
     setHasPending(true);
-    onPick(
-      {
-        uri: asset.uri,
-        name: asset.fileName ?? 'logo.jpg',
-        type: mime,
-      },
-      false,
-    );
+    onPick(next, false);
   }
 
   function handleRemove() {
@@ -289,7 +319,7 @@ export function CompanyLogoUpload({
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Company logo</Text>
-          <Text style={styles.hint}>JPG, PNG or WEBP · max 2 MB</Text>
+          <Text style={styles.hint}>JPG, PNG or WEBP · crop & zoom after pick</Text>
           <View style={styles.actions}>
             <SecondaryButton label="Upload logo" onPress={pickImage} />
             {(savedUrl || previewUri) && !pendingRemove ? (
@@ -309,6 +339,13 @@ export function CompanyLogoUpload({
           <PrimaryButton label={saving ? 'Saving…' : 'Confirm remove'} onPress={onSave} loading={saving} />
         </View>
       ) : null}
+      <ImageCropModal
+        visible={!!cropDraft}
+        uri={cropDraft?.uri ?? null}
+        aspect="logo"
+        onCancel={() => setCropDraft(null)}
+        onComplete={handleCropComplete}
+      />
     </View>
   );
 }

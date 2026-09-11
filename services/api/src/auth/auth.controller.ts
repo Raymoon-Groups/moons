@@ -45,6 +45,14 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { parseResume } from './resume-parser.util';
 
+function isWebCookieClient(req: Request): boolean {
+  const raw = req.headers['x-moons-client'];
+  const client = String(Array.isArray(raw) ? raw[0] : raw ?? '')
+    .trim()
+    .toLowerCase();
+  return client === 'web';
+}
+
 @ApiTags('auth')
 @Controller('auth')
 @Throttle(THROTTLE.auth)
@@ -80,11 +88,12 @@ export class AuthController {
   @Post('register/verify-otp')
   @Throttle(THROTTLE.authStrict)
   async verifyOtp(
+    @Req() req: Request,
     @Body() dto: VerifyOtpDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.verifyRegistrationOtp(dto);
-    setAuthCookies(res, result);
+    if (isWebCookieClient(req)) setAuthCookies(res, result);
     // Tokens remain in JSON for mobile Bearer clients; web uses HttpOnly cookies.
     return {
       user: result.user,
@@ -96,11 +105,12 @@ export class AuthController {
   @Post('google')
   @Throttle(THROTTLE.authStrict)
   async google(
+    @Req() req: Request,
     @Body() dto: GoogleAuthDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.loginWithGoogle(dto);
-    setAuthCookies(res, result);
+    if (isWebCookieClient(req)) setAuthCookies(res, result);
     return {
       user: result.user,
       accessToken: result.accessToken,
@@ -111,11 +121,12 @@ export class AuthController {
   @Post('login')
   @Throttle(THROTTLE.authStrict)
   async login(
+    @Req() req: Request,
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto);
-    setAuthCookies(res, result);
+    if (isWebCookieClient(req)) setAuthCookies(res, result);
     return {
       user: result.user,
       accessToken: result.accessToken,
@@ -139,12 +150,13 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async setPassword(
+    @Req() req: Request,
     @CurrentUser() user: JwtPayload,
     @Body() dto: SetPasswordDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.setPassword(user.sub, dto);
-    if (result.accessToken && result.refreshToken) {
+    if (isWebCookieClient(req) && result.accessToken && result.refreshToken) {
       setAuthCookies(res, {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
@@ -157,12 +169,13 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async changePassword(
+    @Req() req: Request,
     @CurrentUser() user: JwtPayload,
     @Body() dto: ChangePasswordDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.changePassword(user.sub, dto);
-    if (result.accessToken && result.refreshToken) {
+    if (isWebCookieClient(req) && result.accessToken && result.refreshToken) {
       setAuthCookies(res, {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
@@ -244,7 +257,7 @@ export class AuthController {
       throw new UnauthorizedException('No refresh token');
     }
     const result = await this.authService.refresh(refreshToken);
-    setAuthCookies(res, result);
+    if (isWebCookieClient(req)) setAuthCookies(res, result);
     return {
       user: result.user,
       accessToken: result.accessToken,

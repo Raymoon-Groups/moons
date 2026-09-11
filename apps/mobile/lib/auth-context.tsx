@@ -8,13 +8,12 @@ import {
   type ReactNode,
 } from 'react';
 import type { AuthResponse, AuthUser } from '@moons/shared';
-import { loginRequest, logoutRequest, persistAuthSession } from './api';
+import { loginRequest, logoutRequest, persistAuthSession, ensureFreshSession } from './api';
 import { setAssetAuthToken } from './assets';
 import {
   clearAuthSession,
   getAccessToken,
   getRefreshToken,
-  getStoredUser,
   setAuthSession,
 } from './auth-storage';
 
@@ -35,16 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const token = await getAccessToken();
-      const stored = await getStoredUser();
-      if (token && stored) {
-        setAssetAuthToken(token);
-        setUser(stored);
-      } else {
+      try {
+        const sessionUser = await ensureFreshSession();
+        setUser(sessionUser);
+      } catch {
         setAssetAuthToken(null);
         await clearAuthSession();
+        setUser(null);
+      } finally {
+        setReady(true);
       }
-      setReady(true);
     })();
   }, []);
 

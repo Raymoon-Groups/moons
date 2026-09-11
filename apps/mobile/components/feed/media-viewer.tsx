@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PostMediaItem } from '@moons/shared';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
+import { safeVideoPause, safeVideoPlay } from '@/lib/safe-video';
 
 function FullscreenVideo({
   uri,
@@ -32,15 +33,14 @@ function FullscreenVideo({
   const player = useVideoPlayer(uri, (instance) => {
     instance.loop = true;
     instance.muted = false;
-    instance.play();
   });
 
   useEffect(() => {
     if (active) {
       player.muted = false;
-      player.play();
+      safeVideoPlay(player);
     } else {
-      player.pause();
+      safeVideoPause(player);
     }
   }, [active, player]);
 
@@ -220,11 +220,11 @@ export function MediaViewer({
             ) : null}
 
             {onShare ? (
-              <Pressable style={styles.actionBtn} onPress={onShare} accessibilityLabel="Share">
+              <Pressable style={styles.actionBtn} onPress={onShare} accessibilityLabel="Forward">
                 <View style={styles.actionIcon}>
-                  <Ionicons name="share-social-outline" size={25} color="#fff" />
+                  <Ionicons name="arrow-redo-outline" size={25} color="#fff" />
                 </View>
-                <Text style={styles.actionLabel}>Share</Text>
+                <Text style={styles.actionLabel}>Forward</Text>
               </Pressable>
             ) : null}
           </View>

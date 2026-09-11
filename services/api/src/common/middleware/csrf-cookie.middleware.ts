@@ -9,8 +9,13 @@ import {
 export const CSRF_COOKIE = 'moons_csrf';
 export const CSRF_HEADER = 'x-csrf-token';
 
+function clientKind(req: Request): string {
+  const raw = req.headers['x-moons-client'];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return String(value ?? '').trim().toLowerCase();
+}
+
 function csrfCookieOptions(): CookieOptions {
-  const prod = process.env.NODE_ENV === 'production';
   const domain = process.env.COOKIE_DOMAIN?.trim() || undefined;
   return {
     ...authCookieBaseOptions(),
@@ -37,7 +42,7 @@ export function ensureCsrfCookie(req: Request, res: Response) {
 
 /**
  * Mitigates CSRF when auth is cookie-based (esp. SameSite=None in production).
- * Bearer-authenticated clients (mobile) skip this check.
+ * Bearer / mobile clients skip this check.
  *
  * Defenses combined:
  * 1) Allowed Origin
@@ -50,9 +55,13 @@ export function csrfCookieProtection(
 ) {
   const method = req.method.toUpperCase();
   const isSafe = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+  const isMobileClient = clientKind(req) === 'mobile';
 
-  // Keep a CSRF cookie available for browser sessions.
-  if (!isSafe || req.headers.origin || req.cookies?.[ACCESS_COOKIE] || req.cookies?.[REFRESH_COOKIE]) {
+  // Keep a CSRF cookie available for browser sessions only.
+  if (
+    !isMobileClient &&
+    (!isSafe || req.headers.origin || req.cookies?.[ACCESS_COOKIE] || req.cookies?.[REFRESH_COOKIE])
+  ) {
     ensureCsrfCookie(req, res);
   }
 
@@ -63,6 +72,12 @@ export function csrfCookieProtection(
 
   const authHeader = req.headers.authorization;
   if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    next();
+    return;
+  }
+
+  // Native / Expo apps use Bearer tokens in JSON — never cookie CSRF.
+  if (isMobileClient) {
     next();
     return;
   }

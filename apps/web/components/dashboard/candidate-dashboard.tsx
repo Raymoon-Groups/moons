@@ -10,6 +10,7 @@ import { formatPostedAgo } from '@/lib/job-formatters';
 import type { JobListing } from '@/lib/jobs';
 import type { Profile } from '@/lib/types';
 import { PeopleYouMayKnowSection } from '@/components/dashboard/dashboard-discovery-sections';
+import { MoonsPlusPromo } from '@/components/dashboard/moons-plus-promo';
 import { DashboardFeed } from '@/components/feed/feed-page-client';
 
 interface CandidateStats {
@@ -256,31 +257,7 @@ export function CandidateDashboard() {
 
         {/* Center column */}
         <main className="order-1 min-w-0 space-y-5 lg:order-2">
-          <div className="relative dash-card overflow-hidden border-moons-blue/20">
-            <div
-              className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-moons-blue/10"
-              aria-hidden
-            />
-            <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue to-moons-navy text-lg font-black text-white shadow-lg shadow-moons-blue/25">
-                  ☽
-                </div>
-                <div>
-                  <p className="font-script text-2xl text-moons-blue">Moons Plus</p>
-                  <p className="text-sm text-moons-muted">Premium tools to stand out to recruiters</p>
-                </div>
-              </div>
-              <span className="inline-flex w-fit rounded-full border border-moons-blue/25 bg-moons-blue/10 px-4 py-2 text-sm font-semibold text-heading">
-                Coming soon
-              </span>
-            </div>
-            <div className="border-t border-border bg-surface/50 px-6 py-3">
-              <p className="text-xs text-moons-muted">
-                Priority visibility · Smart profile tips · One-click apply
-              </p>
-            </div>
-          </div>
+          <MoonsPlusPromo audience="candidate" />
 
           <DashboardFeed highlightPostId={highlightPostId} />
 

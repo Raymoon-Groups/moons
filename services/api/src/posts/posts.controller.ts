@@ -16,13 +16,25 @@ import {
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { memoryStorage } from 'multer';
+import { MAX_POST_IMAGES, MAX_POST_VIDEO_BYTES } from './post-media.limits';
+import { randomUUID } from 'crypto';
+import { existsSync, mkdirSync } from 'fs';
+import { diskStorage, memoryStorage } from 'multer';
+import { extname, join } from 'path';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { OnboardingGuard } from '../common/guards/onboarding.guard';
 import { THROTTLE } from '../common/throttle.constants';
 import { CreateCommentDto, CreatePostDto, SharePostDto, UpdatePostDto } from './dto/posts.dto';
 import { PostsService } from './posts.service';
+
+const POST_UPLOAD_DIR = join(process.cwd(), 'uploads', 'posts');
+
+function ensurePostUploadDir() {
+  if (!existsSync(POST_UPLOAD_DIR)) {
+    mkdirSync(POST_UPLOAD_DIR, { recursive: true });
+  }
+}
 
 @ApiTags('posts')
 @Controller('posts')
@@ -68,9 +80,19 @@ export class PostsController {
     },
   })
   @UseInterceptors(
-    FilesInterceptor('media', 10, {
-      storage: memoryStorage(),
-      limits: { fileSize: 100 * 1024 * 1024 },
+    FilesInterceptor('media', MAX_POST_IMAGES, {
+      // Disk storage avoids loading large videos into RAM.
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          ensurePostUploadDir();
+          cb(null, POST_UPLOAD_DIR);
+        },
+        filename: (_req, file, cb) => {
+          const ext = extname(file.originalname || '').toLowerCase() || '.bin';
+          cb(null, `${randomUUID()}${ext}`);
+        },
+      }),
+      limits: { fileSize: MAX_POST_VIDEO_BYTES },
     }),
   )
   create(

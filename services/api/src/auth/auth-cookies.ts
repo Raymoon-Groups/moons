@@ -10,11 +10,13 @@ function isProd() {
 /** Shared cookie flags for cross-site web (prod) and local SPA → API (dev). */
 export function authCookieBaseOptions(): CookieOptions {
   const prod = isProd();
+  const domain = process.env.COOKIE_DOMAIN?.trim() || undefined;
   return {
     httpOnly: true,
     secure: prod,
     sameSite: prod ? 'none' : 'lax',
     path: '/',
+    ...(domain ? { domain } : {}),
   };
 }
 

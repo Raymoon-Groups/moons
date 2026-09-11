@@ -1,9 +1,11 @@
 import type { AuthResponse, AuthUser, UserRole } from '@moons/shared';
 import { API_URL } from './api-url';
+import { setAssetAuthToken } from './assets';
 import {
   clearAuthSession,
   getAccessToken,
   getRefreshToken,
+  getStoredUser,
   setAuthSession,
 } from './auth-storage';
 
@@ -66,7 +68,11 @@ async function refreshAccessToken(): Promise<RefreshResult> {
     try {
       const response = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Moons-Client': 'mobile',
+        },
         body: JSON.stringify({ refreshToken }),
       });
       if (!response.ok) {
@@ -81,6 +87,7 @@ async function refreshAccessToken(): Promise<RefreshResult> {
         refreshToken: data.refreshToken,
         user: data.user,
       });
+      setAssetAuthToken(data.accessToken);
       return { ok: true, accessToken: data.accessToken };
     } catch {
       return { ok: false, reason: 'network' };
@@ -109,6 +116,7 @@ async function withAuthRetry<T>(
         return request(result.accessToken);
       }
       if (result.reason === 'auth') {
+        setAssetAuthToken(null);
         await clearAuthSession();
         throw new ApiError(
           'Your session has expired. Please sign in again.',
@@ -124,6 +132,32 @@ async function withAuthRetry<T>(
   }
 }
 
+/** Proactively refresh a stored session so the first authenticated polls don't 401. */
+export async function ensureFreshSession(): Promise<AuthUser | null> {
+  const token = await getAccessToken();
+  const stored = await getStoredUser();
+  if (!token || !stored) {
+    setAssetAuthToken(null);
+    return null;
+  }
+
+  setAssetAuthToken(token);
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) return stored;
+
+  const result = await refreshAccessToken();
+  if (result.ok) {
+    return (await getStoredUser()) ?? stored;
+  }
+  if (result.reason === 'auth') {
+    setAssetAuthToken(null);
+    await clearAuthSession();
+    return null;
+  }
+  // Network blip — keep the existing session and let later retries refresh.
+  return stored;
+}
+
 type FetchOptions = RequestInit & { token?: string; skipAuthRetry?: boolean };
 
 async function apiFetchRaw<T>(path: string, options: FetchOptions = {}): Promise<T> {
@@ -133,8 +167,10 @@ async function apiFetchRaw<T>(path: string, options: FetchOptions = {}): Promise
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...rest,
+      credentials: 'omit',
       headers: {
         ...(rest.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        'X-Moons-Client': 'mobile',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
@@ -215,6 +251,8 @@ function uploadFormDataRaw<T>(
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_URL}${path}`);
     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('X-Moons-Client', 'mobile');
+    xhr.withCredentials = false;
 
     xhr.upload.onprogress = (event) => {
       if (!onProgress) return;

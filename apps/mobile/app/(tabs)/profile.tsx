@@ -1,13 +1,14 @@
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { UserRole } from '@moons/shared';
 import { AppScreen } from '@/components/app-screen';
 import { MenuRow } from '@/components/menu-row';
+import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
 import { DisplayStatusToggle } from '@/components/profile/display-status-toggle';
+import { EditableProfilePhoto } from '@/components/profile/editable-profile-photo';
 import {
   ProfileEducationCard,
   ProfileWorkCard,
@@ -28,6 +29,82 @@ import { useProfile } from '@/lib/use-profile';
 import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+
+function ProfileInfoCard({
+  label,
+  children,
+  isDark,
+  surface,
+  muted,
+  heading,
+}: {
+  label: string;
+  children: ReactNode;
+  isDark: boolean;
+  surface: string;
+  muted: string;
+  heading: string;
+}) {
+  return (
+    <View
+      style={[
+        {
+          borderRadius: 20,
+          padding: 16,
+          marginBottom: 12,
+          backgroundColor: isDark ? surface : '#fff',
+          ...theme.shadow.soft,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          {
+            fontSize: 11,
+            letterSpacing: 0.5,
+            textTransform: 'uppercase',
+            marginBottom: 6,
+            color: muted,
+          },
+          fontStyle('semibold'),
+        ]}
+      >
+        {label}
+      </Text>
+      {typeof children === 'string' ? (
+        <Text style={[{ fontSize: 15, lineHeight: 22, color: heading }, fontStyle('medium')]}>
+          {children}
+        </Text>
+      ) : (
+        children
+      )}
+    </View>
+  );
+}
+
+function ProfileDetailRow({
+  label,
+  value,
+  muted,
+  heading,
+}: {
+  label: string;
+  value?: string | null;
+  muted: string;
+  heading: string;
+}) {
+  if (!value?.trim()) return null;
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <Text style={[{ fontSize: 11, color: muted, marginBottom: 3 }, fontStyle('semibold')]}>
+        {label}
+      </Text>
+      <Text style={[{ fontSize: 14, lineHeight: 20, color: heading }, fontStyle('medium')]}>
+        {value}
+      </Text>
+    </View>
+  );
+}
 
 const PROFILE_SHORTCUTS: {
   key: string;
@@ -68,12 +145,15 @@ export default function ProfileScreen() {
     profile?.designation?.trim() ||
     (isRecruiter ? industryLine : null);
 
-  const heroColors = isDark
-    ? (['rgba(74, 127, 212, 0.18)', 'rgba(26, 39, 68, 0.5)'] as const)
-    : (['rgba(74, 127, 212, 0.12)', 'rgba(238, 242, 247, 0.98)'] as const);
-
   const latestEducation = profile?.educations?.[0] ?? null;
   const latestWork = profile?.workExperiences?.[0] ?? null;
+  const hasCompanyDetails = Boolean(
+    profile?.currentCompany?.trim() ||
+      profile?.companyWebsite?.trim() ||
+      profile?.industry?.trim() ||
+      profile?.companySize?.trim() ||
+      profile?.companyType?.trim(),
+  );
 
   const styles = useMemo(
     () =>
@@ -145,18 +225,22 @@ export default function ProfileScreen() {
           alignItems: 'center',
           borderRadius: theme.radius.lg,
           borderWidth: 1,
-          paddingTop: theme.spacing.lg,
+          paddingTop: 0,
           paddingHorizontal: 0,
           paddingBottom: 0,
           marginBottom: theme.spacing.lg,
           width: '100%',
           overflow: 'hidden',
+          backgroundColor: isDark ? undefined : '#fff',
         },
         heroBody: {
           alignItems: 'center',
           paddingHorizontal: theme.spacing.lg,
+          paddingTop: 0,
           paddingBottom: theme.spacing.md,
           width: '100%',
+          marginTop: -44,
+          zIndex: 1,
         },
         name: {
           marginTop: 12,
@@ -217,14 +301,37 @@ export default function ProfileScreen() {
           showsVerticalScrollIndicator={false}
           {...navScroll}
         >
-          <LinearGradient colors={heroColors} style={[styles.hero, { borderColor: colors.border }]}>
+          <View style={[styles.hero, { borderColor: colors.border, backgroundColor: isDark ? colors.surfaceElevated : '#fff' }]}>
+            <CoverPhotoBanner
+              bannerUrl={profile?.bannerUrl ?? null}
+              updatedAt={profile?.updatedAt}
+              editable
+              onUpdated={() => {
+                void refresh();
+              }}
+            />
             <View style={styles.heroBody}>
-              <ProfileRing
-                percent={profile?.completionPercent ?? (user.onboardingCompleted ? 72 : 30)}
+              <EditableProfilePhoto
+                uri={logoUrl || avatarUrl}
                 name={companyName}
-                avatarUrl={avatarUrl}
-                logoUrl={logoUrl}
-              />
+                kind={logoUrl ? 'logo' : 'avatar'}
+                editable
+                onUpdated={() => {
+                  void refresh();
+                }}
+                style={{
+                  borderRadius: 999,
+                  backgroundColor: isDark ? colors.surfaceElevated : '#fff',
+                  padding: 4,
+                }}
+              >
+                <ProfileRing
+                  percent={profile?.completionPercent ?? (user.onboardingCompleted ? 72 : 30)}
+                  name={companyName}
+                  avatarUrl={avatarUrl}
+                  logoUrl={logoUrl}
+                />
+              </EditableProfilePhoto>
               <Text numberOfLines={2} style={[styles.name, { color: colors.heading }, fontStyle('extrabold')]}>
                 {companyName}
               </Text>
@@ -262,7 +369,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           {(profile?.completionPercent ?? 0) < 100 ? (
             <PrimaryBanner
@@ -273,9 +380,116 @@ export default function ProfileScreen() {
             />
           ) : null}
 
-          <ProfilePostsSection
-            userId={user.id}
-            emptyMessage="You have not posted anything yet. Share an update from your feed."
+          <SectionTitle>Profile</SectionTitle>
+          <ProfileInfoCard
+            label="Personal"
+            isDark={isDark}
+            surface={colors.surfaceElevated}
+            muted={colors.muted}
+            heading={colors.heading}
+          >
+            <ProfileDetailRow
+              label="Full name"
+              value={name}
+              muted={colors.muted}
+              heading={colors.heading}
+            />
+            <ProfileDetailRow
+              label="Email"
+              value={user.email}
+              muted={colors.muted}
+              heading={colors.heading}
+            />
+            <ProfileDetailRow
+              label="Phone"
+              value={profile?.phone}
+              muted={colors.muted}
+              heading={colors.heading}
+            />
+            <ProfileDetailRow
+              label="Designation"
+              value={profile?.designation}
+              muted={colors.muted}
+              heading={colors.heading}
+            />
+            <ProfileDetailRow
+              label="Office city"
+              value={profile?.location}
+              muted={colors.muted}
+              heading={colors.heading}
+            />
+            <ProfileDetailRow
+              label="Office address"
+              value={profile?.officeAddress}
+              muted={colors.muted}
+              heading={colors.heading}
+            />
+          </ProfileInfoCard>
+
+          <ProfileInfoCard
+            label="Company"
+            isDark={isDark}
+            surface={colors.surfaceElevated}
+            muted={colors.muted}
+            heading={colors.heading}
+          >
+            {hasCompanyDetails ? (
+              <>
+                <ProfileDetailRow
+                  label="Company name"
+                  value={profile?.currentCompany}
+                  muted={colors.muted}
+                  heading={colors.heading}
+                />
+                <ProfileDetailRow
+                  label="Website"
+                  value={profile?.companyWebsite}
+                  muted={colors.muted}
+                  heading={colors.heading}
+                />
+                <ProfileDetailRow
+                  label="Industry"
+                  value={profile?.industry}
+                  muted={colors.muted}
+                  heading={colors.heading}
+                />
+                <ProfileDetailRow
+                  label="Company size"
+                  value={profile?.companySize}
+                  muted={colors.muted}
+                  heading={colors.heading}
+                />
+                <ProfileDetailRow
+                  label="Company type"
+                  value={profile?.companyType}
+                  muted={colors.muted}
+                  heading={colors.heading}
+                />
+              </>
+            ) : (
+              <Text style={[{ fontSize: 14, lineHeight: 20, color: colors.muted }, fontStyle('regular')]}>
+                Add company details from Edit profile.
+              </Text>
+            )}
+          </ProfileInfoCard>
+
+          {profile?.summary?.trim() ? (
+            <ProfileInfoCard
+              label="About company"
+              isDark={isDark}
+              surface={colors.surfaceElevated}
+              muted={colors.muted}
+              heading={colors.heading}
+            >
+              {profile.summary.trim()}
+            </ProfileInfoCard>
+          ) : null}
+
+          <MenuRow
+            icon="create-outline"
+            label="Edit profile"
+            subtitle="Update personal and company details"
+            onPress={() => router.push('/profile/edit')}
           />
 
           <SectionTitle>Account</SectionTitle>
@@ -296,6 +510,11 @@ export default function ProfileScreen() {
             label="Browse candidates"
             subtitle="Search talent pool"
             onPress={() => router.push('/recruiter/candidates')}
+          />
+
+          <ProfilePostsSection
+            userId={user.id}
+            emptyMessage="You have not posted anything yet. Share an update from your feed."
           />
 
           <Pressable
@@ -333,6 +552,9 @@ export default function ProfileScreen() {
           completionPercent={profile?.completionPercent}
           onEdit={() => router.push('/profile/edit')}
           onBannerUpdated={() => {
+            void refresh();
+          }}
+          onAvatarUpdated={() => {
             void refresh();
           }}
         />

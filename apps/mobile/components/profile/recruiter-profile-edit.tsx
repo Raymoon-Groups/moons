@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
 import {
   CompanyLogoUpload,
   ProfilePhotoUpload,
@@ -222,6 +223,28 @@ export function RecruiterProfileEdit({
           onSave={savePhotoOnly}
           onError={setError}
         />
+      </SectionCard>
+
+      <SectionCard title="Cover photo">
+        <View style={{ marginHorizontal: -theme.spacing.lg, marginBottom: -theme.spacing.lg }}>
+          <CoverPhotoBanner
+            bannerUrl={profile.bannerUrl ?? null}
+            updatedAt={profile.updatedAt}
+            editable
+            onUpdated={(nextUrl, updatedAt) => {
+              setProfile((prev) => ({
+                ...prev,
+                bannerUrl: nextUrl,
+                updatedAt,
+              }));
+              onSaved({
+                ...profile,
+                bannerUrl: nextUrl,
+                updatedAt,
+              });
+            }}
+          />
+        </View>
       </SectionCard>
 
       <SectionCard title="Company logo">

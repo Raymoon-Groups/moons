@@ -35,6 +35,23 @@ export {
 } from './message-attachments';
 
 export {
+  MAX_POST_IMAGE_BYTES,
+  MAX_POST_VIDEO_BYTES,
+  MAX_POST_IMAGES,
+  MAX_POST_VIDEOS,
+  MAX_POST_IMAGE_LABEL,
+  MAX_POST_VIDEO_LABEL,
+  POST_IMAGE_MIME_TYPES,
+  POST_VIDEO_MIME_TYPES,
+  POST_MEDIA_ACCEPT,
+  isPostImageMime,
+  isPostVideoMime,
+  postImageTooLargeMessage,
+  postVideoTooLargeMessage,
+  postMediaTooLargeMessage,
+} from './post-media';
+
+export {
   extractForwardedPostId,
   stripForwardedPostUrl,
 } from './post-links';

@@ -3,7 +3,14 @@
 import Link from 'next/link';
 import { FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeedPost, PostAuthor, PostCommentItem } from '@moons/shared';
-import { storedToEditable } from '@moons/shared';
+import {
+  MAX_POST_IMAGE_BYTES,
+  MAX_POST_VIDEO_BYTES,
+  POST_MEDIA_ACCEPT,
+  postImageTooLargeMessage,
+  postVideoTooLargeMessage,
+  storedToEditable,
+} from '@moons/shared';
 import { resolveAssetUrl } from '@/lib/assets';
 import { authFetch } from '@/lib/api-client';
 import {
@@ -22,9 +29,41 @@ import { fetchConnections, sendConnectionRequest, type ConnectionListItem } from
 import { notifyMessagesRefresh, sendMessageToUser } from '@/lib/messages';
 import { useAuth } from '@/lib/auth-context';
 import { PostMediaViewer } from '@/components/feed/post-media-viewer';
+import { InlineUploadProgress } from '@/components/feed/inline-upload-progress';
+import { MoonsPlusPromo } from '@/components/dashboard/moons-plus-promo';
 import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
 import { MentionText } from '@/components/mentions/mention-text';
 import { useMentionComposer } from '@/lib/use-mention-composer';
+import { UserRole } from '@moons/shared';
+
+function guessMimeFromName(name: string): string {
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'heic') return 'image/heic';
+  if (ext === 'heif') return 'image/heif';
+  if (ext === 'mp4') return 'video/mp4';
+  if (ext === 'webm') return 'video/webm';
+  if (ext === 'mov') return 'video/quicktime';
+  return '';
+}
+
+function getUploadLabel(files: File[], progress: number) {
+  if (!files.length) return progress >= 100 ? 'Posted' : 'Posting…';
+  if (progress >= 100) return 'Posted';
+  if (progress >= 92) return 'Finishing…';
+  if (progress < 12) return 'Preparing…';
+  if (files.some((f) => f.type.startsWith('video/'))) return 'Uploading video…';
+  if (files.length > 1) return 'Uploading photos…';
+  return 'Uploading photo…';
+}
+
+export type FeedUploadState = {
+  progress: number;
+  label: string;
+} | null;
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -610,8 +649,8 @@ function MediaCarousel({
     if (!src) return null;
     return (
       <>
-        <div className="relative mt-3 overflow-hidden rounded-xl bg-black">
-          <video controls className="max-h-[420px] w-full object-contain" src={src} />
+        <div className="relative mt-3 flex max-h-[min(70vh,560px)] items-center justify-center overflow-hidden rounded-xl bg-slate-950">
+          <video controls className="max-h-[min(70vh,560px)] w-full object-contain" src={src} />
           <button
             type="button"
             onClick={() => openViewer(0)}
@@ -630,12 +669,16 @@ function MediaCarousel({
     if (!src) return null;
     return (
       <>
-        <button type="button" onClick={() => openViewer(0)} className="mt-3 block w-full overflow-hidden rounded-xl">
+        <button
+          type="button"
+          onClick={() => openViewer(0)}
+          className="mt-3 flex w-full max-h-[min(70vh,560px)] items-center justify-center overflow-hidden rounded-xl bg-slate-950/90"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={src}
             alt=""
-            className="max-h-[420px] w-full cursor-pointer object-cover transition hover:opacity-95"
+            className="max-h-[min(70vh,560px)] w-full cursor-pointer object-contain transition hover:opacity-95"
           />
         </button>
         {viewer}
@@ -652,13 +695,13 @@ function MediaCarousel({
   return (
     <>
       <div className="relative mt-3 overflow-hidden rounded-xl bg-surface">
-        <div className="relative flex min-h-[220px] items-center justify-center bg-black/5">
+        <div className="relative flex min-h-[200px] max-h-[min(70vh,560px)] items-center justify-center bg-slate-950">
           {current.type === 'VIDEO' && src ? (
             <>
               <video
                 key={current.id}
                 controls
-                className="max-h-[420px] w-full object-contain"
+                className="max-h-[min(70vh,560px)] w-full object-contain"
                 src={src}
               />
               <button
@@ -676,7 +719,7 @@ function MediaCarousel({
                 key={current.id}
                 src={src}
                 alt=""
-                className="max-h-[420px] w-full cursor-pointer object-contain transition hover:opacity-95"
+                className="max-h-[min(70vh,560px)] w-full cursor-pointer object-contain transition hover:opacity-95"
               />
             </button>
           ) : null}
@@ -1623,7 +1666,17 @@ export function FeedPostCard({
   );
 }
 
-function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
+function Composer({
+  onCreated,
+  onUploadChange,
+  waitForUploadHold,
+  uploading,
+}: {
+  onCreated: (post: FeedPost) => void | Promise<void>;
+  onUploadChange: (state: FeedUploadState) => void;
+  waitForUploadHold: () => Promise<void>;
+  uploading: boolean;
+}) {
   const [body, setBody] = useState('');
   const mention = useMentionComposer();
   const mentionSuggestions = mention.suggestionsFor(body);
@@ -1638,6 +1691,7 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
   const hasVideo = files.some((f) => f.type.startsWith('video/'));
   const canAddMore = !hasVideo && files.length < 10;
   const canPost = Boolean(body.trim() || files.length > 0);
+  const locked = busy || uploading;
 
   useEffect(() => {
     const urls = files.map((f) => URL.createObjectURL(f));
@@ -1654,8 +1708,29 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
     const next = Array.from(incoming);
     if (!next.length) return;
 
+    for (const file of next) {
+      const mime = file.type || guessMimeFromName(file.name);
+      if (mime.startsWith('video/') && file.size > MAX_POST_VIDEO_BYTES) {
+        setError(postVideoTooLargeMessage());
+        return;
+      }
+      if (mime.startsWith('image/') && file.size > MAX_POST_IMAGE_BYTES) {
+        setError(postImageTooLargeMessage());
+        return;
+      }
+      if (!mime.startsWith('image/') && !mime.startsWith('video/')) {
+        setError('Only JPEG, PNG, WEBP, GIF, HEIC images and MP4/WEBM/MOV videos are allowed');
+        return;
+      }
+    }
+
     setFiles((prev) => {
-      const combined = [...prev, ...next];
+      const normalized = next.map((file) => {
+        if (file.type) return file;
+        const mime = guessMimeFromName(file.name);
+        return mime ? new File([file], file.name, { type: mime }) : file;
+      });
+      const combined = [...prev, ...normalized];
       const images = combined.filter((f) => f.type.startsWith('image/'));
       const videos = combined.filter((f) => f.type.startsWith('video/'));
 
@@ -1679,15 +1754,39 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!body.trim() && files.length === 0) return;
+    if (locked) return;
+
+    const attached = files;
+    const storedBody = mention.toStored(body);
+    const startProgress = attached.length ? 8 : 35;
+
     setBusy(true);
     setError('');
+    setBody('');
+    mention.resetMentions();
+    setFiles([]);
+    if (bodyRef.current) {
+      bodyRef.current.style.height = '44px';
+    }
+    onUploadChange({
+      progress: startProgress,
+      label: getUploadLabel(attached, startProgress),
+    });
+
     try {
-      const post = await createPost(mention.toStored(body), files);
-      onCreated(post);
-      setBody('');
-      mention.resetMentions();
-      setFiles([]);
+      const post = await createPost(storedBody, attached, (progress) => {
+        const next = attached.length ? Math.max(8, progress) : Math.max(35, progress);
+        onUploadChange({
+          progress: Math.min(96, next),
+          label: getUploadLabel(attached, next),
+        });
+      });
+      onUploadChange({ progress: 100, label: getUploadLabel(attached, 100) });
+      await waitForUploadHold();
+      await onCreated(post);
+      onUploadChange(null);
     } catch (err) {
+      onUploadChange(null);
       setError(err instanceof Error ? err.message : 'Could not create post');
     } finally {
       setBusy(false);
@@ -1699,7 +1798,7 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
       onSubmit={handleSubmit}
       className={`rounded-2xl border-2 bg-white p-4 transition duration-200 dark:bg-surface-elevated ${
         focused ? 'border-moons-blue shadow-md' : 'border-border'
-      }`}
+      } ${locked ? 'opacity-80' : ''}`}
     >
       <textarea
         ref={bodyRef}
@@ -1709,16 +1808,21 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
           mention.setCaret(e.target.selectionStart ?? e.target.value.length);
           mention.syncMentionsFromText(e.target.value);
           mention.ensureLoaded();
+          const el = e.target;
+          el.style.height = 'auto';
+          el.style.height = `${Math.min(180, Math.max(44, el.scrollHeight))}px`;
         }}
         onSelect={(e) =>
           mention.setCaret((e.target as HTMLTextAreaElement).selectionStart ?? body.length)
         }
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        rows={2}
+        rows={1}
         maxLength={3000}
-        placeholder="Share an update with your network… Use @ to mention"
-        className="w-full resize-none rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-heading outline-none placeholder:text-moons-muted focus:border-moons-blue/40"
+        disabled={locked}
+        placeholder="Share an update with your network…"
+        className="w-full resize-none overflow-hidden rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm leading-6 text-heading outline-none placeholder:text-moons-muted focus:border-moons-blue/40 disabled:opacity-70"
+        style={{ height: 44 }}
       />
       <MentionSuggestions
         people={mentionSuggestions}
@@ -1751,7 +1855,8 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
               <button
                 type="button"
                 onClick={() => removeFile(i)}
-                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow transition hover:bg-black"
+                disabled={locked}
+                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow transition hover:bg-black disabled:opacity-50"
                 aria-label="Remove media"
                 title="Remove"
               >
@@ -1764,7 +1869,8 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-surface text-moons-muted transition hover:border-moons-blue/40 hover:text-moons-blue sm:h-24 sm:w-24"
+              disabled={locked}
+              className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-surface text-moons-muted transition hover:border-moons-blue/40 hover:text-moons-blue disabled:opacity-50 sm:h-24 sm:w-24"
               aria-label="Add more photos"
             >
               <PlusIcon className="h-5 w-5" />
@@ -1775,7 +1881,11 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
       ) : null}
 
       <div className="mt-3 flex items-center justify-between gap-3">
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-heading transition hover:border-moons-blue/40 hover:bg-moons-blue/5">
+        <label
+          className={`inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-heading transition hover:border-moons-blue/40 hover:bg-moons-blue/5 ${
+            locked ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+          }`}
+        >
           <ImageIcon className="h-4 w-4 text-moons-blue" />
           {files.length > 0 ? 'Add more' : 'Add photo / video'}
           <input
@@ -1785,11 +1895,12 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
               hasVideo
                 ? 'video/mp4,video/webm,video/quicktime'
                 : files.length > 0
-                  ? 'image/jpeg,image/png,image/webp,image/gif'
-                  : 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime'
+                  ? 'image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif'
+                  : POST_MEDIA_ACCEPT
             }
             multiple={!hasVideo}
             className="hidden"
+            disabled={locked}
             onChange={(e) => {
               addFiles(e.target.files ?? []);
               e.target.value = '';
@@ -1799,11 +1910,11 @@ function Composer({ onCreated }: { onCreated: (post: FeedPost) => void }) {
 
         <button
           type="submit"
-          disabled={busy || !canPost}
+          disabled={locked || !canPost}
           className="inline-flex items-center gap-1.5 rounded-full bg-moons-blue px-5 py-2 text-sm font-semibold text-white transition hover:bg-moons-blue-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           <SendIcon className="h-3.5 w-3.5" />
-          {busy ? 'Posting…' : 'Post'}
+          {locked ? 'Posting…' : 'Post'}
         </button>
       </div>
       {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
@@ -1840,6 +1951,22 @@ export function DashboardFeed({ highlightPostId }: { highlightPostId?: string })
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [upload, setUpload] = useState<FeedUploadState>(null);
+  const uploadHoldRef = useRef<(() => void) | null>(null);
+
+  function waitForUploadHold() {
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      uploadHoldRef.current = finish;
+      // Safety: never block posting forever if the banner fails to fire.
+      setTimeout(finish, 4500);
+    });
+  }
 
   async function load(nextPage = 1, append = false) {
     setLoading(true);
@@ -1870,32 +1997,60 @@ export function DashboardFeed({ highlightPostId }: { highlightPostId?: string })
     return [hit, ...posts.filter((p) => p.id !== highlightPostId)];
   }, [posts, highlightPostId]);
 
+  const { user } = useAuth();
+  const moonsPlusAudience = user?.role === UserRole.RECRUITER ? 'recruiter' : 'candidate';
+  const promoIndex = ordered.length >= 2 ? 2 : ordered.length > 0 ? ordered.length : 0;
+
   return (
     <div className="space-y-4">
+      {upload ? (
+        <InlineUploadProgress
+          progress={upload.progress}
+          label={upload.label}
+          onSuccessHoldComplete={() => {
+            uploadHoldRef.current?.();
+            uploadHoldRef.current = null;
+          }}
+        />
+      ) : null}
+
       <Composer
-        onCreated={(post) => {
-          setPosts((prev) => [post, ...prev]);
+        uploading={!!upload}
+        onUploadChange={setUpload}
+        waitForUploadHold={waitForUploadHold}
+        onCreated={async (post) => {
+          setPosts((prev) => dedupeFeedPosts([post, ...prev]));
+          await load(1, false);
         }}
       />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {ordered.map((post) => (
-        <FeedPostCard
-          key={post.id}
-          post={post}
-          onChange={(next) => setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))}
-          onRemove={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
-        />
+      {ordered.map((post, index) => (
+        <div key={post.id} className="space-y-4">
+          {index === promoIndex ? <MoonsPlusPromo audience={moonsPlusAudience} /> : null}
+          <FeedPostCard
+            post={post}
+            onChange={(next) => setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))}
+            onRemove={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+          />
+        </div>
       ))}
 
       {!loading && ordered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-surface-elevated p-8 text-center">
-          <EmptyFeedIcon />
-          <p className="mt-3 font-semibold text-heading">No posts yet</p>
-          <p className="mt-1 text-sm text-moons-muted">
-            Connect with people and share the first update.
-          </p>
-        </div>
+        <>
+          <MoonsPlusPromo audience={moonsPlusAudience} />
+          <div className="rounded-2xl border border-dashed border-border bg-surface-elevated p-8 text-center">
+            <EmptyFeedIcon />
+            <p className="mt-3 font-semibold text-heading">No posts yet</p>
+            <p className="mt-1 text-sm text-moons-muted">
+              Connect with people and share the first update.
+            </p>
+          </div>
+        </>
+      ) : null}
+
+      {!loading && ordered.length > 0 && promoIndex >= ordered.length ? (
+        <MoonsPlusPromo audience={moonsPlusAudience} />
       ) : null}
 
       {hasMore ? (

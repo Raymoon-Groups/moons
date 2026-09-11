@@ -21,6 +21,7 @@ import {
 import { EditProfileHero } from '@/components/profile/edit-profile-hero';
 import { type PickedImage } from '@/components/profile/photo-upload';
 import { ProfileSuccessModal } from '@/components/profile/profile-success-modal';
+import { ImageCropModal } from '@/components/image-crop-modal';
 import { ResumeUpload, type PickedResume } from '@/components/profile/resume-upload';
 import { SelectField } from '@/components/profile/select-field';
 import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
@@ -146,6 +147,7 @@ export function CandidateProfileEdit({
   );
 
   const [pendingPhoto, setPendingPhoto] = useState<PickedImage | null>(null);
+  const [cropDraftUri, setCropDraftUri] = useState<string | null>(null);
   const [pendingRemovePhoto, setPendingRemovePhoto] = useState(false);
   const [pendingResume, setPendingResume] = useState<PickedResume | null>(null);
   const [pendingRemoveResume, setPendingRemoveResume] = useState(false);
@@ -175,9 +177,8 @@ export function CandidateProfileEdit({
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.9,
+      allowsEditing: false,
+      quality: 1,
     });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
@@ -186,16 +187,21 @@ export function CandidateProfileEdit({
       setError('Only JPG, PNG or WEBP images are allowed');
       return;
     }
-    if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
-      setError('Image must be 2 MB or smaller');
+    if (asset.fileSize && asset.fileSize > 8 * 1024 * 1024) {
+      setError('Image must be 8 MB or smaller before cropping');
       return;
     }
     setError('');
+    setCropDraftUri(asset.uri);
+  }
+
+  function handleCropComplete(result: { uri: string }) {
+    setCropDraftUri(null);
     setPendingRemovePhoto(false);
     setPendingPhoto({
-      uri: asset.uri,
-      name: asset.fileName ?? 'avatar.jpg',
-      type: mime,
+      uri: result.uri,
+      name: 'avatar.jpg',
+      type: 'image/jpeg',
     });
   }
 
@@ -521,6 +527,13 @@ export function CandidateProfileEdit({
       </KeyboardAvoidingView>
 
       <ProfileSuccessModal visible={showSuccess} onClose={() => setShowSuccess(false)} />
+      <ImageCropModal
+        visible={!!cropDraftUri}
+        uri={cropDraftUri}
+        aspect="avatar"
+        onCancel={() => setCropDraftUri(null)}
+        onComplete={handleCropComplete}
+      />
     </View>
   );
 }

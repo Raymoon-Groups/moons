@@ -10,15 +10,21 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
+/** In-memory CSRF token — reliable when API is on a different subdomain than the web app. */
+let csrfTokenMemory: string | null = null;
+
 function readCsrfToken(): string | null {
+  if (csrfTokenMemory) return csrfTokenMemory;
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(/(?:^|; )moons_csrf=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  const fromCookie = match ? decodeURIComponent(match[1]) : null;
+  if (fromCookie) csrfTokenMemory = fromCookie;
+  return fromCookie;
 }
 
 async function ensureCsrfToken(): Promise<string | null> {
   const existing = readCsrfToken();
-  if (existing) return existing;
+  if (existing && existing.length >= 16) return existing;
   try {
     const response = await fetch(`${API_URL}/auth/csrf`, {
       credentials: 'include',
@@ -26,10 +32,18 @@ async function ensureCsrfToken(): Promise<string | null> {
     });
     if (!response.ok) return readCsrfToken();
     const data = (await response.json()) as { csrfToken?: string };
-    return data.csrfToken ?? readCsrfToken();
+    if (typeof data.csrfToken === 'string' && data.csrfToken.length >= 16) {
+      csrfTokenMemory = data.csrfToken;
+      return data.csrfToken;
+    }
+    return readCsrfToken();
   } catch {
     return readCsrfToken();
   }
+}
+
+export function clearCsrfTokenMemory() {
+  csrfTokenMemory = null;
 }
 
 export class ApiError extends Error {
@@ -226,6 +240,74 @@ export async function authUpload<T>(path: string, formData: FormData): Promise<T
       token,
     }),
   );
+}
+
+function uploadFormDataRaw<T>(
+  path: string,
+  formData: FormData,
+  token: string | null,
+  onProgress?: (progress: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    void (async () => {
+      const csrfToken = await ensureCsrfToken();
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_URL}${path}`);
+      xhr.withCredentials = true;
+      xhr.setRequestHeader('X-Moons-Client', 'web');
+      if (csrfToken) xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      xhr.upload.onprogress = (event) => {
+        if (!onProgress) return;
+        if (event.lengthComputable && event.total > 0) {
+          onProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          onProgress?.(100);
+          if (xhr.status === 204 || !xhr.responseText) {
+            resolve(undefined as T);
+            return;
+          }
+          try {
+            resolve(JSON.parse(xhr.responseText) as T);
+          } catch {
+            reject(new ApiError('Invalid server response', xhr.status));
+          }
+          return;
+        }
+
+        let message = 'Request failed';
+        let code: string | undefined;
+        try {
+          const body = JSON.parse(xhr.responseText) as unknown;
+          const parsed = parseApiErrorBody(body);
+          message = parsed.message;
+          code = parsed.code;
+        } catch {
+          // ignore
+        }
+        reject(new ApiError(message, xhr.status, code));
+      };
+
+      xhr.onerror = () => {
+        reject(new ApiError('Network error. Please check your connection.', 0, 'NETWORK_ERROR'));
+      };
+
+      xhr.send(formData);
+    })().catch(reject);
+  });
+}
+
+export async function authUploadWithProgress<T>(
+  path: string,
+  formData: FormData,
+  onProgress?: (progress: number) => void,
+): Promise<T> {
+  return withAuthRetry((token) => uploadFormDataRaw<T>(path, formData, token, onProgress));
 }
 
 export function authDelete<T>(path: string): Promise<T> {

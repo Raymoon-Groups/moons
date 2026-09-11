@@ -75,7 +75,7 @@ export function MessageForwardedPost({ body, isMine }: { body: string; isMine?: 
         ) : href ? (
           <Link href={`/dashboard?post=${postId}`} className="block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={href} alt="" className="max-h-52 w-full object-cover" />
+            <img src={href} alt="" className="max-h-52 w-full object-contain bg-slate-950" />
           </Link>
         ) : (
           <div className={`px-3 py-2 text-xs ${isMine ? 'text-white/80' : 'text-moons-muted'}`}>

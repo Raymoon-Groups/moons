@@ -75,8 +75,19 @@ function isInAppCache(uri: string): boolean {
   return normalized.startsWith(cachePath);
 }
 
+function isWebBlobUri(uri: string): boolean {
+  return (
+    Platform.OS === 'web' ||
+    uri.startsWith('blob:') ||
+    uri.startsWith('data:') ||
+    uri.startsWith('http://') ||
+    uri.startsWith('https://')
+  );
+}
+
 function mustCopyToCache(uri: string): boolean {
   if (!uri) return false;
+  if (isWebBlobUri(uri)) return false;
   if (isInAppCache(uri)) return false;
 
   // Release Android builds cannot stream gallery content:// URIs in FormData.
@@ -85,12 +96,12 @@ function mustCopyToCache(uri: string): boolean {
   return (
     uri.startsWith('content://') ||
     uri.startsWith('ph://') ||
-    uri.startsWith('assets-library://') ||
-    uri.startsWith('data:')
+    uri.startsWith('assets-library://')
   );
 }
 
 async function assertReadableFile(uri: string) {
+  if (isWebBlobUri(uri)) return;
   const info = await getInfoAsync(uri);
   if (!info.exists) {
     throw new Error('Could not read the selected file. Try choosing it again.');
@@ -125,9 +136,13 @@ export async function prepareUploadFile(file: {
       await copyAsync({ from: uri, to: dest });
       uri = toFileUri(dest);
     } catch {
-      throw new Error('Could not read the selected file. Try choosing it again.');
+      throw new Error(
+        type.startsWith('video/')
+          ? 'Could not prepare this video for upload. Try a shorter clip or MP4 file.'
+          : 'Could not read the selected file. Try choosing it again.',
+      );
     }
-  } else {
+  } else if (!isWebBlobUri(uri)) {
     uri = toFileUri(uri);
   }
 
@@ -148,5 +163,22 @@ export async function appendUploadFile(
   file: { uri: string; name: string; mimeType?: string | null; type?: string | null },
 ) {
   const uploadable = await prepareUploadFile(file);
+
+  // Expo web / browser FormData needs a real Blob/File, not the RN { uri, name, type } shape.
+  if (isWebBlobUri(uploadable.uri)) {
+    try {
+      const response = await fetch(uploadable.uri);
+      const blob = await response.blob();
+      const typed =
+        blob.type && blob.type !== 'application/octet-stream'
+          ? blob
+          : new Blob([blob], { type: uploadable.type });
+      formData.append(fieldName, typed, uploadable.name);
+      return;
+    } catch {
+      throw new Error('Could not read the selected file. Try choosing it again.');
+    }
+  }
+
   formData.append(fieldName, uploadable as unknown as Blob);
 }

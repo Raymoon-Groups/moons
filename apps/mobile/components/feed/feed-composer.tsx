@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { getInfoAsync } from 'expo-file-system/legacy';
 import { iosCompatibleAssetOptions } from '@/lib/image-picker-access';
-import { Platform } from 'react-native';
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -14,9 +14,17 @@ import {
   View,
 } from 'react-native';
 import type { FeedPost } from '@moons/shared';
+import {
+  MAX_POST_IMAGE_BYTES,
+  MAX_POST_IMAGES,
+  MAX_POST_VIDEO_BYTES,
+  MAX_POST_VIDEOS,
+  isPostImageMime,
+  isPostVideoMime,
+  postImageTooLargeMessage,
+  postVideoTooLargeMessage,
+} from '@moons/shared';
 import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
-import { SuccessModal } from '@/components/success-modal';
-import { UploadProgressModal } from '@/components/upload-progress-modal';
 import { resolveAssetUrl } from '@/lib/assets';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -25,70 +33,85 @@ import { useTheme } from '@/lib/theme-context';
 import { useMentionComposer } from '@/lib/use-mention-composer';
 
 const MAX_BODY = 3000;
+const INPUT_MIN_HEIGHT = 44;
+const INPUT_MAX_HEIGHT = 180;
 
-type PostSuccessState = {
-  title: string;
-  message: string;
-  icon: keyof typeof Ionicons.glyphMap;
-};
+export type FeedUploadState = {
+  progress: number;
+  label: string;
+} | null;
 
-function getPostSuccessState(files: LocalMediaFile[]): PostSuccessState {
-  if (!files.length) {
-    return {
-      title: 'Posted',
-      message: 'Your update was shared successfully.',
-      icon: 'checkmark-circle-outline',
-    };
-  }
-
-  const hasVideo = files.some((file) => file.mimeType?.startsWith('video'));
-  if (hasVideo) {
-    return {
-      title: 'Uploaded successfully',
-      message: 'Your video was uploaded and posted to your feed.',
-      icon: 'videocam-outline',
-    };
-  }
-
-  if (files.length > 1) {
-    return {
-      title: 'Uploaded successfully',
-      message: 'Your photos were uploaded and posted to your feed.',
-      icon: 'images-outline',
-    };
-  }
-
-  return {
-    title: 'Uploaded successfully',
-    message: 'Your photo was uploaded and posted to your feed.',
-    icon: 'image-outline',
-  };
+function getUploadLabel(files: LocalMediaFile[], progress = 0): string {
+  if (!files.length) return progress >= 100 ? 'Posted' : 'Posting…';
+  if (progress >= 100) return 'Posted';
+  if (progress >= 92) return 'Finishing…';
+  if (progress < 12) return 'Preparing…';
+  if (files.some((file) => file.mimeType?.startsWith('video'))) return 'Uploading video…';
+  if (files.length > 1) return 'Uploading photos…';
+  return 'Uploading photo…';
 }
 
-function getUploadLabel(files: LocalMediaFile[]): string {
-  if (!files.length) return 'Posting update';
-  if (files.some((file) => file.mimeType?.startsWith('video'))) return 'Uploading video';
-  if (files.length > 1) return 'Uploading photos';
-  return 'Uploading photo';
+function guessMime(name: string, fallback: string) {
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'heic') return 'image/heic';
+  if (ext === 'heif') return 'image/heif';
+  if (ext === 'mp4') return 'video/mp4';
+  if (ext === 'mov') return 'video/quicktime';
+  if (ext === 'webm') return 'video/webm';
+  return fallback;
 }
 
-export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void }) {
+function mergeMediaFiles(existing: LocalMediaFile[], incoming: LocalMediaFile[]): LocalMediaFile[] | string {
+  const combined = [...existing, ...incoming];
+  const images = combined.filter((f) => isPostImageMime(f.mimeType) || f.mimeType.startsWith('image/'));
+  const videos = combined.filter((f) => isPostVideoMime(f.mimeType) || f.mimeType.startsWith('video/'));
+
+  if (images.length && videos.length) {
+    return 'A post can include images or one video, not both';
+  }
+  if (videos.length > MAX_POST_VIDEOS) {
+    return 'Only one video per post is allowed';
+  }
+  if (videos.length === 1) return [videos[0]];
+  return images.slice(0, MAX_POST_IMAGES);
+}
+
+export function FeedComposer({
+  onPosted,
+  onUploadChange,
+  waitForUploadHold,
+  uploading = false,
+}: {
+  onPosted: (post: FeedPost) => void | Promise<void>;
+  onUploadChange: (state: FeedUploadState) => void;
+  waitForUploadHold: () => Promise<void>;
+  uploading?: boolean;
+}) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [body, setBody] = useState('');
   const [files, setFiles] = useState<LocalMediaFile[]>([]);
   const [posting, setPosting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [uploadLabel, setUploadLabel] = useState('Uploading');
-  const [success, setSuccess] = useState<PostSuccessState | null>(null);
+  const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
   const mention = useMentionComposer();
   const mentionSuggestions = mention.suggestionsFor(body);
 
   const avatar = resolveAssetUrl(user?.avatarUrl ?? null);
   const initial = (user?.fullName?.[0] || user?.email?.[0] || '?').toUpperCase();
-  const canPost = (body.trim().length > 0 || files.length > 0) && !posting;
+  const locked = posting || uploading;
+  const canPost = (body.trim().length > 0 || files.length > 0) && !locked;
   const hairline = isDark ? colors.border : colors.borderSubtle;
+  const hasImages = files.some(
+    (f) => isPostImageMime(f.mimeType) || f.mimeType.startsWith('image/'),
+  );
+  const hasVideo = files.some(
+    (f) => isPostVideoMime(f.mimeType) || f.mimeType.startsWith('video/'),
+  );
 
   const styles = useMemo(
     () =>
@@ -99,104 +122,91 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
           borderRadius: 20,
           borderWidth: 1,
           borderColor: hairline,
-          backgroundColor: colors.surfaceElevated,
+          backgroundColor: isDark ? colors.surfaceElevated : '#fff',
           overflow: 'hidden',
-          shadowColor: '#0f1c33',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: isDark ? 0.28 : 0.07,
-          shadowRadius: 16,
-          elevation: 3,
         },
-        body: {
-          padding: 16,
+        body: { padding: 14 },
+        row: { flexDirection: 'row', alignItems: 'center' },
+        headerRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 18,
         },
-        row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
         avatar: {
-          width: 46,
-          height: 46,
-          borderRadius: 16,
-          backgroundColor: isDark ? `${colors.blue}22` : `${colors.blue}14`,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          overflow: 'hidden',
+          backgroundColor: colors.blue,
           alignItems: 'center',
           justifyContent: 'center',
-          overflow: 'hidden',
+          marginRight: 14,
         },
-        avatarImg: { width: 46, height: 46, borderRadius: 16 },
-        avatarInitial: { color: colors.blue, fontSize: 16, ...fontStyle('bold') },
+        avatarImg: { width: 40, height: 40 },
+        avatarInitial: { color: '#fff', fontSize: 16, ...fontStyle('bold') },
+        headerTitle: {
+          color: colors.heading,
+          fontSize: 15,
+          ...fontStyle('bold'),
+        },
         prompt: {
           flex: 1,
-          borderRadius: 14,
-          borderWidth: 1,
-          borderColor: hairline,
-          backgroundColor: isDark ? colors.surface : colors.surface,
+          borderRadius: 999,
           paddingHorizontal: 14,
-          paddingVertical: 13,
+          paddingVertical: 10,
+          backgroundColor: isDark ? colors.surface : '#F3F4F6',
         },
-        promptText: {
-          color: colors.muted,
-          fontSize: 14,
-          ...fontStyle('medium'),
-        },
-        name: { color: colors.heading, fontSize: 15, ...fontStyle('bold') },
-        audience: {
-          color: colors.muted,
-          fontSize: 12,
-          marginTop: 2,
-        },
-        input: {
-          minHeight: 100,
-          marginTop: 14,
-          color: colors.heading,
-          fontSize: 16,
-          lineHeight: 24,
-          textAlignVertical: 'top',
-        },
-        quickRow: {
-          flexDirection: 'row',
-          gap: 8,
-          marginTop: 12,
-        },
+        promptText: { color: colors.muted, fontSize: 14, ...fontStyle('regular') },
+        quickRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
         chip: {
           flexDirection: 'row',
           alignItems: 'center',
           gap: 6,
-          paddingHorizontal: 12,
-          paddingVertical: 9,
-          borderRadius: 12,
-          backgroundColor: isDark ? colors.surface : `${colors.blue}0C`,
+          borderRadius: 999,
           borderWidth: 1,
           borderColor: hairline,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
+          backgroundColor: isDark ? colors.surface : '#fff',
         },
-        chipLabel: {
-          color: colors.foreground,
-          fontSize: 13,
-          ...fontStyle('semibold'),
+        chipLabel: { color: colors.heading, fontSize: 12, ...fontStyle('semibold') },
+        input: {
+          color: colors.heading,
+          fontSize: 15,
+          lineHeight: 22,
+          paddingTop: 0,
+          paddingBottom: 0,
+          textAlignVertical: 'top',
+          ...fontStyle('regular'),
         },
         thumb: {
-          width: 86,
-          height: 86,
+          width: 72,
+          height: 72,
           borderRadius: 12,
-          backgroundColor: isDark ? colors.surface : colors.surfaceHover,
           overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: hairline,
+          backgroundColor: isDark ? colors.surface : '#F3F4F6',
         },
         thumbImg: { width: '100%', height: '100%' },
-        thumbVideo: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+        thumbVideo: {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
         removeThumb: {
           position: 'absolute',
-          top: 6,
-          right: 6,
+          top: 4,
+          right: 4,
           width: 22,
           height: 22,
           borderRadius: 11,
+          backgroundColor: 'rgba(0,0,0,0.65)',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'rgba(15, 23, 38, 0.72)',
         },
         footer: {
           flexDirection: 'row',
           alignItems: 'center',
-          marginTop: 12,
+          marginTop: 10,
           paddingTop: 12,
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: hairline,
@@ -223,48 +233,124 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
   );
 
   async function pickMedia(mode: 'all' | 'images' | 'videos' = 'all') {
+    if (locked) return;
+    const hasVideoAlready = files.some(
+      (f) => isPostVideoMime(f.mimeType) || f.mimeType.startsWith('video/'),
+    );
+    if (hasVideoAlready) {
+      Alert.alert('Limit reached', 'Only one video per post is allowed');
+      return;
+    }
+
     const mediaTypes =
       mode === 'images'
         ? (['images'] as const)
         : mode === 'videos'
           ? (['videos'] as const)
-          : (['images', 'videos'] as const);
+          : files.length > 0
+            ? (['images'] as const)
+            : (['images', 'videos'] as const);
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: [...mediaTypes],
       allowsMultipleSelection: true,
       quality: 0.85,
-      selectionLimit: 10,
+      selectionLimit: hasVideoAlready ? 1 : Math.max(1, MAX_POST_IMAGES - files.length),
       ...iosCompatibleAssetOptions(),
     });
     if (result.canceled) return;
+
+    const picked: LocalMediaFile[] = [];
+    for (let index = 0; index < result.assets.length; index += 1) {
+      const asset = result.assets[index];
+      const isVideo = asset.type === 'video' || Boolean(asset.mimeType?.startsWith('video'));
+      const name =
+        asset.fileName ||
+        `media-${Date.now()}-${index}.${isVideo ? (asset.uri.toLowerCase().includes('.mov') ? 'mov' : 'mp4') : 'jpg'}`;
+      const mimeType = guessMime(
+        name,
+        asset.mimeType || (isVideo ? 'video/mp4' : 'image/jpeg'),
+      );
+
+      if (!isPostImageMime(mimeType) && !isPostVideoMime(mimeType)) {
+        Alert.alert(
+          'Unsupported file',
+          'Only JPEG, PNG, WEBP, GIF, HEIC images and MP4/WEBM/MOV videos are allowed',
+        );
+        return;
+      }
+
+      let size = asset.fileSize ?? 0;
+      if (!size) {
+        try {
+          const info = await getInfoAsync(asset.uri);
+          if (info.exists && 'size' in info && typeof info.size === 'number') {
+            size = info.size;
+          }
+        } catch {
+          // size unknown — server will still enforce limits
+        }
+      }
+
+      if (isPostVideoMime(mimeType) && size > MAX_POST_VIDEO_BYTES) {
+        Alert.alert('File too large', postVideoTooLargeMessage());
+        return;
+      }
+      if (isPostImageMime(mimeType) && size > MAX_POST_IMAGE_BYTES) {
+        Alert.alert('File too large', postImageTooLargeMessage());
+        return;
+      }
+
+      picked.push({ uri: asset.uri, name, mimeType, size: size || undefined });
+    }
+
+    const merged = mergeMediaFiles(files, picked);
+    if (typeof merged === 'string') {
+      Alert.alert('Could not add media', merged);
+      return;
+    }
+
     setExpanded(true);
-    setFiles(
-      result.assets.map((asset, index) => ({
-        uri: asset.uri,
-        name: asset.fileName || `media-${index}.${asset.type === 'video' ? 'mp4' : 'jpg'}`,
-        mimeType: asset.mimeType || (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
-      })),
-    );
+    setFiles(merged);
   }
 
   async function submit() {
     if (!canPost) return;
     setPosting(true);
     const attachedFiles = files;
-    setUploadLabel(getUploadLabel(attachedFiles));
-    setUploadProgress(0);
+    const storedBody = mention.toStored(body);
+    const startProgress = attachedFiles.length ? 8 : 30;
+
+    setBody('');
+    mention.resetMentions();
+    setFiles([]);
+    setExpanded(false);
+    setInputHeight(INPUT_MIN_HEIGHT);
+    onUploadChange({
+      progress: startProgress,
+      label: getUploadLabel(attachedFiles, startProgress),
+    });
+
     try {
-      const created = await createPost(mention.toStored(body), attachedFiles, setUploadProgress);
-      onPosted(created);
-      setBody('');
-      mention.resetMentions();
-      setFiles([]);
-      setExpanded(false);
-      setUploadProgress(null);
-      setSuccess(getPostSuccessState(attachedFiles));
+      const created = await createPost(storedBody, attachedFiles, (progress) => {
+        const next = attachedFiles.length ? Math.max(8, progress) : Math.max(30, progress);
+        onUploadChange({
+          progress: Math.min(96, next),
+          label: getUploadLabel(attachedFiles, next),
+        });
+      });
+      onUploadChange({ progress: 100, label: getUploadLabel(attachedFiles, 100) });
+      await waitForUploadHold();
+      await onPosted(created);
+      onUploadChange(null);
     } catch (err) {
-      setUploadProgress(null);
-      Alert.alert('Error', err instanceof Error ? err.message : 'Could not create post');
+      onUploadChange(null);
+      const message = err instanceof Error ? err.message : 'Could not create post';
+      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert(message);
+      } else {
+        Alert.alert('Error', message);
+      }
     } finally {
       setPosting(false);
     }
@@ -275,6 +361,7 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
     setBody('');
     mention.resetMentions();
     setFiles([]);
+    setInputHeight(INPUT_MIN_HEIGHT);
   }
 
   const avatarNode = (
@@ -287,94 +374,88 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
     </View>
   );
 
-  const successModal = (
-    <SuccessModal
-      visible={!!success}
-      onClose={() => setSuccess(null)}
-      title={success?.title ?? 'Success'}
-      message={success?.message ?? ''}
-      primaryLabel="Got it"
-      variant="success"
-      icon={success?.icon ?? 'checkmark'}
-    />
-  );
-
-  const progressModal = (
-    <UploadProgressModal
-      visible={uploadProgress !== null}
-      progress={uploadProgress ?? 0}
-      label={uploadLabel}
-    />
-  );
-
   if (!expanded) {
     return (
-      <>
-        <View style={styles.shell}>
+      <View style={[styles.shell, locked && { opacity: 0.75 }]}>
         <View style={styles.body}>
           <View style={styles.row}>
             {avatarNode}
             <Pressable
               style={styles.prompt}
-              onPress={() => setExpanded(true)}
+              onPress={() => {
+                if (!locked) setExpanded(true);
+              }}
               accessibilityRole="button"
               accessibilityLabel="Create a post"
             >
-              <Text style={styles.promptText}>What's new with you?</Text>
+              <Text style={styles.promptText}>
+                {locked ? 'Posting your update…' : "What's new with you?"}
+              </Text>
             </Pressable>
           </View>
           <View style={styles.quickRow}>
-            <Pressable style={styles.chip} onPress={() => void pickMedia('images')}>
+            <Pressable
+              style={[styles.chip, (locked || hasVideo) && { opacity: 0.45 }]}
+              onPress={() => void pickMedia('images')}
+              disabled={locked || hasVideo}
+            >
               <Ionicons name="image-outline" size={16} color={colors.blue} />
               <Text style={styles.chipLabel}>Photo</Text>
             </Pressable>
-            <Pressable style={styles.chip} onPress={() => void pickMedia('videos')}>
+            <Pressable
+              style={[styles.chip, (locked || hasImages || hasVideo) && { opacity: 0.45 }]}
+              onPress={() => void pickMedia('videos')}
+              disabled={locked || hasImages || hasVideo}
+            >
               <Ionicons name="videocam-outline" size={16} color={colors.blue} />
               <Text style={styles.chipLabel}>Video</Text>
             </Pressable>
-            <Pressable style={styles.chip} onPress={() => setExpanded(true)}>
+            <Pressable
+              style={styles.chip}
+              onPress={() => {
+                if (!locked) setExpanded(true);
+              }}
+              disabled={locked}
+            >
               <Ionicons name="create-outline" size={16} color={colors.blue} />
               <Text style={styles.chipLabel}>Write</Text>
             </Pressable>
           </View>
         </View>
-        </View>
-        {successModal}
-        {progressModal}
-      </>
+      </View>
     );
   }
 
   return (
-    <>
-      <View style={styles.shell}>
+    <View style={[styles.shell, locked && { opacity: 0.75 }]}>
       <View style={styles.body}>
-        <View style={styles.row}>
+        <View style={styles.headerRow}>
           {avatarNode}
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{user?.fullName || 'MoonsJob member'}</Text>
-            <Text style={styles.audience}>Visible to your network</Text>
-          </View>
-          <Pressable onPress={cancel} hitSlop={8} accessibilityLabel="Close composer">
-            <Ionicons name="close" size={22} color={colors.muted} />
-          </Pressable>
+          <Text style={styles.headerTitle}>New post</Text>
         </View>
 
         <TextInput
           value={body}
+          editable={!locked}
           onChangeText={(text) => {
             const next = text.slice(0, MAX_BODY);
             setBody(next);
             mention.setCaret(next.length);
             mention.syncMentionsFromText(next);
             mention.ensureLoaded();
+            if (!next.trim()) setInputHeight(INPUT_MIN_HEIGHT);
+          }}
+          onContentSizeChange={(e) => {
+            const next = Math.ceil(e.nativeEvent.contentSize.height);
+            setInputHeight(Math.min(INPUT_MAX_HEIGHT, Math.max(INPUT_MIN_HEIGHT, next)));
           }}
           onSelectionChange={(e) => mention.setCaret(e.nativeEvent.selection.end)}
-          placeholder="Share an update with your network… Use @ to mention"
+          placeholder="Share an update with your network…"
           placeholderTextColor={colors.muted}
           multiline
+          scrollEnabled={inputHeight >= INPUT_MAX_HEIGHT}
           autoFocus
-          style={styles.input}
+          style={[styles.input, { height: inputHeight }]}
         />
 
         <MentionSuggestions
@@ -403,6 +484,7 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
                 <Pressable
                   style={styles.removeThumb}
                   hitSlop={6}
+                  disabled={locked}
                   onPress={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
                   accessibilityLabel="Remove attachment"
                 >
@@ -414,7 +496,11 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
         ) : null}
 
         <View style={styles.footer}>
-          <Pressable style={styles.attachBtn} onPress={() => void pickMedia('all')}>
+          <Pressable
+            style={[styles.attachBtn, (locked || hasVideo) && { opacity: 0.45 }]}
+            onPress={() => void pickMedia('all')}
+            disabled={locked || hasVideo}
+          >
             <Ionicons name="images-outline" size={18} color={colors.muted} />
             <Text style={styles.attachText}>Media</Text>
           </Pressable>
@@ -422,7 +508,11 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
           {body.length > MAX_BODY - 300 ? (
             <Text style={styles.counter}>{MAX_BODY - body.length}</Text>
           ) : null}
-          <Pressable onPress={cancel} style={{ paddingHorizontal: 6, paddingVertical: 10 }}>
+          <Pressable
+            onPress={cancel}
+            disabled={locked}
+            style={{ paddingHorizontal: 6, paddingVertical: 10 }}
+          >
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
           <Pressable
@@ -430,13 +520,10 @@ export function FeedComposer({ onPosted }: { onPosted: (post: FeedPost) => void 
             disabled={!canPost}
             style={[styles.postBtn, !canPost && { opacity: 0.45 }]}
           >
-            <Text style={styles.postText}>{posting ? 'Posting…' : 'Post'}</Text>
+            <Text style={styles.postText}>{locked ? 'Posting…' : 'Post'}</Text>
           </Pressable>
         </View>
       </View>
-      </View>
-      {successModal}
-      {progressModal}
-    </>
+    </View>
   );
 }

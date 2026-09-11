@@ -1,5 +1,5 @@
 import type { FeedPost, PostAuthor, PostCommentItem } from '@moons/shared';
-import { authDelete, authFetch, authUpload } from '@/lib/api-client';
+import { authDelete, authFetch, authUpload, authUploadWithProgress } from '@/lib/api-client';
 
 export type FeedPage = {
   items: FeedPost[];
@@ -37,11 +37,27 @@ export function fetchPost(postId: string) {
   return authFetch<FeedPost>(`/posts/${postId}`);
 }
 
-export function createPost(body: string, files: File[]) {
+export async function createPost(
+  body: string,
+  files: File[],
+  onProgress?: (progress: number) => void,
+) {
   const form = new FormData();
   if (body.trim()) form.append('body', body.trim());
   for (const file of files) {
     form.append('media', file);
+  }
+  if (onProgress) {
+    onProgress(files.length > 0 ? 8 : 40);
+    return authUploadWithProgress<FeedPost>('/posts', form, (p) => {
+      if (files.length === 0) {
+        onProgress(Math.min(96, Math.max(40, Math.round(40 + (p / 100) * 56))));
+        return;
+      }
+      // Preparing 8, uploading 12-96, composer holds 100 after resolve.
+      if (p <= 1) onProgress(10);
+      else onProgress(Math.min(96, Math.max(12, Math.round(12 + (p / 100) * 84))));
+    });
   }
   return authUpload<FeedPost>('/posts', form);
 }
