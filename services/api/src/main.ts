@@ -7,6 +7,7 @@ import { existsSync, mkdirSync } from 'fs';
 import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { expandCorsOrigins } from './common/cors-origins';
 import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
 import { csrfCookieProtection } from './common/middleware/csrf-cookie.middleware';
 
@@ -33,26 +34,16 @@ async function bootstrap() {
     }),
   );
   app.use(cookieParser());
-  app.use(csrfCookieProtection);
-  app.useGlobalFilters(new MulterExceptionFilter());
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
+
+  const corsOrigins = expandCorsOrigins(
+    (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
   );
-  const corsOrigins = new Set(
-    [
-      ...(process.env.CORS_ORIGIN ?? 'http://localhost:3000')
-        .split(',')
-        .map((origin) => origin.trim())
-        .filter(Boolean),
-      // Expo mobile web preview (pnpm mobile / expo start --web)
-      'http://localhost:8081',
-      'http://127.0.0.1:8081',
-    ],
-  );
+  // Expo mobile web preview (pnpm mobile / expo start --web)
+  corsOrigins.add('http://localhost:8081');
+  corsOrigins.add('http://127.0.0.1:8081');
 
   /** Dev: allow Expo/web on LAN IPs (health works in a tab, but fetch needs CORS). */
   function isLocalDevOrigin(origin: string): boolean {
@@ -70,6 +61,8 @@ async function bootstrap() {
     }
   }
 
+  // CORS must run before CSRF so 403/401 JSON still includes Access-Control-* headers.
+  // Otherwise browsers report a misleading "blocked by CORS policy" on failed posts.
   app.enableCors({
     origin: (origin, callback) => {
       // Non-browser clients (mobile native, curl) send no Origin
@@ -86,6 +79,16 @@ async function bootstrap() {
     credentials: true,
     exposedHeaders: ['X-CSRF-Token'],
   });
+
+  app.use(csrfCookieProtection);
+  app.useGlobalFilters(new MulterExceptionFilter());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   const enableSwagger =
     process.env.ENABLE_SWAGGER === 'true' || (!isProd && process.env.ENABLE_SWAGGER !== 'false');

@@ -5,6 +5,7 @@ import {
   REFRESH_COOKIE,
   authCookieBaseOptions,
 } from '../../auth/auth-cookies';
+import { isConfiguredCorsOrigin } from '../cors-origins';
 
 export const CSRF_COOKIE = 'moons_csrf';
 export const CSRF_HEADER = 'x-csrf-token';
@@ -121,20 +122,7 @@ export function csrfCookieProtection(
 }
 
 function isAllowedOrigin(origin: string): boolean {
-  const configured = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  const allowed = new Set([
-    ...configured,
-    'http://localhost:8081',
-    'http://127.0.0.1:8081',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-  ]);
-
-  if (allowed.has(origin)) return true;
+  if (isConfiguredCorsOrigin(origin)) return true;
 
   if (process.env.NODE_ENV === 'production') return false;
 
