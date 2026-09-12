@@ -50,10 +50,17 @@ function resolveApiUrl(): string {
     (Constants.expoConfig?.extra?.apiUrl as string | undefined);
 
   if (!__DEV__) {
-    // Store / release builds must hit the production API (never localhost).
-    return configured && !configured.includes('localhost') && !configured.includes('127.0.0.1')
-      ? configured
-      : 'https://api.moonsjob.com/api/v1';
+    // Store / release builds must hit the production HTTPS API only.
+    if (
+      configured &&
+      configured.startsWith('https://') &&
+      !configured.includes('localhost') &&
+      !configured.includes('127.0.0.1') &&
+      !/^https?:\/\/(\d{1,3}\.){3}\d{1,3}(?::|\/|$)/.test(configured)
+    ) {
+      return configured.replace(/\/$/, '');
+    }
+    return 'https://api.moonsjob.com/api/v1';
   }
 
   const devHost = getDevServerHost();

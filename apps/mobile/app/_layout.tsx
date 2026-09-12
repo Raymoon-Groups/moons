@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
 import { IncomingMessageSoundListener } from '@/components/incoming-message-sound-listener';
 import { PersistentBottomPillNav } from '@/components/bottom-pill-tab-bar';
@@ -71,6 +72,12 @@ function AppRoot() {
     if (fontsLoaded) setMounted(true);
   }, [fontsLoaded]);
 
+  // Hard fallback so release never sits on a forever spinner.
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (!mounted) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
@@ -99,11 +106,13 @@ function AppRoot() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
-        <ThemeProvider>
-          <AppRoot />
-        </ThemeProvider>
-      </KeyboardProvider>
+      <AppErrorBoundary>
+        <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+          <ThemeProvider>
+            <AppRoot />
+          </ThemeProvider>
+        </KeyboardProvider>
+      </AppErrorBoundary>
     </SafeAreaProvider>
   );
 }

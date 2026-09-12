@@ -17,6 +17,7 @@ import { COMPANY_SIZE_OPTIONS, INDUSTRY_OPTIONS } from '@/lib/profile-constants'
 import { parseResumeFile } from '@/lib/resume-parse';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+import { appendUploadFile } from '@/lib/upload-file';
 
 export default function OnboardingScreen() {
   const { user, ready, updateUser } = useAuth();
@@ -102,11 +103,11 @@ export default function OnboardingScreen() {
         fd.append('location', location);
         if (headline.trim()) fd.append('headline', headline);
         if (resume) {
-          fd.append('resume', {
+          await appendUploadFile(fd, 'resume', {
             uri: resume.uri,
             name: resume.name,
-            type: resume.mimeType ?? 'application/pdf',
-          } as unknown as Blob);
+            mimeType: resume.mimeType ?? 'application/pdf',
+          });
         }
       }
       const result = await completeOnboarding(fd);

@@ -99,19 +99,38 @@ async function refreshAccessToken(): Promise<RefreshResult> {
   if (refreshInFlight) return refreshInFlight;
 
   refreshInFlight = (async (): Promise<RefreshResult> => {
-    try {
-      // Prefer HttpOnly refresh cookie; empty body is enough for web.
-      const data = await apiFetchRaw<AuthResponse>('/auth/refresh', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
-      setAuthSession(data);
-      return { ok: true, accessToken: data.accessToken };
-    } catch (err) {
-      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        return { ok: false, reason: 'auth' };
+    const attempt = async (forceCsrfRefresh: boolean): Promise<RefreshResult> => {
+      try {
+        if (forceCsrfRefresh) {
+          clearCsrfTokenMemory();
+          await ensureCsrfToken();
+        }
+        // Prefer HttpOnly refresh cookie; empty body is enough for web.
+        const data = await apiFetchRaw<AuthResponse>('/auth/refresh', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        setAuthSession(data);
+        return { ok: true, accessToken: data.accessToken };
+      } catch (err) {
+        if (
+          err instanceof ApiError &&
+          err.status === 403 &&
+          (err.code === 'CSRF_TOKEN_INVALID' || err.code === 'CSRF_REJECTED') &&
+          !forceCsrfRefresh
+        ) {
+          return attempt(true);
+        }
+        // Only a real auth failure should clear the session. Network/CSRF must not log users out.
+        if (err instanceof ApiError && err.status === 401) {
+          return { ok: false, reason: 'auth' };
+        }
+        return { ok: false, reason: 'network' };
       }
-      return { ok: false, reason: 'network' };
+    };
+
+    try {
+      return await attempt(false);
     } finally {
       refreshInFlight = null;
     }
@@ -324,6 +343,10 @@ export async function ensureWebSession(): Promise<boolean> {
   if (!result.ok && result.reason === 'auth') {
     clearAuthSession();
     return false;
+  }
+  // Network blip: keep local session so the user is not kicked out suddenly.
+  if (!result.ok && result.reason === 'network') {
+    return hasSessionCookie() || !!getStoredUser();
   }
   return result.ok;
 }

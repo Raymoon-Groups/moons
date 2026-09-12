@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await authFetch<Profile>('/profiles/me');
       syncUserFromProfile(profile);
     } catch (err) {
+      // Keep the UI session on transient API failures; only hard-expire on SESSION_EXPIRED.
       if (err instanceof ApiError && err.code === 'SESSION_EXPIRED') {
         clearAuthSession();
         setAssetAuthToken(null);

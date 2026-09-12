@@ -71,17 +71,19 @@ function FloatingBubble({
   return (
     <Animated.View
       pointerEvents="none"
-      style={{
-        position: 'absolute',
-        left,
-        top,
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: color,
-        opacity,
-        transform: [{ translateY }, { scale }],
-      }}
+      style={
+        {
+          position: 'absolute',
+          left,
+          top,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          opacity,
+          transform: [{ translateY }, { scale }],
+        } as object
+      }
     />
   );
 }

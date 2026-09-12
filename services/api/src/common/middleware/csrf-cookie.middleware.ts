@@ -90,6 +90,14 @@ export function csrfCookieProtection(
     return;
   }
 
+  // Refresh only rotates HttpOnly cookies on the victim's browser — CSRF cannot steal
+  // the session, but a stale CSRF header was logging users out every access-token expiry.
+  const path = (req.originalUrl || req.url || '').split('?')[0];
+  if (path.endsWith('/auth/refresh') || path.endsWith('/auth/csrf')) {
+    next();
+    return;
+  }
+
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
   if (!origin || !isAllowedOrigin(origin)) {
     res.status(403).json({

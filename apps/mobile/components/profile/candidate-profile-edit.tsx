@@ -28,6 +28,7 @@ import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
 import { ErrorText } from '@/components/ui';
 import { ApiError, authDelete, authFetch, authUpload } from '@/lib/api';
 import { resolveAssetUrl } from '@/lib/assets';
+import { appendUploadFile } from '@/lib/upload-file';
 import { fontStyle } from '@/lib/font-style';
 import {
   CTC_OPTIONS,
@@ -214,11 +215,7 @@ export function CandidateProfileEdit({
         await authDelete('/profiles/me/resume');
       } else if (pendingResume) {
         const formData = new FormData();
-        formData.append('resume', {
-          uri: pendingResume.uri,
-          name: pendingResume.name,
-          type: pendingResume.type,
-        } as unknown as Blob);
+        await appendUploadFile(formData, 'resume', pendingResume);
         await authUpload('/profiles/me/resume', formData);
       }
       setPendingResume(null);
@@ -264,11 +261,7 @@ export function CandidateProfileEdit({
         await authDelete('/profiles/me/avatar');
       } else if (pendingPhoto) {
         const formData = new FormData();
-        formData.append('avatar', {
-          uri: pendingPhoto.uri,
-          name: pendingPhoto.name,
-          type: pendingPhoto.type,
-        } as unknown as Blob);
+        await appendUploadFile(formData, 'avatar', pendingPhoto);
         await authUpload('/profiles/me/avatar', formData);
       }
 
@@ -276,11 +269,7 @@ export function CandidateProfileEdit({
         await authDelete('/profiles/me/resume');
       } else if (pendingResume) {
         const formData = new FormData();
-        formData.append('resume', {
-          uri: pendingResume.uri,
-          name: pendingResume.name,
-          type: pendingResume.type,
-        } as unknown as Blob);
+        await appendUploadFile(formData, 'resume', pendingResume);
         await authUpload('/profiles/me/resume', formData);
       }
 

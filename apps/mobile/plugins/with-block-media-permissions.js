@@ -10,6 +10,7 @@ const MEDIA_PERMISSIONS = [
   'android.permission.ACCESS_MEDIA_LOCATION',
   'android.permission.RECORD_AUDIO',
   'android.permission.CAMERA',
+  'android.permission.SYSTEM_ALERT_WINDOW',
 ];
 
 function withBlockMediaPermissions(config) {

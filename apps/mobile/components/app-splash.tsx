@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -274,6 +274,28 @@ const swipeStyles = StyleSheet.create({
 export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const autoStarted = useRef(false);
+  const onGetStartedRef = useRef(onGetStarted);
+  onGetStartedRef.current = onGetStarted;
+
+  const finish = useCallback(() => {
+    if (autoStarted.current) return;
+    autoStarted.current = true;
+    onGetStartedRef.current();
+  }, []);
+
+  // Hard fallback so Play Store installs never sit forever on splash.
+  useEffect(() => {
+    const hard = setTimeout(finish, 6000);
+    return () => clearTimeout(hard);
+  }, [finish]);
+
+  // Faster path once auth + prefs are ready and user hasn't swiped.
+  useEffect(() => {
+    if (!continueReady) return;
+    const soft = setTimeout(finish, 2500);
+    return () => clearTimeout(soft);
+  }, [continueReady, finish]);
 
   const bgFade = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -682,7 +704,7 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
         >
           <SwipeGetStarted
             ready={continueReady}
-            onComplete={onGetStarted}
+            onComplete={finish}
             blue={colors.blue}
             blueDark={colors.blueDark}
           />

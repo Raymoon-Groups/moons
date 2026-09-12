@@ -38,6 +38,7 @@ import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import type { JobListing, Profile } from '@/lib/types';
+import { appendUploadFile } from '@/lib/upload-file';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BOTTOM_PILL_TAB_BAR_HEIGHT } from '@/components/bottom-pill-tab-bar';
 
@@ -548,11 +549,11 @@ export default function JobDetailScreen() {
     setUploadingResume(true);
     try {
       const formData = new FormData();
-      formData.append('resume', {
+      await appendUploadFile(formData, 'resume', {
         uri: file.uri,
         name: file.name,
-        type: file.mimeType ?? 'application/pdf',
-      } as unknown as Blob);
+        mimeType: file.mimeType ?? 'application/pdf',
+      });
       const saved = await authUpload<Profile>('/profiles/me/resume', formData);
       if (saved.resumeUrl) {
         setResumeMeta({ url: saved.resumeUrl, fileName: saved.resumeFileName });

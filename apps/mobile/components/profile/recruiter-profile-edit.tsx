@@ -18,6 +18,7 @@ import {
   Screen,
 } from '@/components/ui';
 import { ApiError, authDelete, authFetch, authUpload } from '@/lib/api';
+import { appendUploadFile } from '@/lib/upload-file';
 import { fontStyle } from '@/lib/font-style';
 import {
   COMPANY_SIZE_OPTIONS,
@@ -94,11 +95,7 @@ export function RecruiterProfileEdit({
         await authDelete('/profiles/me/avatar');
       } else if (pendingPhoto) {
         const formData = new FormData();
-        formData.append('avatar', {
-          uri: pendingPhoto.uri,
-          name: pendingPhoto.name,
-          type: pendingPhoto.type,
-        } as unknown as Blob);
+        await appendUploadFile(formData, 'avatar', pendingPhoto);
         await authUpload('/profiles/me/avatar', formData);
       }
       setPendingPhoto(null);
@@ -121,11 +118,7 @@ export function RecruiterProfileEdit({
         await authDelete('/profiles/me/company-logo');
       } else if (pendingLogo) {
         const formData = new FormData();
-        formData.append('logo', {
-          uri: pendingLogo.uri,
-          name: pendingLogo.name,
-          type: pendingLogo.type,
-        } as unknown as Blob);
+        await appendUploadFile(formData, 'logo', pendingLogo);
         await authUpload('/profiles/me/company-logo', formData);
       }
       setPendingLogo(null);
@@ -165,11 +158,7 @@ export function RecruiterProfileEdit({
         await authDelete('/profiles/me/avatar');
       } else if (pendingPhoto) {
         const formData = new FormData();
-        formData.append('avatar', {
-          uri: pendingPhoto.uri,
-          name: pendingPhoto.name,
-          type: pendingPhoto.type,
-        } as unknown as Blob);
+        await appendUploadFile(formData, 'avatar', pendingPhoto);
         await authUpload('/profiles/me/avatar', formData);
       }
 
@@ -177,11 +166,7 @@ export function RecruiterProfileEdit({
         await authDelete('/profiles/me/company-logo');
       } else if (pendingLogo) {
         const formData = new FormData();
-        formData.append('logo', {
-          uri: pendingLogo.uri,
-          name: pendingLogo.name,
-          type: pendingLogo.type,
-        } as unknown as Blob);
+        await appendUploadFile(formData, 'logo', pendingLogo);
         await authUpload('/profiles/me/company-logo', formData);
       }
 

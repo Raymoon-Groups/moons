@@ -1,4 +1,5 @@
 import { authUpload } from '@/lib/api';
+import { appendUploadFile } from '@/lib/upload-file';
 
 export interface ParsedResume {
   fullName: string | null;
@@ -30,10 +31,10 @@ export async function parseResumeFile(asset: {
   mimeType?: string | null;
 }) {
   const formData = new FormData();
-  formData.append('resume', {
+  await appendUploadFile(formData, 'resume', {
     uri: asset.uri,
     name: asset.name,
-    type: asset.mimeType ?? 'application/pdf',
-  } as unknown as Blob);
+    mimeType: asset.mimeType ?? 'application/pdf',
+  });
   return authUpload<ParsedResume>('/auth/resume/parse', formData);
 }

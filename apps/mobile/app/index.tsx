@@ -14,14 +14,29 @@ export default function Index() {
   const [showIntro, setShowIntro] = useState(false);
 
   useEffect(() => {
-    getIntroSeen().then((seen) => {
-      setIntroSeenState(seen);
-      setPrefsLoaded(true);
-    });
+    let cancelled = false;
+    getIntroSeen()
+      .then((seen) => {
+        if (!cancelled) setIntroSeenState(seen);
+      })
+      .catch(() => {
+        // SecureStore can fail on some devices — don't block app open.
+        if (!cancelled) setIntroSeenState(true);
+      })
+      .finally(() => {
+        if (!cancelled) setPrefsLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const finishIntro = useCallback(async (dest?: 'login' | 'register') => {
-    await setIntroSeen();
+    try {
+      await setIntroSeen();
+    } catch {
+      // ignore persistence errors
+    }
     setIntroSeenState(true);
     setShowIntro(false);
     if (dest === 'register') {
@@ -33,6 +48,10 @@ export default function Index() {
     }
   }, []);
 
+  const onGetStarted = useCallback(() => {
+    setSplashDone(true);
+  }, []);
+
   useEffect(() => {
     if (!splashDone || !ready || !prefsLoaded) return;
     if (!introSeen && !user) {
@@ -42,10 +61,7 @@ export default function Index() {
 
   if (!splashDone) {
     return (
-      <AppSplash
-        continueReady={ready && prefsLoaded}
-        onGetStarted={() => setSplashDone(true)}
-      />
+      <AppSplash continueReady={ready && prefsLoaded} onGetStarted={onGetStarted} />
     );
   }
 
