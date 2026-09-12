@@ -60,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await authFetch<Profile>('/profiles/me');
       syncUserFromProfile(profile);
     } catch (err) {
-      // Keep the UI session on transient API failures; only hard-expire on SESSION_EXPIRED.
       if (err instanceof ApiError && err.code === 'SESSION_EXPIRED') {
         clearAuthSession();
         setAssetAuthToken(null);
@@ -73,30 +72,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function hydrate() {
-      const stored = getStoredUser();
-      const hasSession = hasSessionCookie() || !!stored;
+      try {
+        const stored = getStoredUser();
+        const hasSession = hasSessionCookie() || !!stored;
 
-      if (!hasSession) {
-        setAssetAuthToken(null);
+        if (!hasSession) {
+          setAssetAuthToken(null);
+          return;
+        }
+
+        if (stored) setUser(stored);
+
+        const ok = await ensureWebSession();
+        if (cancelled) return;
+
+        if (!ok) {
+          setUser(null);
+          return;
+        }
+
+        // Keep stored user visible even if profile refresh is slow.
+        if (!cancelled && stored) setUser(stored);
+        else if (!cancelled) {
+          const again = getStoredUser();
+          if (again) setUser(again);
+        }
+
+        window.setTimeout(() => {
+          if (!cancelled) void refreshProfile();
+        }, 800);
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
         if (!cancelled) setReady(true);
-        return;
       }
-
-      if (stored) setUser(stored);
-
-      const ok = await ensureWebSession();
-      if (cancelled) return;
-
-      if (!ok) {
-        setUser(null);
-        setReady(true);
-        return;
-      }
-
-      setReady(true);
-      window.setTimeout(() => {
-        if (!cancelled) void refreshProfile();
-      }, 800);
     }
 
     void hydrate();

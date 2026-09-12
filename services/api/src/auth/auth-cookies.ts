@@ -7,14 +7,18 @@ function isProd() {
   return process.env.NODE_ENV === 'production';
 }
 
-/** Shared cookie flags for cross-site web (prod) and local SPA → API (dev). */
+/**
+ * Shared cookie flags.
+ * www.moonsjob.com ↔ api.moonsjob.com are same-site (eTLD+1), so Lax is correct and
+ * more reliable than None (which some browsers restrict as third-party).
+ */
 export function authCookieBaseOptions(): CookieOptions {
   const prod = isProd();
   const domain = process.env.COOKIE_DOMAIN?.trim() || undefined;
   return {
     httpOnly: true,
     secure: prod,
-    sameSite: prod ? 'none' : 'lax',
+    sameSite: prod ? 'lax' : 'lax',
     path: '/',
     ...(domain ? { domain } : {}),
   };
@@ -45,14 +49,23 @@ export function setAuthCookies(
   res.cookie(REFRESH_COOKIE, tokens.refreshToken, refreshCookieOptions());
 }
 
+function clearCookieBothDomains(
+  res: Response,
+  name: string,
+  base: CookieOptions,
+) {
+  res.clearCookie(name, base);
+  // Also clear host-only copies left over from before COOKIE_DOMAIN was set.
+  const { domain: _domain, ...withoutDomain } = base;
+  res.clearCookie(name, withoutDomain);
+}
+
 export function clearAuthCookies(res: Response) {
-  res.clearCookie(ACCESS_COOKIE, authCookieBaseOptions());
-  res.clearCookie(REFRESH_COOKIE, authCookieBaseOptions());
-  const domain = process.env.COOKIE_DOMAIN?.trim();
-  res.clearCookie('moons_csrf', {
+  clearCookieBothDomains(res, ACCESS_COOKIE, authCookieBaseOptions());
+  clearCookieBothDomains(res, REFRESH_COOKIE, authCookieBaseOptions());
+  clearCookieBothDomains(res, 'moons_csrf', {
     ...authCookieBaseOptions(),
     httpOnly: false,
-    ...(domain ? { domain } : {}),
   });
 }
 

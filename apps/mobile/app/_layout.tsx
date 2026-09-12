@@ -1,8 +1,7 @@
 import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
@@ -15,6 +14,52 @@ import { SavedJobsProvider } from '@/lib/saved-jobs-context';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import { useAppFonts } from '@/lib/use-app-fonts';
+
+/**
+ * KeyboardProvider has caused native Android release crashes when mounted at boot
+ * with the New Architecture. Load it only after the first frame, and fall back if
+ * the native module is unavailable.
+ */
+function OptionalKeyboardProvider({ children }: { children: ReactNode }) {
+  const [Provider, setProvider] = useState<null | ComponentType<{ children: ReactNode }>>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const mod = require('react-native-keyboard-controller') as {
+          KeyboardProvider?: ComponentType<{
+            children: ReactNode;
+            statusBarTranslucent?: boolean;
+            navigationBarTranslucent?: boolean;
+          }>;
+        };
+        if (!cancelled && mod.KeyboardProvider) {
+          const KP = mod.KeyboardProvider;
+          setProvider(() =>
+            function WrappedKeyboardProvider({ children: inner }: { children: ReactNode }) {
+              return (
+                <KP statusBarTranslucent navigationBarTranslucent>
+                  {inner}
+                </KP>
+              );
+            },
+          );
+        }
+      } catch {
+        // App continues without keyboard-controller.
+      }
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  if (!Provider) return <>{children}</>;
+  return <Provider>{children}</Provider>;
+}
 
 function RootStack() {
   const { colors, isDark } = useTheme();
@@ -72,16 +117,27 @@ function AppRoot() {
     if (fontsLoaded) setMounted(true);
   }, [fontsLoaded]);
 
-  // Hard fallback so release never sits on a forever spinner.
+  // Hard fallback — never leave Play users on a blank spinner.
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 5000);
+    const timer = setTimeout(() => setMounted(true), 2000);
     return () => clearTimeout(timer);
   }, []);
 
   if (!mounted) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.blue} />
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.background ?? '#F3F7FC',
+          paddingHorizontal: 24,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.blue ?? '#3F74CC'} />
+        <Text style={{ marginTop: 14, color: colors.muted ?? '#5b6b82', fontSize: 14 }}>
+          Starting MoonsJob…
+        </Text>
       </View>
     );
   }
@@ -107,11 +163,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AppErrorBoundary>
-        <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
-          <ThemeProvider>
+        <ThemeProvider>
+          <OptionalKeyboardProvider>
             <AppRoot />
-          </ThemeProvider>
-        </KeyboardProvider>
+          </OptionalKeyboardProvider>
+        </ThemeProvider>
       </AppErrorBoundary>
     </SafeAreaProvider>
   );

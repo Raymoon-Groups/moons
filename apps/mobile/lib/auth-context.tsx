@@ -38,9 +38,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const sessionUser = await ensureFreshSession();
         setUser(sessionUser);
       } catch {
-        setAssetAuthToken(null);
-        await clearAuthSession();
-        setUser(null);
+        // Keep any stored session on unexpected boot errors (SecureStore blips, etc.).
+        try {
+          const { getStoredUser } = await import('./auth-storage');
+          const stored = await getStoredUser();
+          setUser(stored);
+          if (!stored) {
+            setAssetAuthToken(null);
+          }
+        } catch {
+          setAssetAuthToken(null);
+          setUser(null);
+        }
       } finally {
         setReady(true);
       }

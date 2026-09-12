@@ -757,7 +757,20 @@ export class AuthService {
         await new Promise((resolve) => setTimeout(resolve, 40));
       }
 
-      throw new UnauthorizedException('Invalid refresh token');
+      // Redis miss after restart/flush: JWT is still valid — re-issue instead of logging out.
+      const withProfile = await this.usersService.findByIdWithProfile(payload.sub);
+      if (!withProfile) {
+        throw new UnauthorizedException('User not found');
+      }
+      const tokens = await this.issueTokens(
+        withProfile.id,
+        withProfile.email,
+        withProfile.role,
+      );
+      return {
+        user: this.usersService.toPublic(withProfile, withProfile.profile),
+        ...tokens,
+      };
     } catch (err) {
       if (err instanceof UnauthorizedException) throw err;
       throw new UnauthorizedException('Invalid refresh token');
