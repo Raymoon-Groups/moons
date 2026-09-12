@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppScreen } from '@/components/app-screen';
 import { LoadingScreen } from '@/components/loading-screen';
@@ -14,10 +14,17 @@ import type { JobListing } from '@/lib/types';
 
 export default function RecruiterJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const { colors } = useTheme();
   const bottomPadding = useTabScreenPadding(24);
   const [job, setJob] = useState<JobListing | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: job?.title?.trim() || 'Job details',
+    });
+  }, [navigation, job?.title]);
 
   const styles = useMemo(
     () =>

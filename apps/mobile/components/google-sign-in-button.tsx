@@ -17,7 +17,6 @@ import {
   GOOGLE_IOS_CLIENT_ID,
 } from '@/lib/config';
 import { isExpoGo } from '@/lib/expo-runtime';
-import { signInWithNativeGoogle } from '@/lib/google-sign-in-native';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
@@ -29,6 +28,17 @@ WebBrowser.maybeCompleteAuthSession();
 type GoogleSignInButtonProps = { role?: UserRole };
 
 const useNativeAndroidGoogleSignIn = Platform.OS === 'android' && !isExpoGo;
+
+async function signInWithNativeGoogleSafe(): Promise<
+  { idToken: string } | { cancelled: true } | { error: string }
+> {
+  try {
+    const mod = await import('@/lib/google-sign-in-native');
+    return mod.signInWithNativeGoogle();
+  } catch {
+    return { error: 'Google sign-in is unavailable in this build.' };
+  }
+}
 
 function GoogleMark({ size = 22 }: { size?: number }) {
   return (
@@ -210,7 +220,7 @@ function GoogleSignInButtonNative({ role = UserRole.CANDIDATE }: GoogleSignInBut
 
     if (useNativeAndroidGoogleSignIn) {
       setLoading(true);
-      const result = await signInWithNativeGoogle();
+      const result = await signInWithNativeGoogleSafe();
       if ('cancelled' in result) {
         setLoading(false);
         return;

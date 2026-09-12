@@ -1,0 +1,63 @@
+Mobile is a **working authenticated product** (auth → feed → jobs → apply → messages → network → profile), not a stub. The gaps are mostly **retention/infra**, **web parity**, and **shipping ops** — not missing core screens.
+
+---
+
+### What already works
+Auth (email OTP + Google), onboarding, feed (posts/media/comments), jobs + apply, recruiter jobs/applicants, messages + attachments, network, profile/resume, search, settings/delete, legal pages, splash/intro.
+
+---
+
+### Blockers / high roadblocks
+
+| Gap | Why it matters |
+|-----|----------------|
+| **No push notifications** | No `expo-notifications` / FCM. Messages, applications, invites only show in-app. Background users miss everything. |
+| **No HTTPS deep links** | Scheme `moonsjob://` exists for OAuth only. Shares open **web** URLs. Cold-open from email/share into a job/post/chat is unreliable. |
+| **Google Sign-In on Play** | Needs Play App Signing SHA-1 on the Android OAuth client. Easy to work locally and fail in Open Testing. |
+| **Native config drift** | Committed `android/` means EAS won’t re-apply all `app.json` plugins. `expo-doctor` still flags this. |
+| **Missing SecureStore XML resources** | Manifest references `@xml/secure_store_*` but `res/xml/` is missing — release/resource risk. |
+| **No iOS project** | No `ios/` folder. App Store is a separate track. |
+| **No tests / no mobile CI** | Only `tsc --noEmit`. Easy to re-break native boot (gesture/reanimated/New Arch). |
+| **No crash reporting** | Error boundary only — Play crashes are opaque. |
+
+---
+
+### Major product gaps
+
+1. **Applications buried** — screen exists but `href: null` in tabs; candidates mainly reach it via profile.
+2. **Recruiter job form weaker than web** — no experience band; plain text vs rich description.
+3. **Home discovery unused** — `dashboard-sections.tsx` exists but isn’t on the feed (web has people/candidates rails).
+4. **No announcements / blogs** — web has them; mobile doesn’t (blogs optional; announcements matter for launch).
+5. **Almost no offline** — only saved-jobs cache; everything else needs network.
+6. **Moons Plus** — “Coming soon” teaser only (same as web).
+7. **Recruiters can’t browse Companies** — role-gated off.
+8. **OTA updates off** — can’t hotfix after store ship without a new build.
+9. **Local release signing = debug keystore** — fine if EAS-only; dangerous if someone uploads a local AAB.
+
+---
+
+### Smaller / polish
+
+- Camera capture blocked on purpose (gallery picker only) — OK for Play policy, limits “take photo now”.
+- Contact emails not `mailto:`.
+- Stale mobile README still claims some auth isn’t built.
+- Favorites “online” dots look live but aren’t.
+- Preflight script exists but isn’t wired into npm/CI.
+- Intro/splash UX still needs polish under real device QA (you’ve been iterating this).
+
+---
+
+### Suggested priority
+
+**P0 (ship / retain users)**  
+Push notifications → universal/app links → Play Google SHA-1 verified → fix SecureStore XMLs + re-sync native → Sentry/Crashlytics → wire preflight into CI.
+
+**P1 (product parity)**  
+Surface Applications in nav → recruiter experience field → feed discovery rails → announcements.
+
+**P2**  
+iOS track, blogs (if needed), Moons Plus/payments, offline, OTA updates.
+
+---
+
+**Bottom line:** Core hire/job loops are largely there. The biggest real-world holes are **push + deep links + Play Google ops + native/config reliability**, not missing screens. I can turn this into a sequenced backlog and start P0 if you want.

@@ -43,12 +43,16 @@ export function RecruiterJobCard({
   onApplicants,
   onEdit,
   onClose,
+  onReopen,
+  onDelete,
 }: {
   job: JobListing;
   onOpen: () => void;
   onApplicants: () => void;
   onEdit: () => void;
   onClose?: () => void;
+  onReopen?: () => void;
+  onDelete?: () => void;
 }) {
   const { colors, isDark } = useTheme();
   const logoUrl = resolveAssetUrl(job.companyLogoUrl ?? null);
@@ -100,15 +104,17 @@ export function RecruiterJobCard({
         salary: { flex: 1, fontSize: 15, color: colors.heading, ...fontStyle('bold') },
         posted: { fontSize: 12, color: colors.muted, ...fontStyle('medium') },
         actions: {
-          marginTop: 14,
+          marginTop: 0,
           paddingTop: 12,
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: isDark ? colors.border : 'rgba(15,28,51,0.08)',
           flexDirection: 'row',
+          flexWrap: 'wrap',
           gap: 8,
         },
         actionBtn: {
-          flex: 1,
+          flexGrow: 1,
+          flexBasis: '30%',
           minHeight: 40,
           borderRadius: 12,
           alignItems: 'center',
@@ -138,91 +144,106 @@ export function RecruiterJobCard({
   );
 
   return (
-    <Pressable
-      onPress={onOpen}
-      style={({ pressed }) => [cardStyles.card, pressed && { opacity: 0.96, transform: [{ scale: 0.995 }] }]}
-    >
-      <View style={cardStyles.accent} />
-      <View style={cardStyles.body}>
-        <View style={cardStyles.top}>
-          <CompanyAvatar name={job.companyName} size={52} imageUrl={logoUrl} />
-          <View style={cardStyles.meta}>
-            <JobStatusPill status={job.status} />
-            <Text style={cardStyles.title} numberOfLines={2}>
-              {job.title}
-            </Text>
-            <Text style={cardStyles.company} numberOfLines={1}>
-              {[job.companyName, job.location?.split(',')[0]?.trim()].filter(Boolean).join(' · ')}
-            </Text>
-          </View>
-        </View>
-
-        <View style={cardStyles.pills}>
-          <View style={cardStyles.chip}>
-            <Text style={cardStyles.chipText}>{formatEmploymentType(job.employmentType)}</Text>
-          </View>
-          {job.location?.trim() ? (
-            <View style={cardStyles.chip}>
-              <Text style={cardStyles.chipText}>{job.location.split(',')[0]?.trim()}</Text>
+    <View style={cardStyles.card}>
+      <Pressable
+        onPress={onOpen}
+        style={({ pressed }) => [pressed && { opacity: 0.96 }]}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${job.title}`}
+      >
+        <View style={cardStyles.accent} />
+        <View style={cardStyles.body}>
+          <View style={cardStyles.top}>
+            <CompanyAvatar name={job.companyName} size={52} imageUrl={logoUrl} />
+            <View style={cardStyles.meta}>
+              <JobStatusPill status={job.status} />
+              <Text style={cardStyles.title} numberOfLines={2}>
+                {job.title}
+              </Text>
+              <Text style={cardStyles.company} numberOfLines={1}>
+                {[job.companyName, job.location?.split(',')[0]?.trim()].filter(Boolean).join(' · ')}
+              </Text>
             </View>
+          </View>
+
+          <View style={cardStyles.pills}>
+            <View style={cardStyles.chip}>
+              <Text style={cardStyles.chipText}>{formatEmploymentType(job.employmentType)}</Text>
+            </View>
+            {job.location?.trim() ? (
+              <View style={cardStyles.chip}>
+                <Text style={cardStyles.chipText}>{job.location.split(',')[0]?.trim()}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {snippet ? (
+            <Text style={cardStyles.snippet} numberOfLines={2}>
+              {snippet}
+              {plain.length > 120 ? '…' : ''}
+            </Text>
           ) : null}
+
+          <View style={cardStyles.footer}>
+            <Text style={cardStyles.salary} numberOfLines={1}>
+              {job.salaryRange?.trim() || 'Salary not listed'}
+            </Text>
+            <Text style={cardStyles.posted}>{formatPostedLabel(job.createdAt)}</Text>
+          </View>
         </View>
+      </Pressable>
 
-        {snippet ? (
-          <Text style={cardStyles.snippet} numberOfLines={2}>
-            {snippet}
-            {plain.length > 120 ? '…' : ''}
-          </Text>
-        ) : null}
-
-        <View style={cardStyles.footer}>
-          <Text style={cardStyles.salary} numberOfLines={1}>
-            {job.salaryRange?.trim() || 'Salary not listed'}
-          </Text>
-          <Text style={cardStyles.posted}>{formatPostedLabel(job.createdAt)}</Text>
-        </View>
-
-        <View style={cardStyles.actions}>
+      <View style={[cardStyles.actions, { paddingHorizontal: 16, paddingBottom: 16 }]}>
+        <Pressable
+          onPress={onApplicants}
+          style={[cardStyles.actionBtn, cardStyles.primaryAction]}
+          accessibilityRole="button"
+          accessibilityLabel="View applicants"
+        >
+          <Ionicons name="people-outline" size={15} color="#fff" />
+          <Text style={cardStyles.primaryActionText}>Applicants</Text>
+        </Pressable>
+        <Pressable
+          onPress={onEdit}
+          style={[cardStyles.actionBtn, cardStyles.secondaryAction]}
+          accessibilityRole="button"
+          accessibilityLabel="Edit job"
+        >
+          <Ionicons name="create-outline" size={15} color={colors.heading} />
+          <Text style={cardStyles.secondaryActionText}>Edit</Text>
+        </Pressable>
+        {job.status === 'PUBLISHED' && onClose ? (
           <Pressable
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onApplicants();
-            }}
-            style={[cardStyles.actionBtn, cardStyles.primaryAction]}
+            onPress={onClose}
+            style={[cardStyles.actionBtn, cardStyles.dangerAction]}
             accessibilityRole="button"
-            accessibilityLabel="View applicants"
+            accessibilityLabel="Close job"
           >
-            <Ionicons name="people-outline" size={15} color="#fff" />
-            <Text style={cardStyles.primaryActionText}>Applicants</Text>
+            <Text style={cardStyles.dangerActionText}>Close</Text>
           </Pressable>
+        ) : null}
+        {job.status === 'CLOSED' && onReopen ? (
           <Pressable
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onEdit();
-            }}
+            onPress={onReopen}
             style={[cardStyles.actionBtn, cardStyles.secondaryAction]}
             accessibilityRole="button"
-            accessibilityLabel="Edit job"
+            accessibilityLabel="Reopen job"
           >
-            <Ionicons name="create-outline" size={15} color={colors.heading} />
-            <Text style={cardStyles.secondaryActionText}>Edit</Text>
+            <Text style={cardStyles.secondaryActionText}>Reopen</Text>
           </Pressable>
-          {job.status === 'PUBLISHED' && onClose ? (
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation?.();
-                onClose();
-              }}
-              style={[cardStyles.actionBtn, cardStyles.dangerAction]}
-              accessibilityRole="button"
-              accessibilityLabel="Close job"
-            >
-              <Text style={cardStyles.dangerActionText}>Close</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        ) : null}
+        {onDelete ? (
+          <Pressable
+            onPress={onDelete}
+            style={[cardStyles.actionBtn, cardStyles.dangerAction]}
+            accessibilityRole="button"
+            accessibilityLabel="Delete job"
+          >
+            <Text style={cardStyles.dangerActionText}>Delete</Text>
+          </Pressable>
+        ) : null}
       </View>
-    </Pressable>
+    </View>
   );
 }
 

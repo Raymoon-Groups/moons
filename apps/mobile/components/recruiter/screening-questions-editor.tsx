@@ -11,8 +11,23 @@ const TYPE_OPTIONS = [
   { label: 'Single choice', value: ScreeningQuestionType.SINGLE_CHOICE },
 ];
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function newQuestionId() {
-  return `q-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // RFC4122 v4 fallback when randomUUID is unavailable (older RN / Hermes).
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function ensureQuestionId(id: string | undefined) {
+  return id && UUID_RE.test(id) ? id : newQuestionId();
 }
 
 function typeLabel(type: ScreeningQuestionType) {
@@ -174,19 +189,21 @@ export function ScreeningQuestionsEditor({
 export function buildScreeningQuestions(
   askForCv: boolean,
   customQuestions: ScreeningQuestion[],
+  existingQuestions: ScreeningQuestion[] = [],
 ): ScreeningQuestion[] {
   const list: ScreeningQuestion[] = [];
   if (askForCv) {
+    const existingResume = existingQuestions.find((q) => q.type === ScreeningQuestionType.RESUME);
     list.push({
-      id: newQuestionId(),
-      prompt: 'Upload your latest CV / resume',
+      id: ensureQuestionId(existingResume?.id),
+      prompt: existingResume?.prompt?.trim() || 'Upload your latest CV / resume',
       type: ScreeningQuestionType.RESUME,
-      required: true,
+      required: existingResume?.required ?? true,
       sortOrder: 0,
     });
   }
   customQuestions.forEach((q) => {
-    list.push({ ...q, sortOrder: list.length });
+    list.push({ ...q, id: ensureQuestionId(q.id), sortOrder: list.length });
   });
-  return list.map((q, index) => ({ ...q, sortOrder: index }));
+  return list.map((q, index) => ({ ...q, id: ensureQuestionId(q.id), sortOrder: index }));
 }

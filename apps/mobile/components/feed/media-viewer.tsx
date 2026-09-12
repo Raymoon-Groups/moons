@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -99,14 +99,18 @@ export function MediaViewer({
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const listRef = useRef<FlatList<PostMediaItem>>(null);
   const [index, setIndex] = useState(initialIndex);
   const [captionExpanded, setCaptionExpanded] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      setIndex(initialIndex);
-      setCaptionExpanded(false);
-    }
+    if (!visible) return;
+    setIndex(initialIndex);
+    setCaptionExpanded(false);
+    const t = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index: initialIndex, animated: false });
+    }, 30);
+    return () => clearTimeout(t);
   }, [visible, initialIndex]);
 
   const hasCaption = Boolean(caption && caption.trim());
@@ -123,15 +127,21 @@ export function MediaViewer({
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <View style={styles.root}>
         <FlatList
+          ref={listRef}
           data={media}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id}
-          initialScrollIndex={initialIndex}
+          keyExtractor={(item, i) => item.id || `viewer-${i}`}
+          initialScrollIndex={Math.min(initialIndex, Math.max(0, media.length - 1))}
           getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+          onScrollToIndexFailed={({ index: failedIndex }) => {
+            setTimeout(() => {
+              listRef.current?.scrollToIndex({ index: failedIndex, animated: false });
+            }, 80);
+          }}
           onMomentumScrollEnd={(event) => {
-            setIndex(Math.round(event.nativeEvent.contentOffset.x / width));
+            setIndex(Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1)));
           }}
           renderItem={({ item, index: itemIndex }) => {
             const uri = resolveAssetUrl(item.url) ?? undefined;

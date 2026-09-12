@@ -45,7 +45,7 @@ export default function TabsLayout() {
         name="applications"
         options={{
           title: 'Applied',
-          href: null,
+          href: isRecruiter ? null : undefined,
         }}
       />
       <Tabs.Screen
@@ -71,7 +71,6 @@ export default function TabsLayout() {
         name="companies"
         options={{
           title: 'Companies',
-          href: isRecruiter ? null : undefined,
         }}
       />
       <Tabs.Screen

@@ -13,7 +13,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PostCommentItem } from '@moons/shared';
 import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
@@ -22,6 +21,7 @@ import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import type { LocalMediaFile } from '@/lib/posts';
 import { useTheme } from '@/lib/theme-context';
+import { useKeyboardHeight } from '@/lib/use-keyboard-height';
 import { useMentionComposer } from '@/lib/use-mention-composer';
 
 /**
@@ -61,7 +61,8 @@ export function PostCommentsSheet({
 }) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const keyboardHeight = useKeyboardState((state) => state.height);
+  // Modals don't always resize with the window — force height on both platforms.
+  const keyboardHeight = useKeyboardHeight({ force: true });
   const inputRef = useRef<TextInput>(null);
   const listRef = useRef<FlatList<PostCommentItem>>(null);
   const mention = useMentionComposer();

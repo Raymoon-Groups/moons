@@ -38,10 +38,11 @@ function resolveTitle(pathname: string, segments: string[], isRecruiter: boolean
   if (path.includes('/recruiter/candidates') || joined.includes('candidates')) {
     return 'Candidates';
   }
+  if (joined.includes('applications')) return 'Applied';
   if (joined.includes('my-jobs') || (isRecruiter && (path.includes('/job') || joined.includes('jobs')))) {
     return 'My jobs';
   }
-  if (path.includes('/job') || joined.includes('jobs') || joined.includes('applications')) {
+  if (path.includes('/job') || joined.includes('jobs')) {
     return 'Jobs';
   }
   if (joined.includes('(tabs)') || path.includes('/(tabs)') || path.endsWith('/')) {

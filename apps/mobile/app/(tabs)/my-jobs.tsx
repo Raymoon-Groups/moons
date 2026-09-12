@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -13,9 +12,10 @@ import {
   View,
 } from 'react-native';
 import { AppScreen } from '@/components/app-screen';
+import { ConfirmModal } from '@/components/confirm-modal';
 import { EmptyState } from '@/components/portal-ui';
 import { RecruiterJobCard } from '@/components/recruiter/recruiter-job-card';
-import { authFetch } from '@/lib/api';
+import { ApiError, authDelete, authFetch } from '@/lib/api';
 import { fontStyle } from '@/lib/font-style';
 import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { useTheme } from '@/lib/theme-context';
@@ -24,6 +24,10 @@ import { theme } from '@/lib/theme';
 import type { JobListing } from '@/lib/types';
 
 type FilterKey = 'all' | 'live' | 'closed';
+type ConfirmAction =
+  | { type: 'close'; job: JobListing }
+  | { type: 'reopen'; job: JobListing }
+  | { type: 'delete'; job: JobListing };
 
 export default function MyJobsScreen() {
   const { colors, isDark } = useTheme();
@@ -34,6 +38,9 @@ export default function MyJobsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [confirm, setConfirm] = useState<ConfirmAction | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const stats = useMemo(() => {
     const live = jobs.filter((j) => j.status === 'PUBLISHED').length;
@@ -150,6 +157,15 @@ export default function MyJobsScreen() {
           borderWidth: 1,
         },
         filterChipText: { fontSize: 13, ...fontStyle('semibold') },
+        errorBanner: {
+          marginBottom: 12,
+          padding: 12,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.error,
+          backgroundColor: isDark ? 'rgba(220,38,38,0.12)' : 'rgba(220,38,38,0.08)',
+        },
+        errorText: { color: colors.error, fontSize: 13, ...fontStyle('medium') },
       }),
     [bottomPadding, colors, isDark, topPadding],
   );
@@ -172,22 +188,36 @@ export default function MyJobsScreen() {
     void load();
   }, [load]);
 
-  async function closeJob(job: JobListing) {
-    Alert.alert('Close job', `Close "${job.title}"? Candidates will no longer be able to apply.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Close listing',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await authFetch(`/jobs/mine/${job.id}/close`, { method: 'PATCH' });
-            void load(true);
-          } catch (err) {
-            Alert.alert('Error', err instanceof Error ? err.message : 'Could not close job');
-          }
-        },
-      },
-    ]);
+  async function handleConfirm() {
+    if (!confirm) return;
+    setConfirmLoading(true);
+    setActionError('');
+    const { job, type } = confirm;
+    try {
+      if (type === 'close') {
+        await authFetch(`/jobs/${job.id}/close`, { method: 'POST' });
+      } else if (type === 'reopen') {
+        await authFetch(`/jobs/${job.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'PUBLISHED' }),
+        });
+      } else {
+        await authDelete(`/jobs/${job.id}`);
+      }
+      setConfirm(null);
+      void load(true);
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : `Could not ${type} job`,
+      );
+      setConfirm(null);
+    } finally {
+      setConfirmLoading(false);
+    }
   }
 
   const filterOptions: Array<{ key: FilterKey; label: string; count: number }> = [
@@ -269,6 +299,11 @@ export default function MyJobsScreen() {
         ListHeaderComponent={
           <View>
             {hero}
+            {actionError ? (
+              <Pressable style={styles.errorBanner} onPress={() => setActionError('')}>
+                <Text style={styles.errorText}>{actionError}</Text>
+              </Pressable>
+            ) : null}
             {jobs.length > 0 ? (
               <View style={styles.filters}>
                 {filterOptions.map((option) => {
@@ -317,9 +352,53 @@ export default function MyJobsScreen() {
             onOpen={() => router.push(`/recruiter/jobs/${item.id}`)}
             onApplicants={() => router.push(`/recruiter/jobs/${item.id}/applicants`)}
             onEdit={() => router.push(`/recruiter/jobs/${item.id}/edit`)}
-            onClose={item.status === 'PUBLISHED' ? () => void closeJob(item) : undefined}
+            onClose={item.status === 'PUBLISHED' ? () => setConfirm({ type: 'close', job: item }) : undefined}
+            onReopen={item.status === 'CLOSED' ? () => setConfirm({ type: 'reopen', job: item }) : undefined}
+            onDelete={() => setConfirm({ type: 'delete', job: item })}
           />
         )}
+      />
+
+      <ConfirmModal
+        visible={!!confirm}
+        loading={confirmLoading}
+        onCancel={() => {
+          if (confirmLoading) return;
+          setConfirm(null);
+        }}
+        onConfirm={() => void handleConfirm()}
+        title={
+          confirm?.type === 'close'
+            ? 'Close this job?'
+            : confirm?.type === 'reopen'
+              ? 'Reopen this job?'
+              : 'Delete this job?'
+        }
+        message={
+          confirm?.type === 'close'
+            ? `"${confirm.job.title}" will stop accepting applications. You can reopen it later.`
+            : confirm?.type === 'reopen'
+              ? `"${confirm.job.title}" will be live again and visible to candidates.`
+              : confirm
+                ? `"${confirm.job.title}" will be permanently deleted. This cannot be undone.`
+                : ''
+        }
+        confirmLabel={
+          confirm?.type === 'close'
+            ? 'Close listing'
+            : confirm?.type === 'reopen'
+              ? 'Reopen'
+              : 'Delete job'
+        }
+        cancelLabel="Cancel"
+        destructive={confirm?.type !== 'reopen'}
+        icon={
+          confirm?.type === 'close'
+            ? 'lock-closed-outline'
+            : confirm?.type === 'reopen'
+              ? 'refresh-outline'
+              : 'trash-outline'
+        }
       />
     </AppScreen>
   );

@@ -41,9 +41,10 @@ type FeedRow =
   | { type: 'post'; post: FeedPost; key: string }
   | { type: 'moons-plus'; key: string };
 
-/** Inserts Moons Plus after ~2 posts so everyone sees the teaser mid-scroll. */
+/** Moons Plus “Coming soon” teaser — same as web (non-interactive promo only). */
 function buildFeedRows(posts: FeedPost[]): FeedRow[] {
   const rows: FeedRow[] = posts.map((post) => ({ type: 'post', post, key: post.id }));
+  // Keep mid-feed placement so the teaser appears while scrolling (matches web feed).
   if (rows.length === 0) {
     rows.push({ type: 'moons-plus', key: 'moons-plus' });
     return rows;

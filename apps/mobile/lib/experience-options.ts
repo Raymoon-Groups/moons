@@ -4,10 +4,10 @@ export type ExperienceSearchOption = {
   hint?: string;
 };
 
+/** Naukri-style experience: Fresher + 1–30 years (matches web). */
 export const EXPERIENCE_SEARCH_OPTIONS: ExperienceSearchOption[] = [
-  { value: '', label: 'Any experience' },
   { value: '0', label: 'Fresher', hint: '(less than 1 year)' },
-  ...Array.from({ length: 15 }, (_, i) => {
+  ...Array.from({ length: 30 }, (_, i) => {
     const years = i + 1;
     return {
       value: String(years),
@@ -16,7 +16,81 @@ export const EXPERIENCE_SEARCH_OPTIONS: ExperienceSearchOption[] = [
   }),
 ];
 
-export const EXPERIENCE_FILTER_OPTIONS = EXPERIENCE_SEARCH_OPTIONS.map((opt) => ({
-  label: opt.hint ? `${opt.label} ${opt.hint}` : opt.label,
-  value: opt.value,
-}));
+export const EXPERIENCE_SELECT_OPTIONS = [
+  { label: 'Not specified', value: '' },
+  ...EXPERIENCE_SEARCH_OPTIONS.map((opt) => ({
+    label: opt.hint ? `${opt.label} ${opt.hint}` : opt.label,
+    value: opt.value,
+  })),
+];
+
+/** Jobs browse filter chips / sheet (includes “Any”). */
+export const EXPERIENCE_FILTER_OPTIONS = [
+  { label: 'Any experience', value: '' },
+  ...EXPERIENCE_SEARCH_OPTIONS.map((opt) => ({
+    label: opt.hint ? `${opt.label} ${opt.hint}` : opt.label,
+    value: opt.value,
+  })),
+];
+
+export function getExperienceSearchLabel(value: string | undefined | null): string {
+  if (!value) return '';
+  const normalized = normalizeExperienceValue(value);
+  const match = EXPERIENCE_SEARCH_OPTIONS.find((opt) => opt.value === normalized);
+  if (match) {
+    return match.hint ? `${match.label} ${match.hint}` : match.label;
+  }
+  return value;
+}
+
+export function normalizeExperienceValue(value: string): string {
+  switch (value) {
+    case 'fresher':
+    case 'Fresher':
+      return '0';
+    case '1-3':
+    case '1–3 years':
+      return '2';
+    case '3-6':
+    case '3–6 years':
+      return '5';
+    case '6+':
+    case '6+ years':
+    case '6–10 years':
+      return '6';
+    case '10+ years':
+      return '10';
+    default:
+      return value;
+  }
+}
+
+export function experienceValueToJobYears(value: string) {
+  if (!value.trim()) {
+    return { minExperienceYears: undefined as number | undefined, maxExperienceYears: undefined as number | undefined };
+  }
+
+  const normalized = normalizeExperienceValue(value);
+  const years = Number.parseInt(normalized, 10);
+  if (!Number.isFinite(years) || years < 0 || years > 30) {
+    return { minExperienceYears: undefined, maxExperienceYears: undefined };
+  }
+
+  if (years === 0) {
+    return { minExperienceYears: 0, maxExperienceYears: 0 };
+  }
+
+  return { minExperienceYears: years, maxExperienceYears: years };
+}
+
+export function jobYearsToExperienceValue(
+  min: number | null | undefined,
+  max: number | null | undefined,
+): string {
+  if (min == null && max == null) return '';
+  if (min === 0 && (max === 0 || max === 1 || max == null)) return '0';
+  if (min != null && max != null && min === max) return String(min);
+  if (min != null) return String(min);
+  if (max != null) return String(max);
+  return '';
+}

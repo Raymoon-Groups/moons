@@ -2,11 +2,11 @@
   "expo": {
     "name": "MoonsJob",
     "slug": "moonsjob",
-    "version": "1.0.3",
+    "version": "1.0.6",
     "orientation": "portrait",
     "scheme": "moonsjob",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/icon.png",
@@ -30,7 +30,6 @@
       },
       "package": "com.moonsjob.app",
       "softwareKeyboardLayoutMode": "resize",
-      "usesCleartextTraffic": false,
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
@@ -48,6 +47,7 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
+      "expo-audio",
       "expo-video",
       "./plugins/with-block-media-permissions.js",
       [
@@ -63,7 +63,9 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.900368374913-pek10lel7fsk1tcmknrfna6j532o6goh"
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-system-ui"
     ],
     "web": {
       "bundler": "metro",

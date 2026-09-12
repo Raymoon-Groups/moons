@@ -1,16 +1,22 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { EmploymentType, ScreeningQuestionType, type ScreeningQuestion } from '@moons/shared';
 import {
   ScreeningQuestionsEditor,
   buildScreeningQuestions,
 } from '@/components/recruiter/screening-questions-editor';
 import { SelectField } from '@/components/profile/select-field';
+import { RichTextField } from '@/components/rich-text-field';
 import { LoadingScreen } from '@/components/loading-screen';
 import { Card, ErrorText, FieldLabel, Input, PrimaryButton, Screen } from '@/components/ui';
 import { ApiError, authFetch } from '@/lib/api';
+import {
+  EXPERIENCE_SELECT_OPTIONS,
+  experienceValueToJobYears,
+  jobYearsToExperienceValue,
+} from '@/lib/experience-options';
 import { formatEmploymentType } from '@/lib/format';
-import { stripHtml } from '@/lib/html-text';
+import { isDescriptionValid } from '@/lib/rich-text';
 import type { JobListing } from '@/lib/types';
 
 const EMPLOYMENT_OPTIONS = [
@@ -23,30 +29,41 @@ const EMPLOYMENT_OPTIONS = [
 
 export default function EditJobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
   const [employmentType, setEmploymentType] = useState(EmploymentType.FULL_TIME);
+  const [experienceBand, setExperienceBand] = useState('');
   const [askForCv, setAskForCv] = useState(true);
   const [customQuestions, setCustomQuestions] = useState<ScreeningQuestion[]>([]);
+  const [existingQuestions, setExistingQuestions] = useState<ScreeningQuestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: 'Edit job' });
+  }, [navigation]);
+
   useEffect(() => {
     if (!id) return;
+    setLoadFailed(false);
     authFetch<JobListing>(`/jobs/mine/${id}`)
       .then((job) => {
         setTitle(job.title);
         setCompanyName(job.companyName);
-        setDescription(stripHtml(job.description));
+        setDescription(job.description ?? '');
         setLocation(job.location);
         setSalaryRange(job.salaryRange ?? '');
         setEmploymentType(job.employmentType as EmploymentType);
+        setExperienceBand(jobYearsToExperienceValue(job.minExperienceYears, job.maxExperienceYears));
 
         const questions = job.screeningQuestions ?? [];
+        setExistingQuestions(questions);
         const hasResume = questions.some((q) => q.type === ScreeningQuestionType.RESUME);
         setAskForCv(hasResume);
         setCustomQuestions(
@@ -55,24 +72,44 @@ export default function EditJobScreen() {
             .map((q, index) => ({ ...q, sortOrder: index })),
         );
       })
+      .catch(() => setLoadFailed(true))
       .finally(() => setLoading(false));
   }, [id]);
 
   async function handleSave() {
     if (!id) return;
     setError('');
+    if (title.trim().length < 3) {
+      setError('Job title must be at least 3 characters.');
+      return;
+    }
+    if (companyName.trim().length < 2) {
+      setError('Company name is required.');
+      return;
+    }
+    if (!location.trim()) {
+      setError('Location is required.');
+      return;
+    }
+    if (!isDescriptionValid(description, 20)) {
+      setError('Job description must be at least 20 characters.');
+      return;
+    }
     setSaving(true);
+    const exp = experienceValueToJobYears(experienceBand);
     try {
       await authFetch(`/jobs/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          title,
-          companyName,
+          title: title.trim(),
+          companyName: companyName.trim(),
           description,
-          location,
+          location: location.trim(),
           salaryRange: salaryRange || undefined,
           employmentType,
-          screeningQuestions: buildScreeningQuestions(askForCv, customQuestions),
+          minExperienceYears: exp.minExperienceYears ?? null,
+          maxExperienceYears: exp.maxExperienceYears ?? null,
+          screeningQuestions: buildScreeningQuestions(askForCv, customQuestions, existingQuestions),
         }),
       });
       router.back();
@@ -85,6 +122,17 @@ export default function EditJobScreen() {
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (loadFailed) {
+    return (
+      <Screen>
+        <Card>
+          <ErrorText>Could not load this job. It may have been deleted.</ErrorText>
+          <PrimaryButton label="Go back" onPress={() => router.back()} />
+        </Card>
+      </Screen>
+    );
   }
 
   return (
@@ -104,13 +152,14 @@ export default function EditJobScreen() {
           options={EMPLOYMENT_OPTIONS}
           onChange={(value) => setEmploymentType(value as EmploymentType)}
         />
-        <FieldLabel>Description</FieldLabel>
-        <Input
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          style={{ minHeight: 120, textAlignVertical: 'top' }}
+        <SelectField
+          label="Experience required"
+          value={experienceBand}
+          options={EXPERIENCE_SELECT_OPTIONS}
+          onChange={setExperienceBand}
+          placeholder="Not specified"
         />
+        <RichTextField value={description} onChange={setDescription} />
 
         <ScreeningQuestionsEditor
           askForCv={askForCv}

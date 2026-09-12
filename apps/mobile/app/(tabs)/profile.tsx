@@ -20,6 +20,7 @@ import {
 import { ProfileHeroCard } from '@/components/profile/profile-hero-card';
 import { ViewableAvatar } from '@/components/profile/protected-avatar-viewer';
 import { ProfilePostsSection } from '@/components/feed/profile-posts-section';
+import { MoonsPlusPromoCard } from '@/components/feed/moons-plus-promo';
 import { ProfileRing } from '@/components/profile-ring';
 import { PrimaryBanner, SectionTitle } from '@/components/portal-ui';
 import { useAuth } from '@/lib/auth-context';
@@ -500,6 +501,12 @@ export default function ProfileScreen() {
             onPress={() => router.push('/profile/network')}
           />
           <MenuRow
+            icon="business-outline"
+            label="Browse companies"
+            subtitle="Explore employers and open roles"
+            onPress={() => router.push('/(tabs)/companies')}
+          />
+          <MenuRow
             icon="settings"
             label="Settings"
             subtitle="Edit profile, security, appearance & legal"
@@ -511,6 +518,8 @@ export default function ProfileScreen() {
             subtitle="Search talent pool"
             onPress={() => router.push('/recruiter/candidates')}
           />
+
+          <MoonsPlusPromoCard compact />
 
           <ProfilePostsSection
             userId={user.id}
@@ -672,6 +681,8 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/profile/edit')}
               />
             ) : null}
+
+            <MoonsPlusPromoCard compact />
 
             <ProfilePostsSection
               userId={user.id}

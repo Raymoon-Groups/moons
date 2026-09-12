@@ -2,13 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
-  Dimensions,
   Easing,
   PanResponder,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,9 +26,6 @@ type OrbitItem = {
   colors: [string, string];
 };
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const STAGE = Math.min(320, SCREEN_W * 0.82);
-const ORBIT_RADIUS = STAGE * 0.4;
 const CHIP = 56;
 
 const SWIPE_H = 64;
@@ -179,22 +175,20 @@ function SwipeGetStarted({
       <Animated.View style={[swipeStyles.fill, { width: fillW, backgroundColor: blue }]} />
 
       <Animated.View style={[swipeStyles.labelWrap, { opacity: labelOpacity }]} pointerEvents="none">
-        {!ready ? (
-          <ActivityIndicator color={blue} />
-        ) : (
-          <>
-            <Text style={[swipeStyles.label, { color: blueDark }]}>Swipe to get started</Text>
-            <Animated.View style={{ transform: [{ translateX: hintX }], flexDirection: 'row' }}>
-              <Ionicons name="chevron-forward" size={16} color={blue} />
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={blue}
-                style={{ marginLeft: -8, opacity: 0.55 }}
-              />
-            </Animated.View>
-          </>
-        )}
+        <Text style={[swipeStyles.label, { color: blueDark, opacity: ready ? 1 : 0.55 }]}>
+          {ready ? 'Swipe to get started' : 'Preparing…'}
+        </Text>
+        {ready ? (
+          <Animated.View style={{ transform: [{ translateX: hintX }], flexDirection: 'row' }}>
+            <Ionicons name="chevron-forward" size={16} color={blue} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={blue}
+              style={{ marginLeft: -8, opacity: 0.55 }}
+            />
+          </Animated.View>
+        ) : null}
       </Animated.View>
 
       <Animated.View
@@ -203,14 +197,11 @@ function SwipeGetStarted({
           {
             backgroundColor: blue,
             transform: [{ translateX: dragX }],
+            opacity: ready ? 1 : 0.7,
           },
         ]}
       >
-        {ready ? (
-          <Ionicons name="arrow-forward" size={22} color="#fff" />
-        ) : (
-          <ActivityIndicator color="#fff" />
-        )}
+        <Ionicons name="arrow-forward" size={22} color="#fff" />
       </Animated.View>
     </View>
   );
@@ -274,28 +265,34 @@ const swipeStyles = StyleSheet.create({
 export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
+  const stage = Math.min(320, screenW * 0.82);
+  const orbitRadius = stage * 0.4;
   const autoStarted = useRef(false);
   const onGetStartedRef = useRef(onGetStarted);
   onGetStartedRef.current = onGetStarted;
 
+  const exitOpacity = useRef(new Animated.Value(1)).current;
+
   const finish = useCallback(() => {
     if (autoStarted.current) return;
     autoStarted.current = true;
-    onGetStartedRef.current();
-  }, []);
+    Animated.timing(exitOpacity, {
+      toValue: 0,
+      duration: 340,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) onGetStartedRef.current();
+      else onGetStartedRef.current();
+    });
+  }, [exitOpacity]);
 
-  // Hard fallback so Play Store installs never sit forever on splash.
+  // Only a long safety net — do not auto-advance while entrance/CTA animations run.
   useEffect(() => {
-    const hard = setTimeout(finish, 6000);
+    const hard = setTimeout(finish, 20000);
     return () => clearTimeout(hard);
   }, [finish]);
-
-  // Faster path once auth + prefs are ready and user hasn't swiped.
-  useEffect(() => {
-    if (!continueReady) return;
-    const soft = setTimeout(finish, 2500);
-    return () => clearTimeout(soft);
-  }, [continueReady, finish]);
 
   const bgFade = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -437,16 +434,16 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           gap: 18,
         },
         stage: {
-          width: STAGE,
-          height: STAGE,
+          width: stage,
+          height: stage,
           alignItems: 'center',
           justifyContent: 'center',
         },
         softGlow: {
           position: 'absolute',
-          width: STAGE * 0.58,
-          height: STAGE * 0.58,
-          borderRadius: STAGE * 0.29,
+          width: stage * 0.58,
+          height: stage * 0.58,
+          borderRadius: stage * 0.29,
           backgroundColor: '#FFFFFF',
           borderWidth: 1,
           borderColor: 'rgba(207, 217, 232, 0.9)',
@@ -511,8 +508,8 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           ...displayFontStyle('semibold'),
         },
         headline: {
-          fontSize: Math.min(42, SCREEN_W * 0.1),
-          lineHeight: Math.min(48, SCREEN_W * 0.116),
+          fontSize: Math.min(42, screenW * 0.1),
+          lineHeight: Math.min(48, screenW * 0.116),
           color: colors.navy,
           textAlign: 'center',
           letterSpacing: -1.4,
@@ -536,13 +533,13 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           paddingTop: 18,
         },
       }),
-    [colors, insets.bottom, insets.top],
+    [colors, insets.bottom, insets.top, screenW, stage],
   );
 
-  const center = STAGE / 2;
+  const center = stage / 2;
 
   return (
-    <View style={styles.root}>
+    <Animated.View style={[styles.root, { opacity: exitOpacity }]}>
       <Animated.View style={[styles.layer, { opacity: bgFade }]} pointerEvents="none">
         <LinearGradient
           colors={['#EAF2FB', '#F5F8FC', '#EEF3F9']}
@@ -553,10 +550,10 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           style={[
             styles.blob,
             {
-              width: SCREEN_W * 0.75,
-              height: SCREEN_W * 0.75,
-              top: -SCREEN_W * 0.18,
-              right: -SCREEN_W * 0.22,
+              width: screenW * 0.75,
+              height: screenW * 0.75,
+              top: -screenW * 0.18,
+              right: -screenW * 0.22,
               backgroundColor: 'rgba(63, 116, 204, 0.14)',
               transform: [{ translateY: meshA }],
             },
@@ -566,10 +563,10 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           style={[
             styles.blob,
             {
-              width: SCREEN_W * 0.55,
-              height: SCREEN_W * 0.55,
-              bottom: SCREEN_W * 0.02,
-              left: -SCREEN_W * 0.2,
+              width: screenW * 0.55,
+              height: screenW * 0.55,
+              bottom: screenW * 0.02,
+              left: -screenW * 0.2,
               backgroundColor: 'rgba(46, 196, 168, 0.1)',
               transform: [{ translateY: meshB }],
             },
@@ -593,8 +590,8 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
             <Animated.View
               style={{
                 position: 'absolute',
-                width: STAGE,
-                height: STAGE,
+                width: stage,
+                height: stage,
                 opacity: orbitOpacity,
                 transform: [{ rotate: reverseRotate }],
               }}
@@ -604,10 +601,10 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
                 style={[
                   styles.ringDashed,
                   {
-                    width: ORBIT_RADIUS * 2.15,
-                    height: ORBIT_RADIUS * 2.15,
-                    top: center - ORBIT_RADIUS * 1.075,
-                    left: center - ORBIT_RADIUS * 1.075,
+                    width: orbitRadius * 2.15,
+                    height: orbitRadius * 2.15,
+                    top: center - orbitRadius * 1.075,
+                    left: center - orbitRadius * 1.075,
                   },
                 ]}
               />
@@ -616,8 +613,8 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
             <Animated.View
               style={{
                 position: 'absolute',
-                width: STAGE,
-                height: STAGE,
+                width: stage,
+                height: stage,
                 opacity: orbitOpacity,
                 transform: [{ rotate: orbitRotate }],
               }}
@@ -627,18 +624,18 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
                 style={[
                   styles.ring,
                   {
-                    width: ORBIT_RADIUS * 2,
-                    height: ORBIT_RADIUS * 2,
-                    top: center - ORBIT_RADIUS,
-                    left: center - ORBIT_RADIUS,
+                    width: orbitRadius * 2,
+                    height: orbitRadius * 2,
+                    top: center - orbitRadius,
+                    left: center - orbitRadius,
                   },
                 ]}
               />
 
               {ORBIT_ITEMS.map((item, i) => {
                 const angle = (Math.PI * 2 * i) / ORBIT_ITEMS.length - Math.PI / 2;
-                const x = center + ORBIT_RADIUS * Math.cos(angle) - CHIP / 2;
-                const y = center + ORBIT_RADIUS * Math.sin(angle) - CHIP / 2;
+                const x = center + orbitRadius * Math.cos(angle) - CHIP / 2;
+                const y = center + orbitRadius * Math.sin(angle) - CHIP / 2;
                 const bobY = iconBobs[i].interpolate({
                   inputRange: [0, 1],
                   outputRange: [0, -6],
@@ -710,6 +707,6 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           />
         </Animated.View>
       </View>
-    </View>
+    </Animated.View>
   );
 }

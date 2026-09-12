@@ -6,8 +6,10 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Required so Metro can resolve @moons/shared and app deps in the monorepo.
-config.watchFolders = [monorepoRoot];
+// Keep Expo defaults, then add monorepo root for @moons/shared.
+config.watchFolders = Array.from(
+  new Set([...(config.watchFolders ?? []), monorepoRoot]),
+);
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(monorepoRoot, 'node_modules'),

@@ -22,6 +22,12 @@ export function hideNavChrome() {
   navChromeHideProgress.value = withTiming(1, { duration: HIDE_MS });
 }
 
+/** Instantly snap bars visible (mount / recovery). */
+export function resetNavChrome() {
+  lastOffsetY = 0;
+  navChromeHideProgress.value = 0;
+}
+
 /** Call from any ScrollView / FlatList `onScroll`. */
 export function reportNavScroll(offsetY: number) {
   const y = Math.max(0, offsetY);
@@ -61,7 +67,6 @@ export function useNavChromeScrollProps() {
 export function useResetNavChromeOnNavigate() {
   const pathname = usePathname();
   useEffect(() => {
-    lastOffsetY = 0;
-    showNavChrome();
+    resetNavChrome();
   }, [pathname]);
 }

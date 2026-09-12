@@ -1,15 +1,21 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useNavigation } from 'expo-router';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { EmploymentType, type ScreeningQuestion } from '@moons/shared';
 import {
   ScreeningQuestionsEditor,
   buildScreeningQuestions,
 } from '@/components/recruiter/screening-questions-editor';
 import { SelectField } from '@/components/profile/select-field';
+import { RichTextField } from '@/components/rich-text-field';
 import { LoadingScreen } from '@/components/loading-screen';
 import { Card, ErrorText, FieldLabel, Input, PrimaryButton, Screen } from '@/components/ui';
 import { ApiError, authFetch } from '@/lib/api';
+import {
+  EXPERIENCE_SELECT_OPTIONS,
+  experienceValueToJobYears,
+} from '@/lib/experience-options';
 import { formatEmploymentType } from '@/lib/format';
+import { isDescriptionValid } from '@/lib/rich-text';
 import type { JobListing, Profile } from '@/lib/types';
 
 const EMPLOYMENT_OPTIONS = [
@@ -21,17 +27,23 @@ const EMPLOYMENT_OPTIONS = [
 ].map((type) => ({ label: formatEmploymentType(type), value: type }));
 
 export default function NewJobScreen() {
+  const navigation = useNavigation();
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
   const [employmentType, setEmploymentType] = useState(EmploymentType.FULL_TIME);
+  const [experienceBand, setExperienceBand] = useState('');
   const [askForCv, setAskForCv] = useState(true);
   const [customQuestions, setCustomQuestions] = useState<ScreeningQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState('');
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: 'Post a job' });
+  }, [navigation]);
 
   useEffect(() => {
     authFetch<Profile>('/profiles/me')
@@ -45,17 +57,40 @@ export default function NewJobScreen() {
 
   async function handleSubmit() {
     setError('');
+    if (title.trim().length < 3) {
+      setError('Job title must be at least 3 characters.');
+      return;
+    }
+    if (companyName.trim().length < 2) {
+      setError('Company name is required.');
+      return;
+    }
+    if (!location.trim()) {
+      setError('Location is required.');
+      return;
+    }
+    if (!isDescriptionValid(description, 20)) {
+      setError('Job description must be at least 20 characters.');
+      return;
+    }
     setLoading(true);
+    const exp = experienceValueToJobYears(experienceBand);
     try {
       const job = await authFetch<JobListing>('/jobs', {
         method: 'POST',
         body: JSON.stringify({
-          title,
-          companyName,
+          title: title.trim(),
+          companyName: companyName.trim(),
           description,
-          location,
+          location: location.trim(),
           employmentType,
           salaryRange: salaryRange || undefined,
+          ...(exp.minExperienceYears != null
+            ? {
+                minExperienceYears: exp.minExperienceYears,
+                maxExperienceYears: exp.maxExperienceYears,
+              }
+            : {}),
           screeningQuestions: buildScreeningQuestions(askForCv, customQuestions),
         }),
       });
@@ -88,14 +123,14 @@ export default function NewJobScreen() {
           options={EMPLOYMENT_OPTIONS}
           onChange={(value) => setEmploymentType(value as EmploymentType)}
         />
-        <FieldLabel>Description</FieldLabel>
-        <Input
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          style={{ minHeight: 120, textAlignVertical: 'top' }}
-          placeholder="Role responsibilities, requirements…"
+        <SelectField
+          label="Experience required"
+          value={experienceBand}
+          options={EXPERIENCE_SELECT_OPTIONS}
+          onChange={setExperienceBand}
+          placeholder="Not specified"
         />
+        <RichTextField value={description} onChange={setDescription} />
 
         <ScreeningQuestionsEditor
           askForCv={askForCv}

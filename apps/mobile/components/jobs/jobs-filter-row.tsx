@@ -126,7 +126,7 @@ export function JobsFilterRow({
     jobTypeOptions.find((o) => o.value === jobType)?.label?.replace(/^All\b.*/i, 'Job type') ||
     'Job type';
   const experienceLabel =
-    experienceOptions.find((o) => o.value === experience)?.label || 'Experience';
+    (experienceOptions ?? []).find((o) => o.value === experience)?.label || 'Experience';
   const sortLabel = sortOptions.find((o) => o.value === sort)?.label || 'By date';
   const locationLabel = location.trim() || 'Location';
 

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Linking as RNLinking,
   Pressable,
@@ -17,10 +18,11 @@ import { SelectField } from '@/components/profile/select-field';
 import { EmptyState, FilterChips, ScreenHeader } from '@/components/portal-ui';
 import { SearchBar } from '@/components/search-bar';
 import { StatusBadge } from '@/components/status-badge';
-import { authFetch } from '@/lib/api';
+import { ApiError, authFetch } from '@/lib/api';
 import { openResumeFileOrAlert } from '@/lib/open-resume';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
+import { fetchConversationWithUser } from '@/lib/messages';
 import {
   buildRecruiterCandidatesUrl,
   EXPERIENCE_BUCKETS,
@@ -53,14 +55,18 @@ function CandidateCard({
   phoneRevealed,
   onRevealPhone,
   updating,
+  messaging,
   onStatusChange,
+  onMessage,
 }: {
   row: RecruiterCandidateRow;
   keyword: string;
   phoneRevealed: boolean;
   onRevealPhone: () => void;
   updating: boolean;
+  messaging: boolean;
   onStatusChange: (status: ApplicationStatus) => void;
+  onMessage: () => void;
 }) {
   const { colors } = useTheme();
   const profile = row.candidate.profile;
@@ -203,6 +209,14 @@ function CandidateCard({
           <Text style={[styles.actionText, styles.actionTextPrimary]}>View full profile</Text>
         </Pressable>
 
+        <Pressable
+          onPress={onMessage}
+          disabled={messaging}
+          style={styles.actionBtn}
+        >
+          <Text style={styles.actionText}>{messaging ? 'Opening…' : 'Message'}</Text>
+        </Pressable>
+
         {profile?.resumeUrl ? (
           <Pressable
             onPress={() => void openResumeFileOrAlert(profile.resumeUrl, profile.resumeFileName)}
@@ -244,6 +258,7 @@ export function RecruiterCandidatesScreen({ showHeader = true }: { showHeader?: 
   const [noticeFilter, setNoticeFilter] = useState('');
   const [revealedPhones, setRevealedPhones] = useState<Set<string>>(new Set());
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [messagingId, setMessagingId] = useState<string | null>(null);
 
   const experienceBucket = EXPERIENCE_BUCKETS.find((b) => b.value === experienceFilter);
 
@@ -289,8 +304,28 @@ export function RecruiterCandidatesScreen({ showHeader = true }: { showHeader?: 
         body: JSON.stringify({ status }),
       });
       setRows((prev) => prev.map((r) => (r.id === applicationId ? { ...r, status } : r)));
+    } catch (err) {
+      Alert.alert(
+        'Could not update status',
+        err instanceof ApiError ? err.message : 'Please try again.',
+      );
     } finally {
       setUpdatingId(null);
+    }
+  }
+
+  async function openMessage(userId: string) {
+    setMessagingId(userId);
+    try {
+      const conv = await fetchConversationWithUser(userId);
+      router.push(`/messages/${conv.id}` as never);
+    } catch (err) {
+      Alert.alert(
+        'Could not open chat',
+        err instanceof ApiError ? err.message : 'Connect with this candidate first, or try again.',
+      );
+    } finally {
+      setMessagingId(null);
     }
   }
 
@@ -362,7 +397,9 @@ export function RecruiterCandidatesScreen({ showHeader = true }: { showHeader?: 
             setRevealedPhones((prev) => new Set(prev).add(item.candidate.id))
           }
           updating={updatingId === item.id}
+          messaging={messagingId === item.candidate.id}
           onStatusChange={(status) => void updateStatus(item.id, status)}
+          onMessage={() => void openMessage(item.candidate.id)}
         />
       )}
     />

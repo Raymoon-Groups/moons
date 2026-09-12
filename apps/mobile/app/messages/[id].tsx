@@ -12,15 +12,8 @@ import {
   Text,
   View,
   type LayoutChangeEvent,
-  type ScrollViewProps,
 } from 'react-native';
 import { Image } from 'expo-image';
-import {
-  KeyboardAwareScrollView,
-  KeyboardStickyView,
-  useKeyboardState,
-  useResizeMode,
-} from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppScreen } from '@/components/app-screen';
 import { MessageBubble, MessageDayDivider } from '@/components/messages/message-bubble';
@@ -54,6 +47,7 @@ import {
 } from '@/lib/message-sound';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+import { useKeyboardHeight } from '@/lib/use-keyboard-height';
 
 const COMPOSE_INPUT_ID = 'message-compose-input';
 const COMPOSE_BAR_SPACE = 76;
@@ -77,12 +71,11 @@ function applyThreadMessages(
 }
 
 export default function MessageThreadScreen() {
-  useResizeMode();
-
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const keyboardHeight = useKeyboardState((state) => state.height);
+  // iOS only — Android uses window resize (`softwareKeyboardLayoutMode: resize`).
+  const keyboardHeight = useKeyboardHeight();
   const listRef = useRef<FlatList<MessageListRow>>(null);
   const stickToBottomRef = useRef(true);
   const refreshingRef = useRef(false);
@@ -103,24 +96,11 @@ export default function MessageThreadScreen() {
   const listData = useMemo(() => [...rows].reverse(), [rows]);
   const listInverted = listData.length > 0;
   const composeBottomPad = Math.max(insets.bottom, 10);
-  const stickyOffsetOpened = Math.max(composeBottomPad - theme.spacing.sm, 0);
 
   const onComposeLayout = useCallback((event: LayoutChangeEvent) => {
     const height = event.nativeEvent.layout.height;
     if (height > 0) setComposeHeight(height);
   }, []);
-
-  const renderScrollComponent = useCallback(
-    (props: ScrollViewProps) => (
-      <KeyboardAwareScrollView
-        {...props}
-        extraKeyboardSpace={composeHeight}
-        bottomOffset={theme.spacing.sm}
-        disableScrollOnKeyboardHide
-      />
-    ),
-    [composeHeight],
-  );
 
   const scrollToEnd = useCallback(
     (animated = true) => {
@@ -456,7 +436,6 @@ export default function MessageThreadScreen() {
                 style={styles.flex}
                 data={listData}
                 inverted={listInverted}
-                renderScrollComponent={renderScrollComponent}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={[
                   styles.messages,
@@ -534,35 +513,32 @@ export default function MessageThreadScreen() {
             </Animated.View>
           </View>
 
-          <KeyboardStickyView
-            offset={{ closed: 0, opened: stickyOffsetOpened }}
-            style={styles.composeSticky}
+          <View
+            onLayout={onComposeLayout}
+            style={[
+              styles.composeSticky,
+              {
+                bottom: keyboardHeight,
+                borderTopColor: isDark ? 'rgba(50, 64, 88, 0.6)' : 'rgba(15,28,51,0.06)',
+                backgroundColor: isDark ? '#0d1420' : '#ffffff',
+                paddingBottom: composeBottomPad,
+              },
+              styles.compose,
+            ]}
           >
-            <View
-              onLayout={onComposeLayout}
-              style={[
-                styles.compose,
-                {
-                  borderTopColor: isDark ? 'rgba(50, 64, 88, 0.6)' : 'rgba(15,28,51,0.06)',
-                  backgroundColor: isDark ? '#0d1420' : '#ffffff',
-                  paddingBottom: composeBottomPad,
-                },
-              ]}
-            >
-              <MessageComposeField
-                inputId={COMPOSE_INPUT_ID}
-                value={text}
-                onChange={setText}
-                attachment={attachment}
-                onAttachmentChange={setAttachment}
-                onSubmit={(storedBody) => void handleSend(storedBody)}
-                sending={sending}
-                editable={detail.canReply}
-                placeholder={detail.canReply ? 'Type here…' : 'Connect to reply'}
-                onFocus={() => scrollToLatest(true)}
-              />
-            </View>
-          </KeyboardStickyView>
+            <MessageComposeField
+              inputId={COMPOSE_INPUT_ID}
+              value={text}
+              onChange={setText}
+              attachment={attachment}
+              onAttachmentChange={setAttachment}
+              onSubmit={(storedBody) => void handleSend(storedBody)}
+              sending={sending}
+              editable={detail.canReply}
+              placeholder={detail.canReply ? 'Type here…' : 'Connect to reply'}
+              onFocus={() => scrollToLatest(true)}
+            />
+          </View>
         </View>
       </View>
     </AppScreen>

@@ -1,0 +1,432 @@
+--- LINE 116 snippet ---
+ (candidate + recruiter) | **Mostly aligned** |
+| Jobs + applications (candidate) | **Partial** — mobile is simpler |
+| Companies | **Partial** — mobile is a basic list |
+| Recruiter tools | **Partial** — mobile missing advanced candidate search |
+| Marketing / discovery | **Web-only** (expected) |
+
+---
+
+## Features that match 
+
+--- LINE 116 snippet ---
+indicators on tabs
+
+### Candidate
+- Job browse + job detail + apply
+- My applications (list, status badges, withdraw)
+- Companies directory + company detail
+- Full profile editor (resume, skills, experience, salary, etc.)
+
+### Recruiter
+- My jobs list, post job, view/edit/close job
+- Per-job applicants + status updates (Viewed,
+
+--- LINE 116 snippet ---
+t search + employment type chips only |
+| **Jobs UI** | Split list + detail panel | Separate list → detail screen |
+| **Companies filters** | Categories, location, industry, sort, featured strip | Simple list (no filters/sort) |
+| **Onboarding resume parse** | Auto-fills profile from resume | Upload only — no parsing |
+| **Dash
+
+--- LINE 116 snippet ---
+?job=` | `/job/[id]` | ⚠️ (no cover note) |
+| Applications | `/applications` | `/(tabs)/applications` (hidden) | ⚠️ |
+| Companies | `/companies` | `/(tabs)/companies` | ⚠️ |
+| Company detail | `/companies/[id]` | `/companies/[id]` | ✅ |
+| Network | `/network` | `/(tabs)/network` | ✅ |
+| Network profile | `/network/[userId]` | `
+
+--- LINE 116 snippet ---
+r candidates filters (search, job, status, experience)
+3. Job posting: employment type selector + richer description
+4. Companies: search + category filters
+
+**Medium impact (polish):**
+5. Network profile cover photo + share
+6. Onboarding resume auto-fill
+7. More job browse filters (location, experience)
+8. Reveal phone on recr
+
+--- LINE 116 snippet ---
+, recruiter job management). The biggest functional gaps are **cover notes**, **recruiter candidate search/filters**, **companies/job filtering**, and **richer job posting**. Marketing/landing and desktop layouts are naturally web-only.
+
+If you want, I can start implementing these gaps in priority order — say which group matter
+
+--- LINE 147 snippet ---
+ruiter applicant views
+- **Jobs filters** — location + experience (API-backed), plus existing employment type chips
+- **Companies browse** — search, location, category pills (MNC, Startup, Edtech, etc.), sort by jobs/name, company tags
+
+### Recruiter
+- **Full candidates browser** — search, location, status, job, experience buck
+
+--- LINE 147 snippet ---
+eadline
+
+### New shared files
+- `lib/experience-options.ts`, `lib/recruiter-candidates.ts`, `lib/resume-parse.ts`, `lib/companies-filters.ts`
+- `components/recruiter/recruiter-candidates-screen.tsx`
+- `components/network/cover-photo-banner.tsx`
+
+TypeScript check passes. Reload the app (press **r** in Expo) to see the changes.
+
+
+
+--- LINE 154 snippet ---
+ experience, type filters) | ✅ |
+| Job apply with cover note | ✅ |
+| Applications (track, withdraw, cover note) | ✅ |
+| Companies (search, categories, sort) | ✅ |
+| Network (tabs, search, connect, visitors) | ✅ |
+| Messages + attachments | ✅ |
+| Profile edit (candidate + recruiter) | ✅ |
+| Open on Moons toggle/badge | ✅ |
+| Net
+
+--- LINE 245 snippet ---
+The company page was restyled to follow the same patterns as **Job details** and **Companies browse**, instead of the web-style layout.
+
+### What changed
+- **Native header** — uses the stack header like other detail screens (company name as title)
+- **Hero card** — same elevated card style a
+
+--- LINE 245 snippet ---
+b details: `CompanyAvatar`, name, meta, chips
+- **Tags** — company type, industry, and “Actively hiring” chips (same as companies list)
+- **About section** — single rounded card with summary + icon rows (size, location, address)
+- **Open positions** — compact job cards with chips and chevron, matching the app’s card style
+- **E
+
+--- LINE 245 snippet ---
+ock, and web-style divided list
+
+Reload the app and open a company — it should feel consistent with Job details and the Companies tab.
+
+[REDACTED]
+
+--- LINE 268 snippet ---
+obile only**. You're on **`pnpm dev` (web)**, which is why the page looked unchanged.
+
+The **web** company profile at `/companies/[id]` is now rebuilt using the same layout system as Applications, Settings, and other dashboard pages.
+
+### What's new on web
+- **`DashPageLayout`** with back pill link and sidebar
+- **`DashPageHero
+
+--- LINE 908 snippet ---
+ Yes | Yes |
+| Profile edit (candidate & recruiter) | Yes | Yes |
+| Network profile + connect / message | Yes | Yes |
+| Companies browse & company pages | Yes | Yes |
+| Recruiter: post/edit jobs, applicants, candidates browse | Yes | Yes |
+| Applicant status updates (New → Viewed → Shortlisted → Rejected) | Yes | Yes |
+| Settin
+
+--- LINE 908 snippet ---
+mall differences (not blockers)
+
+1. **Global header search (web only)**  
+   Web has one search in the header for jobs, companies, and people. Mobile uses **search on each screen** (Jobs tab, Network tab) — same data, different placement.
+
+2. **Public landing page (web only)**  
+   Web has a marketing home page with job search 
+
+--- LINE 1362 snippet ---
+st of the web app’s core flows (auth, jobs, apply, applications, network, messages, profile, recruiter jobs/candidates, companies, settings, legal). It’s not missing entire modules — several bugs and a few feature gaps make it feel broken.
+
+### Feature parity (web → mobile)
+
+| Area | Status |
+|------|--------|
+| Login / registe
+
+--- LINE 1362 snippet ---
+ents | Present |
+| Recruiter post/edit/close/applicants | Present (weaker than web) |
+| Candidates browse | Present |
+| Companies | Present |
+| Settings / security / legal | Present |
+| Landing marketing / TipTap rich editor / web middleware | Web-only (expected) |
+
+### What was broken (and fixed now)
+
+1. **Raw HTML in job desc
+
+=== LINE 1462 MOONS PLUS ===
+Done. The feed is no longer a separate page — **Home/Dashboard** is the LinkedIn-style home.
+
+**What changed**
+- Composer + feed sit at the **top of the center column** on both candidate and recruiter dashboards; Moons Plus, jobs, people, and the sidebars stay as they were
+- Nav **Home** → `/dashboard` (Feed nav item removed)
+- `/feed` redirects to `/dashboard` (keeps `?post=` for notifications)
+- Post-auth and post notification links go to `/dashboard`
+
+Open `/dashboard` to see the feed first, with the existing dashboard content below.
+
+[REDACTED]
+
+=== LINE 1473 MOONS PLUS ===
+Putting Moons Plus above the feed on both dashboards.
+
+[REDACTED]
+
+=== LINE 1474 MOONS PLUS ===
+Moons Plus is now at the top of the center column, with the feed composer and posts right under it.
+
+[REDACTED]
+
+=== LINE 1615 MOONS PLUS ===
+The UI is less boxy now — hierarchy comes from spacing and type, not nested cards.
+
+**Design system**
+- Softer neutrals, almost no drop shadows
+- Shared cards use a light inset edge instead of heavy borders
+- Page heroes are open text (no boxed header / blur orbs)
+
+**Surfaces cleaned up**
+- Applications cards: one surface + divider for details (no stacked gray boxes)
+- Screening answers / cover notes: plain typography, not nested panels
+- Dashboard Moons Plus / tip blocks: simpler, flatter
+- Feed composer / posts: softer inputs and cards
+
+Refresh the app to see it. If any page still feels too samey, tell me which one and I’ll tune that layout next.
+
+[REDACTED]
+
+--- LINE 1887 snippet ---
+le global search** in the mobile app.
+
+Search exists separately:
+- **Jobs tab:** jobs, skills, location, experience
+- **Companies tab:** company and location
+- **Network tab:** people by name, headline, skills, location, role
+- **Candidates tab (recruiters):** candidates by name, skills, role, location
+
+So users must open each 
+
+--- LINE 1887 snippet ---
+tab to search. A top-level universal search for jobs, companies, and people together has not been implemented yet.
+
+--- LINE 2432 snippet ---
+op search | Opens search screen, **All** selected | OK |
+| Type with **All** | Mixed suggestions below (jobs / people / companies / keywords) | OK |
+| Enter with **All** | Stays on search, updates results | OK |
+| Tap a **job** match | Job detail | OK |
+| Tap a **person** match | Profile | OK |
+| Tap a **company** match | Compa
+
+--- LINE 2432 snippet ---
+OK |
+| **Jobs** + Enter | Jobs tab with query | OK |
+| **People** + Enter | Network people search with query | OK |
+| **Companies** + Enter | Companies tab with query | OK |
+| Scope chips filter results | Scoped API + list filter | OK |
+
+### Small fix just applied
+- Fast typing could briefly show **stale** results from an older
+
+--- LINE 2453 snippet ---
+Building a Jobs-aligned companies browse UI: pill search, filter chips, and polished listing cards.
+
+--- LINE 2455 snippet ---
+Companies browse now matches the Jobs tab polish.
+
+**What changed**
+- **Pill search** — same focused search field as Jobs (clear button, soft chrome)
+- **Filter chips** — Location, Category, Sort open bottom s
+
+--- LINE 2455 snippet ---
+heets instead of stacked search bars
+- **Snapshot stats** — Companies · Actively hiring · Open roles
+- **Result count** — like the jobs vacancy line
+- **Listing cards** — soft JobCard-style cards with logo, hiring badge, tags, summary, open roles + chevron
+
+Reload the 
+
+--- LINE 2455 snippet ---
+app and open the Companies tab to check it.
+
+--- LINE 2473 snippet ---
+I'll polish the company detail screen to match the companies browse style.
+
+--- LINE 2476 snippet ---
+Company detail now matches the polished companies list.
+
+**Hero** — soft card with logo, name, location, hiring badge, type/industry tags, and open roles / team / location stats  
+**About** — cleaner section with detail rows and a solid Visit websit
+
+--- LINE 2481 snippet ---
+me employer listed twice, or tags sharing the same label (e.g. type and industry matching).
+
+**Changes:**
+- Deduplicate companies by `recruiterId` when loading
+- Unique keys for list items, tags, and open roles
+
+Reload the Companies tab and the warning should be gone.
+
+--- LINE 3010 snippet ---
+arch users, disable accounts, reset onboarding flags |
+| **Jobs** | Review/hide spam jobs, close suspicious posts |
+| **Companies** | Moderate company profiles/logos |
+| **Applications** | Support lookups (not full hiring control) |
+| **Feed posts** | Hide abusive posts/comments |
+| **Reports** | Handle reported comments/users 
+
+--- LINE 3366 snippet ---
+ (cover note + screening questions)  
+- Track applications: Submitted → Viewed → Shortlisted / Rejected  
+- Saved jobs, companies, professional network  
+- Activity feed (posts, likes, comments, shares)  
+- Direct messaging with attachments  
+- Privacy controls, account deletion, fraud-alert page  
+
+---
+
+## Slide 7 — Recruiter 
+
+=== LINE 4468 MOONS PLUS ===
+I'll find the Moons Plus box and add subtle motion so it stands out for both user types.
+
+=== LINE 4470 MOONS PLUS ===
+Creating a shared animated Moons Plus promo and using it on both dashboards.
+
+=== LINE 4476 MOONS PLUS ===
+Updated for both candidate and recruiter dashboards.
+
+The Moons Plus card now has:
+- Soft border glow pulse  
+- Light sheen sweep  
+- Floating moon icon  
+- Pulsing “Coming soon” badge with a live dot  
+- Slow-moving background orbs  
+
+Motion respects `prefers-reduced-motion`. Reload the dashboard to see it.
+
+=== LINE 4478 MOONS PLUS ===
+I'll amp up the Moons Plus card with floating bubbles and more motion inside the box.
+
+=== LINE 4480 MOONS PLUS ===
+Amped it up. The Moons Plus card now has:
+
+- Floating bubbles drifting across the card  
+- Sparkles and expanding rings  
+- Aurora gradient + stronger sheen  
+- Pulsing icon ring around the moon  
+- Bouncing feature chips  
+- Shimmering title  
+
+Reload the dashboard — it should feel much more eye-catching now.
+
+=== LINE 4484 MOONS PLUS ===
+<timestamp>Friday, Sep 11, 2026, 3:45 PM (UTC+5:30)</timestamp>
+<user_query>
+give same like this in hte middle of posts in mobile app  and feed for all users, means main motto is users should get to know that moons plus is also coming
+</user_query>
+
+=== LINE 4485 MOONS PLUS ===
+I'll add a Moons Plus teaser mid-feed on mobile and web so every user sees it's coming.
+
+=== LINE 4491 MOONS PLUS ===
+<timestamp>Friday, Sep 11, 2026, 3:45 PM (UTC+5:30)</timestamp>
+<user_query>
+give same like this in hte middle of posts in mobile app  and feed for all users, means main motto is users should get to know that moons plus is also coming
+</user_query>
+
+=== LINE 4495 MOONS PLUS ===
+Wiring the Moons Plus card into the mobile feed list, matching the web mid-feed placement.
+
+=== LINE 4499 MOONS PLUS ===
+Moons Plus now shows **in the middle of the feed** for everyone — candidates and recruiters — on both apps.
+
+- **Web** — same promo card inserts after ~2 posts in `DashboardFeed` (and still shows when the feed is empty/short).
+- **Mobile** — `MoonsPlusPromoCard` is mixed into the home feed list after ~2 posts, with role-based copy (“Coming soon” + chips).
+
+Scroll a few posts and you should see the teaser so people know Moons Plus is on the way.
+
+=== LINE 4591 MOONS PLUS ===
+Typecheck failed on a Moons Plus promo style typing issue — fixing it now.
+
+=== LINE 4594 MOONS PLUS ===
+EAS build list is fine (latest production AAB is versionCode **16**). Typecheck had one Moons Plus style error — that’s fixed and `tsc` is clean now.
+
+Rebuild and submit when ready:
+
+```bash
+cd apps/mobile
+npx eas build --platform android --profile production
+```
+
+=== LINE 4844 MOONS PLUS ===
+Mobile is a **working authenticated product** (auth → feed → jobs → apply → messages → network → profile), not a stub. The gaps are mostly **retention/infra**, **web parity**, and **shipping ops** — not missing core screens.
+
+---
+
+### What already works
+Auth (email OTP + Google), onboarding, feed (posts/media/comments), jobs + apply, recruiter jobs/applicants, messages + attachments, network, profile/resume, search, settings/delete, legal pages, splash/intro.
+
+---
+
+### Blockers / high roadblocks
+
+| Gap | Why it matters |
+|-----|----------------|
+| **No push notifications** | No `expo-notifications` / FCM. Messages, applications, invites only show in-app. Background users miss everything. |
+| **No HTTPS deep links** | Scheme `moonsjob://` exists for OAuth only. Shares open **web** URLs. Cold-open from email/share into a job/post/chat is unreliable. |
+| **Google Sign-In on Play** | Needs Play App Signing SHA-1 on the Android OAuth client. Easy to work locally and fail in Open Testing. |
+| **Native config drift** | Committed `android/` means EAS won’t re-apply all `app.json` plugins. `expo-doctor` still flags this. |
+| **Missing SecureStore XML resources** | Manifest references `@xml/secure_store_*` but `res/xml/` is missing — release/resource risk. |
+| **No iOS project** | No `ios/` folder. App Store is a separate track. |
+| **No tests / no mobile CI** | Only `tsc --noEmit`. Easy to re-break native boot (gesture/reanimated/New Arch). |
+| **No crash reporting** | Error boundary only — Play crashes are opaque. |
+
+---
+
+### Major product gaps
+
+1. **Applications buried** — screen exists but `href: null` in tabs; candidates mainly reach it via profile.
+2. **Recruiter job form weaker than web** — no experience band; plain text vs rich description.
+3. **Home discovery unused** — `dashboard-sections.tsx` exists but isn’t on the feed (web has people/candidates rails).
+4. **No announcements / blogs** — web has them; mobile doesn’t (blogs optional; announcements matter for launch).
+5. **Almost no offline** — only saved-jobs cache; everything else needs network.
+6. **Moons Plus** — “Coming soon” teaser only (same as web).
+7. **Recruiters can’t browse Companies** — role-gated off.
+8. **OTA updates off** — can’t hotfix after store ship without a new build.
+9. **Local release signing = debug keystore** — fine if EAS-only; dangerous if someone uploads a local AAB.
+
+---
+
+### Smaller / polish
+
+- Camera capture blocked on purpose (gallery picker only) — OK for Play policy, limits “take photo now”.
+- Contact emails not `mailto:`.
+- Stale mobile README still claims some auth isn’t built.
+- Favorites “online” dots look live but aren’t.
+- Preflight script exists but isn’t wired into npm/CI.
+- Intro/splash UX still needs polish under real device QA (you’ve been iterating this).
+
+---
+
+### Suggested priority
+
+**P0 (ship / retain users)**  
+Push notifications → universal/app links → Play Google SHA-1 verified → fix SecureStore XMLs + re-sync native → Sentry/Crashlytics → wire preflight into CI.
+
+**P1 (product parity)**  
+Surface Applications in nav → recruiter experience field → feed discovery rails → announcements.
+
+**P2**  
+iOS track, blogs (if needed), Moons Plus/payments, offline, OTA updates.
+
+---
+
+**Bottom line:** Core hire/job loops are largely there. The biggest real-world holes are **push + deep links + Play Google ops + native/config reliability**, not missing screens. I can turn this into a sequenced backlog and start P0 if you want.
+
+=== LINE 4951 MOONS PLUS ===
+<timestamp>Saturday, Sep 12, 2026, 4:25 PM (UTC+5:30)</timestamp>
+<user_query>
+Moons Plus — “Coming soon” teaser only (same as web)
+.Recruiters can’t browse Companies — role-gated off.
+
+fix them both
+</user_query>

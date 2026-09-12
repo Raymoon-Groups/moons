@@ -14,6 +14,13 @@ export default function RecruiterLayout() {
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
       }}
-    />
+    >
+      <Stack.Screen name="jobs/new" options={{ title: 'Post a job' }} />
+      <Stack.Screen name="jobs/[id]/index" options={{ title: 'Job details' }} />
+      <Stack.Screen name="jobs/[id]/edit" options={{ title: 'Edit job' }} />
+      <Stack.Screen name="jobs/[id]/applicants" options={{ title: 'Applicants' }} />
+      <Stack.Screen name="candidates/index" options={{ title: 'Candidates' }} />
+      <Stack.Screen name="candidates/[userId]" options={{ title: 'Candidate' }} />
+    </Stack>
   );
 }

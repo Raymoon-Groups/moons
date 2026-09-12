@@ -1,4 +1,3 @@
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import type { ConversationPreview, MessageItem } from '@/lib/messages';
 
@@ -6,17 +5,19 @@ const MESSAGE_SOUND = require('../assets/sounds/new-message.wav');
 
 const lastMessageByConversation = new Map<string, string>();
 let lastPlayedAt = 0;
-let player: ReturnType<typeof createAudioPlayer> | null = null;
+let player: { seekTo: (position: number) => void; play: () => void } | null = null;
 let preparing: Promise<void> | null = null;
 
 async function prepareNativePlayer() {
-  await setAudioModeAsync({
+  // Dynamic import — keep expo-audio off the cold-start module graph.
+  const audio = await import('expo-audio');
+  await audio.setAudioModeAsync({
     playsInSilentMode: true,
     shouldPlayInBackground: false,
     interruptionMode: 'mixWithOthers',
   });
   if (!player) {
-    player = createAudioPlayer(MESSAGE_SOUND);
+    player = audio.createAudioPlayer(MESSAGE_SOUND);
   }
 }
 
@@ -26,7 +27,7 @@ export async function prepareMessageSound() {
     try {
       await prepareNativePlayer();
     } catch {
-      // Native module may be unavailable until the dev client reloads.
+      // Native module may be unavailable; haptic fallback still works.
     }
   })();
   return preparing;

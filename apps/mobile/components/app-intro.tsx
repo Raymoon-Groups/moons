@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Animated,
-  Dimensions,
   Easing,
   FlatList,
   Modal,
@@ -15,6 +14,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
   type ListRenderItem,
 } from 'react-native';
@@ -22,11 +22,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { displayFontStyle, fontStyle } from '@/lib/font-style';
 import { theme } from '@/lib/theme';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-const HERO_H = Math.min(SCREEN_H * 0.58, 480);
-const AUTO_ADVANCE_MS = 3200;
-const PANEL_FADE_MS = 220;
-const CARD_W = Math.min(SCREEN_W - 28, 360);
+const AUTO_ADVANCE_MS = 4500;
+const PANEL_FADE_OUT_MS = 200;
+const PANEL_FADE_IN_MS = 280;
+const STACK_OVERLAP = -14;
 
 type IntroSlide = {
   key: string;
@@ -294,7 +293,7 @@ function JobPreviewCard({
           </View>
         </View>
         {!compact ? <Text style={styles.jobMeta}>{meta}</Text> : null}
-        <View style={[styles.tagRow, compact && { marginTop: 8 }]}>
+        <View style={[styles.tagRow, compact && { marginTop: 6 }]}>
           {(compact ? tags.slice(0, 2) : tags).map((tag) => (
             <View key={tag} style={styles.tagChip}>
               <Text style={[styles.tagText, { color: deep }]}>{tag}</Text>
@@ -302,10 +301,12 @@ function JobPreviewCard({
           ))}
           {compact ? <Text style={styles.jobMetaInline}>{meta}</Text> : null}
         </View>
-        <View style={styles.tapHintRow}>
-          <Ionicons name="hand-left-outline" size={12} color="#91A0B5" />
-          <Text style={styles.tapHintText}>Tap to preview</Text>
-        </View>
+        {!compact ? (
+          <View style={styles.tapHintRow}>
+            <Ionicons name="hand-left-outline" size={12} color="#91A0B5" />
+            <Text style={styles.tapHintText}>Tap to preview</Text>
+          </View>
+        ) : null}
       </View>
     </InteractiveCard>
   );
@@ -366,7 +367,7 @@ function CandidatePreviewCard({
             </View>
           ) : null}
         </View>
-        <View style={[styles.tagRow, compact && { marginTop: 8 }]}>
+        <View style={[styles.tagRow, compact && { marginTop: 6 }]}>
           {skills.slice(0, compact ? 2 : 3).map((skill) => (
             <View key={skill} style={styles.tagChip}>
               <Text style={[styles.tagText, { color: deep }]}>{skill}</Text>
@@ -374,10 +375,12 @@ function CandidatePreviewCard({
           ))}
           {compact ? <Text style={styles.jobMetaInline}>{location}</Text> : null}
         </View>
-        <View style={styles.tapHintRow}>
-          <Ionicons name="hand-left-outline" size={12} color="#91A0B5" />
-          <Text style={styles.tapHintText}>Tap to preview</Text>
-        </View>
+        {!compact ? (
+          <View style={styles.tapHintRow}>
+            <Ionicons name="hand-left-outline" size={12} color="#91A0B5" />
+            <Text style={styles.tapHintText}>Tap to preview</Text>
+          </View>
+        ) : null}
       </View>
     </InteractiveCard>
   );
@@ -385,16 +388,17 @@ function CandidatePreviewCard({
 
 function HeroArt({
   slide,
+  cardWidth,
   onInteract,
 }: {
   slide: IntroSlide;
+  cardWidth: number;
   onInteract: (kind: 'job' | 'candidate' | 'message', label: string) => void;
 }) {
   const { theme: t, hero } = slide;
   const floatA = useFloat(0, 5, 2400);
   const floatB = useFloat(350, 6, 2600);
   const floatC = useFloat(160, 5, 2100);
-  const floatD = useFloat(500, 7, 2300);
 
   return (
     <View style={styles.heroStage}>
@@ -414,11 +418,11 @@ function HeroArt({
               logo="N"
               logoColor="#3F74CC"
               deep={t.deep}
-              style={{ width: CARD_W }}
+              style={{ width: cardWidth }}
               onPress={() => onInteract('job', 'Senior Product Designer at Nova Labs')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatB }], marginTop: -8 }}>
+          <Animated.View style={{ transform: [{ translateY: floatB }], marginTop: STACK_OVERLAP }}>
             <JobPreviewCard
               compact
               title="Frontend Engineer"
@@ -429,11 +433,11 @@ function HeroArt({
               logo="O"
               logoColor="#2EC4A8"
               deep={t.deep}
-              style={{ width: CARD_W * 0.96, alignSelf: 'flex-end' }}
+              style={{ width: cardWidth * 0.96, alignSelf: 'flex-end' }}
               onPress={() => onInteract('job', 'Frontend Engineer at Orbit Tech')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatC }], marginTop: -8 }}>
+          <Animated.View style={{ transform: [{ translateY: floatC }], marginTop: STACK_OVERLAP }}>
             <JobPreviewCard
               compact
               title="Backend Developer"
@@ -444,17 +448,10 @@ function HeroArt({
               logo="P"
               logoColor="#6B7FD7"
               deep={t.deep}
-              style={{ width: CARD_W * 0.94 }}
+              style={{ width: cardWidth * 0.94 }}
               onPress={() => onInteract('job', 'Backend Developer at Pixelwave')}
             />
           </Animated.View>
-          <Pressable
-            onPress={() => onInteract('job', '2.4k+ live jobs')}
-            style={[styles.statPillInline, { backgroundColor: '#FFFFFF' }]}
-          >
-            <Ionicons name="briefcase" size={14} color={t.deep} />
-            <Text style={[styles.statPillText, { color: t.deep }]}>2.4k+ live jobs near you</Text>
-          </Pressable>
         </View>
       )}
 
@@ -472,11 +469,11 @@ function HeroArt({
               match="92% match"
               deep={t.deep}
               accent={t.accent}
-              style={{ width: CARD_W }}
+              style={{ width: cardWidth }}
               onPress={() => onInteract('candidate', 'Aisha Khan')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatB }], marginTop: -8 }}>
+          <Animated.View style={{ transform: [{ translateY: floatB }], marginTop: STACK_OVERLAP }}>
             <CandidatePreviewCard
               compact
               name="Arjun Patel"
@@ -488,11 +485,11 @@ function HeroArt({
               match="88% match"
               deep={t.deep}
               accent={t.accent}
-              style={{ width: CARD_W * 0.95, alignSelf: 'flex-end' }}
+              style={{ width: cardWidth * 0.95, alignSelf: 'flex-end' }}
               onPress={() => onInteract('candidate', 'Arjun Patel')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatC }], marginTop: -8 }}>
+          <Animated.View style={{ transform: [{ translateY: floatC }], marginTop: STACK_OVERLAP }}>
             <CandidatePreviewCard
               compact
               name="Meera Iyer"
@@ -504,45 +501,9 @@ function HeroArt({
               match="Open to work"
               deep={t.deep}
               accent={t.accent}
-              style={{ width: CARD_W * 0.92 }}
+              style={{ width: cardWidth * 0.92 }}
               onPress={() => onInteract('candidate', 'Meera Iyer')}
             />
-          </Animated.View>
-          <Animated.View
-            style={{
-              transform: [{ translateY: floatD }],
-              marginTop: 4,
-              flexDirection: 'row',
-              gap: 8,
-              justifyContent: 'space-between',
-            }}
-          >
-            <InteractiveCard
-              style={{ flex: 1 }}
-              onPress={() => onInteract('candidate', 'Resume preview')}
-              accessibilityLabel="Preview resume tip"
-            >
-              <View style={[styles.resumeChip, { shadowColor: t.deep }]}>
-                <Ionicons name="document-text" size={16} color={t.deep} />
-                <View>
-                  <Text style={[styles.resumeTitle, { color: t.deep }]}>Resume ready</Text>
-                  <Text style={styles.resumeSub}>ATS score 94%</Text>
-                </View>
-              </View>
-            </InteractiveCard>
-            <InteractiveCard
-              style={{ flex: 1 }}
-              onPress={() => onInteract('candidate', 'Skills preview')}
-              accessibilityLabel="Preview skills tip"
-            >
-              <View style={[styles.resumeChip, { shadowColor: t.deep }]}>
-                <Ionicons name="ribbon" size={16} color={t.deep} />
-                <View>
-                  <Text style={[styles.resumeTitle, { color: t.deep }]}>12 skills</Text>
-                  <Text style={styles.resumeSub}>Verified profile</Text>
-                </View>
-              </View>
-            </InteractiveCard>
           </Animated.View>
         </View>
       )}
@@ -554,7 +515,7 @@ function HeroArt({
               onPress={() => onInteract('candidate', 'Top candidates')}
               accessibilityLabel="Preview top candidates"
             >
-              <View style={[styles.networkCard, { shadowColor: t.deep, width: CARD_W }]}>
+              <View style={[styles.networkCard, { shadowColor: t.deep, width: cardWidth }]}>
                 <Text style={[styles.networkHeading, { color: t.deep }]}>Top candidates hiring now</Text>
                 <View style={styles.avatarRow}>
                   {[
@@ -576,7 +537,7 @@ function HeroArt({
               </View>
             </InteractiveCard>
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatB }], marginTop: -6 }}>
+          <Animated.View style={{ transform: [{ translateY: floatB }], marginTop: STACK_OVERLAP }}>
             <CandidatePreviewCard
               compact
               name="Kabir Singh"
@@ -588,42 +549,21 @@ function HeroArt({
               match="Online"
               deep={t.deep}
               accent={t.accent}
-              style={{ width: CARD_W * 0.96, alignSelf: 'flex-end' }}
+              style={{ width: cardWidth * 0.96, alignSelf: 'flex-end' }}
               onPress={() => onInteract('candidate', 'Kabir Singh')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatC }], marginTop: -6 }}>
+          <Animated.View style={{ transform: [{ translateY: floatC }], marginTop: STACK_OVERLAP }}>
             <InteractiveCard
               onPress={() => onInteract('message', 'Priya Sharma')}
               accessibilityLabel="Preview message from Priya Sharma"
             >
-              <View style={[styles.messagePreviewCard, { shadowColor: t.deep, width: CARD_W }]}>
+              <View style={[styles.messagePreviewCard, { shadowColor: t.deep, width: cardWidth }]}>
                 <AvatarBubble initials="HR" color="#D97757" size={32} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.messageName, { color: t.deep }]}>Priya Sharma · Recruiter</Text>
                   <Text style={styles.messageBody} numberOfLines={2}>
                     Loved your portfolio — free Thursday for a quick intro call?
-                  </Text>
-                </View>
-              </View>
-            </InteractiveCard>
-          </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatD }], marginTop: -6 }}>
-            <InteractiveCard
-              onPress={() => onInteract('message', 'Ananya')}
-              accessibilityLabel="Preview message from Ananya"
-            >
-              <View
-                style={[
-                  styles.messagePreviewCard,
-                  { shadowColor: t.deep, width: CARD_W * 0.94, alignSelf: 'flex-end' },
-                ]}
-              >
-                <AvatarBubble initials="AN" color="#2EC4A8" size={32} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.messageName, { color: t.deep }]}>Ananya · Talent Lead</Text>
-                  <Text style={styles.messageBody} numberOfLines={2}>
-                    We have a senior role that matches your React experience.
                   </Text>
                 </View>
               </View>
@@ -645,11 +585,11 @@ function HeroArt({
               logo="M"
               logoColor="#3F74CC"
               deep={t.deep}
-              style={{ width: CARD_W }}
+              style={{ width: cardWidth }}
               onPress={() => onInteract('job', 'Growth Marketer at Moons Studio')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatB }], marginTop: -8 }}>
+          <Animated.View style={{ transform: [{ translateY: floatB }], marginTop: STACK_OVERLAP }}>
             <CandidatePreviewCard
               compact
               name="Rohan Mehta"
@@ -661,11 +601,11 @@ function HeroArt({
               match="Open to work"
               deep={t.deep}
               accent={t.accent}
-              style={{ width: CARD_W * 0.96, alignSelf: 'flex-end' }}
+              style={{ width: cardWidth * 0.96, alignSelf: 'flex-end' }}
               onPress={() => onInteract('candidate', 'Rohan Mehta')}
             />
           </Animated.View>
-          <Animated.View style={{ transform: [{ translateY: floatC }], marginTop: -8 }}>
+          <Animated.View style={{ transform: [{ translateY: floatC }], marginTop: STACK_OVERLAP }}>
             <JobPreviewCard
               compact
               title="HR Business Partner"
@@ -676,7 +616,7 @@ function HeroArt({
               logo="C"
               logoColor="#6B7FD7"
               deep={t.deep}
-              style={{ width: CARD_W * 0.93 }}
+              style={{ width: cardWidth * 0.93 }}
               onPress={() => onInteract('job', 'HR Business Partner at CloudNest')}
             />
           </Animated.View>
@@ -728,60 +668,97 @@ function ProgressDots({
 
 export function AppIntro({ onComplete }: AppIntroProps) {
   const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const listRef = useRef<FlatList<IntroSlide>>(null);
   const indexRef = useRef(0);
   const draggingRef = useRef(false);
+  const programmaticRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const completingRef = useRef(false);
   const panelTargetRef = useRef(0);
+  const panelAnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const [index, setIndex] = useState(0);
+  const [copyIndex, setCopyIndex] = useState(0);
   const [authGate, setAuthGate] = useState<{
     kind: 'job' | 'candidate' | 'message';
     label: string;
   } | null>(null);
+
   const panelOpacity = useRef(new Animated.Value(1)).current;
   const panelTranslate = useRef(new Animated.Value(0)).current;
+  const rootOpacity = useRef(new Animated.Value(0)).current;
   const sheetY = useRef(new Animated.Value(40)).current;
   const sheetOpacity = useRef(new Animated.Value(0)).current;
 
+  const cardWidth = Math.min(screenW - 28, 360);
+  const titleSize = Math.min(32, screenW * 0.078);
+  // Keep hero compact so the bottom copy/CTA panel can breathe.
+  const heroH = Math.max(300, Math.min(Math.round(screenH * 0.46), 390));
+  const metrics = useMemo(
+    () => ({ screenW, heroH, cardWidth, titleSize }),
+    [screenW, heroH, cardWidth, titleSize],
+  );
+
   const active = SLIDES[index] ?? SLIDES[0];
+  const copySlide = SLIDES[copyIndex] ?? SLIDES[0];
+
+  useEffect(() => {
+    Animated.timing(rootOpacity, {
+      toValue: 1,
+      duration: 380,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [rootOpacity]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index: indexRef.current, animated: false });
+    });
+  }, [metrics.screenW]);
 
   const syncPanel = useCallback(
     (next: number) => {
       if (next === panelTargetRef.current) return;
       panelTargetRef.current = next;
+      setIndex(next);
+      panelAnimRef.current?.stop();
 
-      Animated.parallel([
+      const fadeOut = Animated.parallel([
         Animated.timing(panelOpacity, {
           toValue: 0,
-          duration: PANEL_FADE_MS,
-          easing: Easing.out(Easing.quad),
+          duration: PANEL_FADE_OUT_MS,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.timing(panelTranslate, {
-          toValue: 8,
-          duration: PANEL_FADE_MS,
-          easing: Easing.out(Easing.quad),
+          toValue: 16,
+          duration: PANEL_FADE_OUT_MS,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-      ]).start(({ finished }) => {
-        if (!finished) return;
-        setIndex(next);
-        panelTranslate.setValue(-8);
-        Animated.parallel([
+      ]);
+      panelAnimRef.current = fadeOut;
+      fadeOut.start(() => {
+        if (panelTargetRef.current !== next) return;
+        setCopyIndex(next);
+        panelTranslate.setValue(-14);
+        const fadeIn = Animated.parallel([
           Animated.timing(panelOpacity, {
             toValue: 1,
-            duration: PANEL_FADE_MS + 40,
+            duration: PANEL_FADE_IN_MS,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
           Animated.timing(panelTranslate, {
             toValue: 0,
-            duration: PANEL_FADE_MS + 40,
+            duration: PANEL_FADE_IN_MS,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
-        ]).start();
+        ]);
+        panelAnimRef.current = fadeIn;
+        fadeIn.start();
       });
     },
     [panelOpacity, panelTranslate],
@@ -799,9 +776,14 @@ export function AppIntro({ onComplete }: AppIntroProps) {
       if (completingRef.current) return;
       completingRef.current = true;
       clearTimer();
-      onComplete(dest);
+      Animated.timing(rootOpacity, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => onComplete(dest));
     },
-    [clearTimer, onComplete],
+    [clearTimer, onComplete, rootOpacity],
   );
 
   const scrollTo = useCallback(
@@ -809,12 +791,19 @@ export function AppIntro({ onComplete }: AppIntroProps) {
       const clamped = Math.max(0, Math.min(next, SLIDES.length - 1));
       if (clamped === indexRef.current) return;
       indexRef.current = clamped;
-      listRef.current?.scrollToIndex({ index: clamped, animated });
-      // Programmatic scrolls don't always emit onMomentumScrollEnd.
+      programmaticRef.current = true;
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToIndex({ index: clamped, animated });
+      });
+      // Let the carousel move first, then crossfade the bottom copy.
       if (animated) {
-        setTimeout(() => syncPanel(clamped), 280);
+        setTimeout(() => {
+          syncPanel(clamped);
+          programmaticRef.current = false;
+        }, 280);
       } else {
         syncPanel(clamped);
+        programmaticRef.current = false;
       }
     },
     [syncPanel],
@@ -824,7 +813,7 @@ export function AppIntro({ onComplete }: AppIntroProps) {
     clearTimer();
     if (authGate) return;
     timerRef.current = setInterval(() => {
-      if (draggingRef.current || completingRef.current) return;
+      if (draggingRef.current || completingRef.current || programmaticRef.current) return;
       if (indexRef.current >= SLIDES.length - 1) {
         finish();
         return;
@@ -946,26 +935,27 @@ export function AppIntro({ onComplete }: AppIntroProps) {
 
   const onMomentumEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const next = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
+      const next = Math.round(e.nativeEvent.contentOffset.x / Math.max(metrics.screenW, 1));
+      draggingRef.current = false;
+      programmaticRef.current = false;
       if (next >= 0 && next < SLIDES.length) {
         indexRef.current = next;
         syncPanel(next);
       }
-      draggingRef.current = false;
       if (!authGate) armTimer();
     },
-    [armTimer, authGate, syncPanel],
+    [armTimer, authGate, metrics.screenW, syncPanel],
   );
 
   const renderSlide: ListRenderItem<IntroSlide> = useCallback(
     ({ item }) => (
-      <View style={styles.slide}>
+      <View style={{ width: metrics.screenW, height: metrics.heroH }}>
         <LinearGradient colors={item.theme.gradient} style={styles.heroBleed}>
-          <HeroArt slide={item} onInteract={openAuthGate} />
+          <HeroArt slide={item} cardWidth={metrics.cardWidth} onInteract={openAuthGate} />
         </LinearGradient>
       </View>
     ),
-    [openAuthGate],
+    [metrics, openAuthGate],
   );
 
   const skipTone = index === 0 ? '#FFFFFF' : active.theme.deep;
@@ -986,7 +976,7 @@ export function AppIntro({ onComplete }: AppIntroProps) {
         : `Log in or sign up to open ${authGate?.label ?? 'this profile'} and connect.`;
 
   return (
-    <View style={styles.root}>
+    <Animated.View style={[styles.root, { opacity: rootOpacity }]}>
       <Pressable
         onPress={() => finish()}
         style={[styles.skip, { top: insets.top + 10, backgroundColor: skipBg }]}
@@ -996,33 +986,48 @@ export function AppIntro({ onComplete }: AppIntroProps) {
         <Text style={[styles.skipText, { color: skipTone }]}>Skip</Text>
       </Pressable>
 
-      <FlatList
-        ref={listRef}
-        data={SLIDES}
-        keyExtractor={(item) => item.key}
-        renderItem={renderSlide}
-        horizontal
-        pagingEnabled
-        bounces={false}
-        decelerationRate="fast"
-        showsHorizontalScrollIndicator={false}
-        onScrollBeginDrag={() => {
-          draggingRef.current = true;
-          clearTimer();
-        }}
-        onMomentumScrollEnd={onMomentumEnd}
-        style={styles.list}
-        getItemLayout={(_, i) => ({ length: SCREEN_W, offset: SCREEN_W * i, index: i })}
-        windowSize={3}
-        initialNumToRender={4}
-        removeClippedSubviews={false}
-      />
+      <View style={[styles.heroArea, { height: metrics.heroH }]}>
+        <FlatList
+          key={metrics.screenW}
+          ref={listRef}
+          data={SLIDES}
+          keyExtractor={(item) => item.key}
+          renderItem={renderSlide}
+          horizontal
+          pagingEnabled
+          bounces={false}
+          decelerationRate="fast"
+          showsHorizontalScrollIndicator={false}
+          onScrollBeginDrag={() => {
+            draggingRef.current = true;
+            clearTimer();
+          }}
+          onMomentumScrollEnd={onMomentumEnd}
+          onScrollToIndexFailed={({ index: failedIndex }) => {
+            setTimeout(() => {
+              listRef.current?.scrollToIndex({ index: failedIndex, animated: true });
+              indexRef.current = failedIndex;
+              syncPanel(failedIndex);
+            }, 80);
+          }}
+          style={{ height: metrics.heroH }}
+          getItemLayout={(_, i) => ({
+            length: metrics.screenW,
+            offset: metrics.screenW * i,
+            index: i,
+          })}
+          extraData={index}
+          windowSize={3}
+          initialNumToRender={4}
+          removeClippedSubviews={Platform.OS !== 'web'}
+        />
+      </View>
 
       <View
         style={[
           styles.panel,
           {
-            paddingBottom: Math.max(insets.bottom, 20) + 8,
+            paddingBottom: Math.max(insets.bottom, 18) + 10,
             backgroundColor: '#F7F9FC',
           },
         ]}
@@ -1035,8 +1040,19 @@ export function AppIntro({ onComplete }: AppIntroProps) {
             transform: [{ translateY: panelTranslate }],
           }}
         >
-          <Text style={[styles.title, { color: active.theme.deep }]}>{active.title}</Text>
-          <Text style={styles.description}>{active.description}</Text>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: copySlide.theme.deep,
+                fontSize: metrics.titleSize,
+                lineHeight: metrics.titleSize * 1.18,
+              },
+            ]}
+          >
+            {copySlide.title}
+          </Text>
+          <Text style={styles.description}>{copySlide.description}</Text>
         </Animated.View>
 
         <Pressable
@@ -1108,7 +1124,7 @@ export function AppIntro({ onComplete }: AppIntroProps) {
           </Animated.View>
         </View>
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -1120,7 +1136,7 @@ const styles = StyleSheet.create({
   skip: {
     position: 'absolute',
     right: theme.spacing.md,
-    zIndex: 4,
+    zIndex: 8,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
@@ -1129,18 +1145,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     ...displayFontStyle('semibold'),
   },
-  list: {
+  heroArea: {
     flexGrow: 0,
-    height: HERO_H + 24,
-  },
-  slide: {
-    width: SCREEN_W,
-    height: HERO_H + 24,
+    flexShrink: 0,
   },
   heroBleed: {
     flex: 1,
     paddingTop: 48,
-    paddingBottom: 8,
+    paddingBottom: 16,
     overflow: 'hidden',
   },
   heroStage: {
@@ -1266,7 +1278,7 @@ const styles = StyleSheet.create({
     ...fontStyle('semibold'),
   },
   jobCardCompact: {
-    paddingVertical: 11,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 16,
   },
@@ -1356,7 +1368,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   personCardCompact: {
-    paddingVertical: 11,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 16,
   },
@@ -1476,12 +1488,12 @@ const styles = StyleSheet.create({
   },
   statPillInline: {
     alignSelf: 'center',
-    marginTop: 10,
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 999,
     shadowColor: '#0b1729',
     shadowOpacity: 0.08,
@@ -1495,7 +1507,7 @@ const styles = StyleSheet.create({
   },
   panel: {
     flex: 1,
-    marginTop: -18,
+    marginTop: -16,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
@@ -1505,15 +1517,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   dot: {
     height: 7,
     borderRadius: 999,
   },
   title: {
-    fontSize: Math.min(34, SCREEN_W * 0.082),
-    lineHeight: Math.min(40, SCREEN_W * 0.098),
     letterSpacing: -0.8,
     marginBottom: 10,
     ...displayFontStyle('extrabold'),
@@ -1523,12 +1533,12 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     color: '#6A7B92',
     maxWidth: 340,
-    marginBottom: 28,
+    marginBottom: 20,
     ...fontStyle('medium'),
   },
   cta: {
     marginTop: 'auto',
-    height: 56,
+    height: 54,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',

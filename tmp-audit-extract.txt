@@ -1,0 +1,169 @@
+I audited both codebases route-by-route and feature-by-feature. **Core product flows are largely aligned**, but web has several richer experiences that mobile does not match yet.
+
+---
+
+## Overall verdict
+
+| Area | Status |
+|------|--------|
+| Auth, onboarding, settings | **Mostly aligned** |
+| Network + messages | **Mostly aligned** (mobile recently got Instagram-style tabs) |
+| Profile (candidate + recruiter) | **Mostly aligned** |
+| Jobs + applications (candidate) | **Partial** — mobile is simpler |
+| Companies | **Partial** — mobile is a basic list |
+| Recruiter tools | **Partial** — mobile missing advanced candidate search |
+| Marketing / discovery | **Web-only** (expected) |
+
+---
+
+## Features that match on both platforms
+
+### Authentication & account
+- Login (email/password + Google)
+- Register with OTP + recruiter company-email validation
+- Forgot password (OTP reset)
+- Onboarding (candidate + recruiter fields)
+- Settings hub + security (password create/change)
+- Legal pages: About, Contact, Privacy, Terms, Fraud Alert
+- Newsletter subscribe (web footer, mobile settings)
+
+### Network
+- Tabs: Connections, Pending, Sent, Suggestions, Recent
+- Stats counts + professional search (skills, location, role, Open on Moons, Hiring)
+- Connect with message, accept/reject/cancel/remove
+- Network profile page (`/network/[userId]`)
+- Profile visitors (via Profile → My network)
+- Open on Moons toggle + badge
+- Global connection-invites banner
+
+### Messages
+- Conversation list + thread view
+- Text + file attachments (PDF/DOC/images, 10MB)
+- Accept/ignore connection invites in thread
+- Unread indicators on tabs
+
+### Candidate
+- Job browse + job detail + apply
+- My applications (list, status badges, withdraw)
+- Companies directory + company detail
+- Full profile editor (resume, skills, experience, salary, etc.)
+
+### Recruiter
+- My jobs list, post job, view/edit/close job
+- Per-job applicants + status updates (Viewed, Shortlisted, Rejected)
+- Candidates list (all applicants)
+- Read-only candidate profile view
+- Company profile + logo upload
+
+### Shared UX
+- Role-based bottom navigation (candidate vs recruiter)
+- In-app notification bell (polling)
+- Dark/light theme toggle
+- Connection invite banner
+
+---
+
+## Gaps — web has more, mobile is missing or simpler
+
+### Candidate experience
+
+| Feature | Web | Mobile |
+|---------|-----|--------|
+| **Cover note when applying** | Optional textarea on apply | One-tap apply only — no cover note |
+| **Cover note in applications** | Shown on application cards | Not displayed |
+| **Job filters** | Company, type, salary, industry, location, experience | Text search + employment type chips only |
+| **Jobs UI** | Split list + detail panel | Separate list → detail screen |
+| **Companies filters** | Categories, location, industry, sort, featured strip | Simple list (no filters/sort) |
+| **Onboarding resume parse** | Auto-fills profile from resume | Upload only — no parsing |
+| **Dashboard as home** | `/dashboard` after login | Lands on Jobs / My Jobs tab |
+| **Applications in nav** | Linked from footer/dashboard | Hidden tab — via Profile only |
+
+### Network
+
+| Feature | Web | Mobile |
+|---------|-----|--------|
+| **Cover photo upload** | Upload on network profile | Placeholder color banner only |
+| **Share profile** | Copy link + native share menu | Not implemented |
+| **Accept celebration** | Celebration animation on connect | Not implemented |
+
+### Recruiter experience
+
+| Feature | Web | Mobile |
+|---------|-----|--------|
+| **Candidates search/filters** | Search, job, status, location, experience, notice period | Flat list only — no filters |
+| **Reveal phone number** | On candidate cards | Not implemented |
+| **Inline status update** | On candidates browse page | Only on per-job applicants screen |
+| **Job posting** | Rich-text description editor | Plain multiline text |
+| **Employment type on post** | Selectable | Hardcoded to `FULL_TIME` |
+
+### Platform / discovery (web-only — usually fine)
+
+- Marketing landing page (hero, India map, trending jobs, categories)
+- Universal header search with autocomplete
+- Footer social links (LinkedIn, X, Instagram, YouTube)
+- Split-pane layouts optimized for desktop
+
+### Mobile-only (expected)
+
+- Splash screen + first-launch intro carousel
+- API reachability banner on login
+- Native document/image pickers
+- Secure token storage
+- No native push notifications (in-app bell + polling only)
+
+---
+
+## Side-by-side route map
+
+| Feature | Web route | Mobile route | Parity |
+|---------|-----------|--------------|--------|
+| Login | `/login` | `/login` | ✅ |
+| Register | `/register` | `/register` | ✅ |
+| Forgot password | `/forgot-password` | `/forgot-password` | ✅ |
+| Onboarding | `/onboarding` | `/onboarding` | ⚠️ (no resume parse) |
+| Dashboard | `/dashboard` | `/(tabs)/index` (hidden) | ⚠️ |
+| Jobs | `/jobs` | `/(tabs)/jobs` | ⚠️ (fewer filters) |
+| Job detail | `/jobs?job=` | `/job/[id]` | ⚠️ (no cover note) |
+| Applications | `/applications` | `/(tabs)/applications` (hidden) | ⚠️ |
+| Companies | `/companies` | `/(tabs)/companies` | ⚠️ |
+| Company detail | `/companies/[id]` | `/companies/[id]` | ✅ |
+| Network | `/network` | `/(tabs)/network` | ✅ |
+| Network profile | `/network/[userId]` | `/network/[userId]` | ⚠️ (no cover photo/share) |
+| Messages | `/messages` | `/(tabs)/messages` | ✅ |
+| Profile | `/profile` | `/(tabs)/profile` + `/profile/edit` | ✅ |
+| Settings | `/settings` | `/settings` | ✅ |
+| Recruiter jobs | `/recruiter/jobs` | `/(tabs)/my-jobs` | ✅ |
+| Post job | `/recruiter/jobs/new` | `/recruiter/jobs/new` | ⚠️ |
+| Applicants | `/recruiter/jobs/[id]/applicants` | same path pattern | ✅ |
+| Candidates browse | `/recruiter/candidates` | `/(tabs)/candidates` | ⚠️ (no filters) |
+| Static pages | `/about`, etc. | same | ✅ |
+| Landing / marketing | `/` | — | Web only |
+
+---
+
+## Recommended priority to close gaps
+
+**High impact (user-facing parity):**
+1. Cover note on job apply + show in applications
+2. Recruiter candidates filters (search, job, status, experience)
+3. Job posting: employment type selector + richer description
+4. Companies: search + category filters
+
+**Medium impact (polish):**
+5. Network profile cover photo + share
+6. Onboarding resume auto-fill
+7. More job browse filters (location, experience)
+8. Reveal phone on recruiter candidate cards
+
+**Lower priority:**
+9. Dashboard as optional home
+10. Applications in tab bar or profile shortcut prominence
+11. Native push notifications
+
+---
+
+**Bottom line:** Mobile covers the main flows (auth, jobs, network, chat, profile, recruiter job management). The biggest functional gaps are **cover notes**, **recruiter candidate search/filters**, **companies/job filtering**, and **richer job posting**. Marketing/landing and desktop layouts are naturally web-only.
+
+If you want, I can start implementing these gaps in priority order — say which group matters most to you first.
+
+[REDACTED]

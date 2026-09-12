@@ -1,6 +1,7 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -14,8 +15,10 @@ import { CompanyAvatar } from '@/components/company-avatar';
 import { CoverNoteBlock, ScreeningAnswersList } from '@/components/jobs/screening-answers-list';
 import { LoadingScreen } from '@/components/loading-screen';
 import { StatusBadge } from '@/components/status-badge';
-import { authFetch } from '@/lib/api';
+import { ApiError, authFetch } from '@/lib/api';
+import { resolveAssetUrl } from '@/lib/assets';
 import { formatRecruiterApplicationStatus } from '@/lib/format';
+import { fetchConversationWithUser } from '@/lib/messages';
 import { openResumeFileOrAlert } from '@/lib/open-resume';
 import { useTabScreenPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
@@ -37,6 +40,7 @@ function formatExperience(years: number | null | undefined) {
 
 export default function ApplicantsScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const bottomPadding = useTabScreenPadding(24);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [job, setJob] = useState<JobListing | null>(null);
@@ -44,6 +48,11 @@ export default function ApplicantsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [messagingId, setMessagingId] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: 'Applicants' });
+  }, [navigation]);
 
   const stats = useMemo(() => {
     const countBy = (status: ApplicationStatus) =>
@@ -97,10 +106,8 @@ export default function ApplicantsScreen() {
           paddingVertical: 4,
         },
         skillText: { fontSize: 11, color: colors.foreground, fontFamily: theme.fonts.medium },
-        profileLink: { marginTop: 10 },
-        profileLinkText: { color: colors.blue, fontFamily: theme.fonts.semibold, fontSize: 13 },
-        resumeLink: { marginTop: 6 },
-        resumeLinkText: { color: colors.blue, fontFamily: theme.fonts.semibold, fontSize: 12 },
+        links: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 10 },
+        linkText: { color: colors.blue, fontFamily: theme.fonts.semibold, fontSize: 13 },
         actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
         chip: {
           borderWidth: 1,
@@ -149,8 +156,28 @@ export default function ApplicantsScreen() {
       setApplicants((prev) =>
         prev.map((a) => (a.id === applicationId ? { ...a, status } : a)),
       );
+    } catch (err) {
+      Alert.alert(
+        'Could not update status',
+        err instanceof ApiError ? err.message : 'Please try again.',
+      );
     } finally {
       setUpdatingId(null);
+    }
+  }
+
+  async function openMessage(userId: string) {
+    setMessagingId(userId);
+    try {
+      const conv = await fetchConversationWithUser(userId);
+      router.push(`/messages/${conv.id}` as never);
+    } catch (err) {
+      Alert.alert(
+        'Could not open chat',
+        err instanceof ApiError ? err.message : 'Connect with this candidate first, or try again.',
+      );
+    } finally {
+      setMessagingId(null);
     }
   }
 
@@ -199,10 +226,11 @@ export default function ApplicantsScreen() {
           const profile = item.candidate.profile;
           const name = profile?.fullName ?? item.candidate.email;
           const expLabel = formatExperience(profile?.experienceYears);
+          const avatarUrl = resolveAssetUrl(profile?.avatarUrl);
           return (
             <View style={styles.card}>
               <View style={styles.row}>
-                <CompanyAvatar name={name} size={48} />
+                <CompanyAvatar name={name} size={48} imageUrl={avatarUrl} />
                 <View style={{ flex: 1 }}>
                   <StatusBadge status={item.status} />
                   <Text style={styles.name}>{name}</Text>
@@ -251,22 +279,28 @@ export default function ApplicantsScreen() {
                 style={{ marginTop: 10 }}
               />
 
-              <Pressable
-                onPress={() => router.push(`/recruiter/candidates/${item.candidate.id}`)}
-                style={styles.profileLink}
-              >
-                <Text style={styles.profileLinkText}>View profile</Text>
-              </Pressable>
-              {profile?.resumeUrl ? (
-                <Pressable
-                  style={styles.resumeLink}
-                  onPress={() =>
-                    void openResumeFileOrAlert(profile.resumeUrl, profile.resumeFileName)
-                  }
-                >
-                  <Text style={styles.resumeLinkText}>Open resume</Text>
+              <View style={styles.links}>
+                <Pressable onPress={() => router.push(`/recruiter/candidates/${item.candidate.id}`)}>
+                  <Text style={styles.linkText}>View profile</Text>
                 </Pressable>
-              ) : null}
+                <Pressable
+                  disabled={messagingId === item.candidate.id}
+                  onPress={() => void openMessage(item.candidate.id)}
+                >
+                  <Text style={styles.linkText}>
+                    {messagingId === item.candidate.id ? 'Opening…' : 'Message'}
+                  </Text>
+                </Pressable>
+                {profile?.resumeUrl ? (
+                  <Pressable
+                    onPress={() =>
+                      void openResumeFileOrAlert(profile.resumeUrl, profile.resumeFileName)
+                    }
+                  >
+                    <Text style={styles.linkText}>Open resume</Text>
+                  </Pressable>
+                ) : null}
+              </View>
               <View style={styles.actions}>
                 {STATUS_OPTIONS.map((status) => (
                   <Pressable

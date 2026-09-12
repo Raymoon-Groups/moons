@@ -70,6 +70,12 @@ function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessage
     { routeName: 'index', label: 'Feed', icon: 'home-outline', activeIcon: 'home' },
     { routeName: 'jobs', label: 'Jobs', icon: 'briefcase-outline', activeIcon: 'briefcase' },
     {
+      routeName: 'applications',
+      label: 'Applied',
+      icon: 'document-text-outline',
+      activeIcon: 'document-text',
+    },
+    {
       routeName: 'network',
       label: 'Network',
       icon: 'people-outline',
@@ -82,12 +88,6 @@ function getPillItems(isRecruiter: boolean, showNetworkDot: boolean, showMessage
       icon: 'chatbubble-outline',
       activeIcon: 'chatbubble',
       showDot: showMessagesDot,
-    },
-    {
-      routeName: 'companies',
-      label: 'Companies',
-      icon: 'business-outline',
-      activeIcon: 'business',
     },
   ];
 }
@@ -122,7 +122,10 @@ function resolveActiveRoute(pathname: string, segments: string[], isRecruiter: b
   if (path.includes('/profile') || joined.includes('profile') || path.includes('/settings')) {
     return undefined;
   }
-  if (path.includes('/job') || joined.includes('jobs') || joined.includes('my-jobs') || joined.includes('applications')) {
+  if (joined.includes('applications') || path.includes('/applications')) {
+    return isRecruiter ? 'my-jobs' : 'applications';
+  }
+  if (path.includes('/job') || joined.includes('jobs') || joined.includes('my-jobs')) {
     return isRecruiter ? 'my-jobs' : 'jobs';
   }
   if (path.includes('/network') || joined.includes('network')) return 'network';

@@ -1,5 +1,5 @@
 import { Image as ExpoImage } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Image as RNImage,
   Pressable,
@@ -14,6 +14,8 @@ import { InlineFeedVideo } from '@/components/feed/inline-feed-video';
 
 const MAX_HEIGHT = 560;
 const FALLBACK_MIN = 72;
+/** Placeholder while dimensions load — short so feed doesn’t jump to a tall empty frame. */
+const LOADING_HEIGHT = 180;
 
 export function clampMediaHeight(width: number, ratio: number, maxHeight = MAX_HEIGHT) {
   if (!(width > 0) || !(ratio > 0)) return Math.min(maxHeight, width * 0.56);
@@ -39,7 +41,7 @@ function readRatioFromUri(uri: string | null | undefined, onRatio: (ratio: numbe
 }
 
 /**
- * Feed image sized to its own aspect ratio (no crop, no forced shared height).
+ * Feed image sized to its own aspect ratio (explicit height — no flex/aspectRatio gaps).
  * Tall images are capped and letterboxed; short/wide images keep natural height.
  */
 export function FeedMediaImage({
@@ -68,20 +70,13 @@ export function FeedMediaImage({
 
   const naturalHeight = ratio ? width / ratio : 0;
   const capped = Boolean(ratio && naturalHeight > maxHeight);
-  const boxHeight = ratio ? clampMediaHeight(width, ratio, maxHeight) : 0;
+  const boxHeight = ratio ? clampMediaHeight(width, ratio, maxHeight) : LOADING_HEIGHT;
 
   useEffect(() => {
-    if (boxHeight > 0) onHeightChange?.(boxHeight);
-  }, [boxHeight, onHeightChange]);
+    if (ratio && boxHeight > 0) onHeightChange?.(boxHeight);
+  }, [boxHeight, onHeightChange, ratio]);
 
   if (!uri) return null;
-
-  const imageStyle =
-    ratio == null
-      ? { width, height: 1, opacity: 0 }
-      : capped
-        ? { width, height: maxHeight }
-        : { width, aspectRatio: ratio };
 
   const content = (
     <View
@@ -89,16 +84,16 @@ export function FeedMediaImage({
         styles.box,
         {
           width,
+          height: boxHeight,
           borderRadius,
-          backgroundColor: capped ? '#0f1726' : 'transparent',
-          ...(ratio == null ? { minHeight: 1 } : capped ? { height: maxHeight } : null),
+          backgroundColor: capped || !ratio ? '#0f1726' : 'transparent',
         },
         style,
       ]}
     >
       <ExpoImage
         source={{ uri }}
-        style={imageStyle}
+        style={{ width, height: boxHeight, opacity: ratio ? 1 : 0 }}
         contentFit={capped ? 'contain' : 'cover'}
         transition={120}
         onLoad={(event) => {
@@ -121,7 +116,7 @@ export function FeedMediaImage({
 
 /** Default video frame — portrait-friendly, still uses contain so nothing is cropped. */
 export function feedMediaFrameStyle(width: number, maxHeight = MAX_HEIGHT): ViewStyle {
-  const height = Math.min(maxHeight, Math.max(220, width * 1.15));
+  const height = Math.min(maxHeight, Math.max(220, width * 0.56));
   return {
     width,
     height,
@@ -130,12 +125,12 @@ export function feedMediaFrameStyle(width: number, maxHeight = MAX_HEIGHT): View
 }
 
 export function videoFrameHeight(width: number, maxHeight = MAX_HEIGHT) {
-  return Math.min(maxHeight, Math.max(220, width * 1.15));
+  return Math.min(maxHeight, Math.max(220, width * 0.56));
 }
 
 /**
- * Multi-image/video carousel that only mounts the active slide so height
- * always matches that media item (no shared tallest-slide frame).
+ * Multi-image/video carousel — only the active slide is mounted so height
+ * always matches that item (no shared tall empty frame).
  */
 export function FeedMediaCarousel({
   media,
@@ -153,8 +148,7 @@ export function FeedMediaCarousel({
   activeDotColor: string;
 }) {
   const [index, setIndex] = useState(0);
-  const gesture = useRef({ x: 0, y: 0, swiping: false });
-  const mediaKey = media.map((item) => item.id).join('|');
+  const mediaKey = media.map((item, i) => item.id || `${i}:${item.url}`).join('|');
 
   useEffect(() => {
     setIndex(0);
@@ -173,7 +167,7 @@ export function FeedMediaCarousel({
   }
 
   return (
-    <View>
+    <View style={{ width }}>
       {isVideo && uri ? (
         <InlineFeedVideo
           uri={uri}
@@ -182,32 +176,27 @@ export function FeedMediaCarousel({
           onPress={() => onOpenViewer(safeIndex)}
         />
       ) : (
-        <View
-          onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => true}
-          onResponderGrant={(e) => {
-            gesture.current = {
-              x: e.nativeEvent.pageX,
-              y: e.nativeEvent.pageY,
-              swiping: false,
-            };
-          }}
-          onResponderMove={(e) => {
-            const dx = Math.abs(e.nativeEvent.pageX - gesture.current.x);
-            const dy = Math.abs(e.nativeEvent.pageY - gesture.current.y);
-            if (dx > 12 && dx > dy) gesture.current.swiping = true;
-          }}
-          onResponderRelease={(e) => {
-            const dx = e.nativeEvent.pageX - gesture.current.x;
-            if (gesture.current.swiping) {
-              if (dx <= -48) go(safeIndex + 1);
-              else if (dx >= 48) go(safeIndex - 1);
-              return;
-            }
-            onOpenViewer(safeIndex);
-          }}
-        >
-          <FeedMediaImage key={`${item.id}-${safeIndex}`} uri={uri} width={width} />
+        <View style={{ width, position: 'relative' }}>
+          <FeedMediaImage
+            key={`${item.id || safeIndex}-${safeIndex}`}
+            uri={uri}
+            width={width}
+            onPress={() => onOpenViewer(safeIndex)}
+          />
+          {media.length > 1 ? (
+            <>
+              <Pressable
+                style={[styles.edgeHit, { left: 0 }]}
+                onPress={() => go(safeIndex - 1)}
+                accessibilityLabel="Previous media"
+              />
+              <Pressable
+                style={[styles.edgeHit, { right: 0 }]}
+                onPress={() => go(safeIndex + 1)}
+                accessibilityLabel="Next media"
+              />
+            </>
+          ) : null}
         </View>
       )}
 
@@ -215,7 +204,7 @@ export function FeedMediaCarousel({
         <View style={styles.dotRow}>
           {media.map((entry, i) => (
             <Pressable
-              key={entry.id}
+              key={entry.id || `dot-${i}`}
               onPress={() => setIndex(i)}
               hitSlop={6}
               accessibilityRole="button"
@@ -256,5 +245,12 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 16,
+  },
+  edgeHit: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: '22%',
+    zIndex: 2,
   },
 });

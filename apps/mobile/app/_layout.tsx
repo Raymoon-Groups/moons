@@ -1,64 +1,95 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { InteractionManager, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
-import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
-import { IncomingMessageSoundListener } from '@/components/incoming-message-sound-listener';
 import { PersistentBottomPillNav } from '@/components/bottom-pill-tab-bar';
 import { PersistentGlassTabHeader } from '@/components/glass-tab-header';
-import { ConnectionSuccessHost } from '@/components/network/connection-success-host';
+import { GoogleAuthWrapper } from '@/components/google-auth-wrapper';
 import { AuthProvider } from '@/lib/auth-context';
+import { showNavChrome, resetNavChrome } from '@/lib/nav-chrome';
 import { SavedJobsProvider } from '@/lib/saved-jobs-context';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 import { useAppFonts } from '@/lib/use-app-fonts';
 
 /**
- * KeyboardProvider has caused native Android release crashes when mounted at boot
- * with the New Architecture. Load it only after the first frame, and fall back if
- * the native module is unavailable.
+ * Mount non-critical UI only after the first interactive frame so cold start
+ * cannot die on optional native-heavy modules (audio, etc.).
  */
-function OptionalKeyboardProvider({ children }: { children: ReactNode }) {
-  const [Provider, setProvider] = useState<null | ComponentType<{ children: ReactNode }>>(null);
+function DeferredMount({ children, delayMs = 0 }: { children: ReactNode; delayMs?: number }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const handle = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => setReady(true), delayMs);
+    });
+    // Hard fallback — never leave optional chrome permanently unmounted.
+    const fallback = setTimeout(() => setReady(true), Math.max(delayMs, 0) + 1500);
+    return () => {
+      handle.cancel();
+      if (timer) clearTimeout(timer);
+      clearTimeout(fallback);
+    };
+  }, [delayMs]);
+
+  if (!ready) return null;
+  return <>{children}</>;
+}
+
+function AppChrome() {
+  useEffect(() => {
+    resetNavChrome();
+    showNavChrome();
+  }, []);
+
+  return (
+    <>
+      <PersistentGlassTabHeader />
+      <PersistentBottomPillNav />
+    </>
+  );
+}
+
+function LazyIncomingMessageSoundListener() {
+  const [Cmp, setCmp] = useState<null | ComponentType>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const timer = setTimeout(() => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const mod = require('react-native-keyboard-controller') as {
-          KeyboardProvider?: ComponentType<{
-            children: ReactNode;
-            statusBarTranslucent?: boolean;
-            navigationBarTranslucent?: boolean;
-          }>;
-        };
-        if (!cancelled && mod.KeyboardProvider) {
-          const KP = mod.KeyboardProvider;
-          setProvider(() =>
-            function WrappedKeyboardProvider({ children: inner }: { children: ReactNode }) {
-              return (
-                <KP statusBarTranslucent navigationBarTranslucent>
-                  {inner}
-                </KP>
-              );
-            },
-          );
-        }
-      } catch {
-        // App continues without keyboard-controller.
-      }
-    }, 0);
+    void import('@/components/incoming-message-sound-listener')
+      .then((mod) => {
+        if (!cancelled) setCmp(() => mod.IncomingMessageSoundListener);
+      })
+      .catch(() => {
+        // Optional — app works without message sounds.
+      });
     return () => {
       cancelled = true;
-      clearTimeout(timer);
     };
   }, []);
 
-  if (!Provider) return <>{children}</>;
-  return <Provider>{children}</Provider>;
+  return Cmp ? <Cmp /> : null;
+}
+
+function LazyConnectionSuccessHost() {
+  const [Cmp, setCmp] = useState<null | ComponentType>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import('@/components/network/connection-success-host')
+      .then((mod) => {
+        if (!cancelled) setCmp(() => mod.ConnectionSuccessHost);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return Cmp ? <Cmp /> : null;
 }
 
 function RootStack() {
@@ -111,48 +142,34 @@ function RootStack() {
 function AppRoot() {
   const fontsLoaded = useAppFonts();
   const [mounted, setMounted] = useState(false);
-  const { colors } = useTheme();
 
   useEffect(() => {
     if (fontsLoaded) setMounted(true);
   }, [fontsLoaded]);
 
-  // Hard fallback — never leave Play users on a blank spinner.
+  // Hard fallback — never leave Play users on a blank screen.
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 2000);
+    const timer = setTimeout(() => setMounted(true), 1200);
     return () => clearTimeout(timer);
   }, []);
 
   if (!mounted) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.background ?? '#F3F7FC',
-          paddingHorizontal: 24,
-        }}
-      >
-        <ActivityIndicator size="large" color={colors.blue ?? '#3F74CC'} />
-        <Text style={{ marginTop: 14, color: colors.muted ?? '#5b6b82', fontSize: 14 }}>
-          Starting MoonsJob…
-        </Text>
-      </View>
-    );
+    // Match splash background — no spinner flash while fonts resolve (often <1 frame).
+    return <View style={[styles.flex, { backgroundColor: '#F3F7FC' }]} />;
   }
 
   return (
     <GoogleAuthWrapper>
       <AuthProvider>
         <SavedJobsProvider>
-          <IncomingMessageSoundListener />
-          <ConnectionSuccessHost />
-          <View style={{ flex: 1 }}>
+          <View style={styles.flex}>
             <RootStack />
-            <PersistentGlassTabHeader />
-            <PersistentBottomPillNav />
+            <AppChrome />
           </View>
+          <DeferredMount delayMs={400}>
+            <LazyIncomingMessageSoundListener />
+            <LazyConnectionSuccessHost />
+          </DeferredMount>
         </SavedJobsProvider>
       </AuthProvider>
     </GoogleAuthWrapper>
@@ -161,14 +178,18 @@ function AppRoot() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AppErrorBoundary>
-        <ThemeProvider>
-          <OptionalKeyboardProvider>
+    <GestureHandlerRootView style={styles.flex}>
+      <SafeAreaProvider>
+        <AppErrorBoundary>
+          <ThemeProvider>
             <AppRoot />
-          </OptionalKeyboardProvider>
-        </ThemeProvider>
-      </AppErrorBoundary>
-    </SafeAreaProvider>
+          </ThemeProvider>
+        </AppErrorBoundary>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+});
