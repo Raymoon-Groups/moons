@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin/admin-shell';
-import { ApiError, authFetch } from '@/lib/api-client';
+import { ApiError, adminFetch } from '@/lib/api-client';
 
 type Subscriber = {
   id: string;
@@ -17,7 +17,7 @@ export default function AdminNewsletterPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    authFetch<{ total: number; items: Subscriber[] }>('/newsletter/subscribers')
+    adminFetch<{ total: number; items: Subscriber[] }>('/newsletter/subscribers')
       .then((data) => {
         setItems(data.items);
         setTotal(data.total);

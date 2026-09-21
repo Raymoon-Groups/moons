@@ -110,6 +110,6 @@ export class ApplicationsController {
     @Param('id') id: string,
     @Body() dto: UpdateApplicationStatusDto,
   ) {
-    return this.applicationsService.updateStatus(id, user.sub, dto.status);
+    return this.applicationsService.updateStatus(id, user.sub, dto.status, dto.rejectionReason);
   }
 }

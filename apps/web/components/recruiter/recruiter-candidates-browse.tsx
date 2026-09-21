@@ -8,6 +8,7 @@ import type { EducationEntry, WorkExperienceEntry } from '@moons/shared';
 import { formatExperience, getResumeDisplayName } from '@/components/profile/profile-shared';
 import { ResumeDownloadButton } from '@/components/resume-download-button';
 import { DashPageHero } from '@/components/dash/dash-page-shell';
+import { RejectionReasonModal } from '@/components/recruiter/rejection-reason-modal';
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 import type { JobListing } from '@/lib/jobs';
@@ -175,6 +176,7 @@ function CandidateCard({
   phoneRevealed,
   onRevealPhone,
   updating,
+  pendingReject,
   onStatusChange,
 }: {
   row: RecruiterCandidateRow;
@@ -182,6 +184,7 @@ function CandidateCard({
   phoneRevealed: boolean;
   onRevealPhone: () => void;
   updating: boolean;
+  pendingReject: boolean;
   onStatusChange: (status: ApplicationStatus) => void;
 }) {
   const profile = row.candidate.profile;
@@ -380,7 +383,7 @@ function CandidateCard({
             )}
 
             <select
-              value={row.status}
+              value={pendingReject ? ApplicationStatus.REJECTED : row.status}
               disabled={updating}
               onChange={(e) => onStatusChange(e.target.value as ApplicationStatus)}
               className="w-full rounded-xl border border-border bg-surface-elevated px-3 py-2 text-xs font-semibold text-heading outline-none transition focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/20 disabled:opacity-60"
@@ -391,6 +394,12 @@ function CandidateCard({
                 </option>
               ))}
             </select>
+            {row.status === ApplicationStatus.REJECTED && row.rejectionReason ? (
+              <p className="rounded-lg border border-red-200/70 bg-red-50/60 px-2.5 py-2 text-[11px] leading-relaxed text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                <span className="font-semibold">Note: </span>
+                {row.rejectionReason}
+              </p>
+            ) : null}
           </div>
 
           <p className="mt-4 text-center text-[10px] leading-relaxed text-moons-muted">
@@ -436,6 +445,7 @@ export function RecruiterCandidatesBrowse() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<RecruiterCandidateRow | null>(null);
   const [revealedPhones, setRevealedPhones] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -513,17 +523,47 @@ export function RecruiterCandidatesBrowse() {
     router.replace('/recruiter/candidates');
   }
 
-  async function updateStatus(applicationId: string, status: ApplicationStatus) {
+  async function updateStatus(
+    applicationId: string,
+    status: ApplicationStatus,
+    rejectionReason?: string,
+  ) {
+    if (status === ApplicationStatus.REJECTED && rejectionReason === undefined) {
+      const target = candidates.find((c) => c.id === applicationId) ?? null;
+      setRejectTarget(target);
+      return;
+    }
+
     setUpdatingId(applicationId);
     setError('');
     try {
-      await authFetch(`/applications/${applicationId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
-      setCandidates((prev) =>
-        prev.map((c) => (c.id === applicationId ? { ...c, status } : c)),
+      const updated = await authFetch<RecruiterCandidateRow>(
+        `/applications/${applicationId}/status`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status,
+            ...(status === ApplicationStatus.REJECTED && rejectionReason
+              ? { rejectionReason }
+              : {}),
+          }),
+        },
       );
+      setCandidates((prev) =>
+        prev.map((c) =>
+          c.id === applicationId
+            ? {
+                ...c,
+                status: updated.status ?? status,
+                rejectionReason:
+                  status === ApplicationStatus.REJECTED
+                    ? updated.rejectionReason ?? rejectionReason ?? null
+                    : null,
+              }
+            : c,
+        ),
+      );
+      setRejectTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -753,6 +793,7 @@ export function RecruiterCandidatesBrowse() {
                     setRevealedPhones((prev) => new Set(prev).add(row.candidate.id))
                   }
                   updating={updatingId === row.id}
+                  pendingReject={rejectTarget?.id === row.id}
                   onStatusChange={(status) => updateStatus(row.id, status)}
                 />
               ))
@@ -760,6 +801,21 @@ export function RecruiterCandidatesBrowse() {
           </main>
         </div>
       </div>
+
+      <RejectionReasonModal
+        open={!!rejectTarget}
+        candidateName={
+          rejectTarget?.candidate.profile?.fullName ??
+          rejectTarget?.candidate.email ??
+          'candidate'
+        }
+        loading={!!rejectTarget && updatingId === rejectTarget.id}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={(reason) => {
+          if (!rejectTarget) return;
+          void updateStatus(rejectTarget.id, ApplicationStatus.REJECTED, reason);
+        }}
+      />
     </div>
   );
 }

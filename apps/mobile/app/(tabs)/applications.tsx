@@ -70,6 +70,13 @@ export default function ApplicationsScreen() {
         statLabel: { fontSize: 11, fontFamily: theme.fonts.medium, color: colors.muted },
         statValue: { fontSize: 14, fontFamily: theme.fonts.bold, color: colors.heading, marginTop: 2 },
         appliedMeta: { marginTop: 8, fontSize: 12, fontFamily: theme.fonts.medium, color: colors.muted },
+        rejectNote: {
+          marginTop: 10,
+          fontSize: 13,
+          lineHeight: 18,
+          color: '#b91c1c',
+          fontFamily: theme.fonts.regular,
+        },
         withdraw: { marginTop: 12, alignSelf: 'flex-start' },
         withdrawText: { color: colors.error, fontFamily: theme.fonts.bold, fontSize: 13 },
       }),
@@ -202,6 +209,9 @@ export default function ApplicationsScreen() {
                     year: 'numeric',
                   })}
                 </Text>
+                {item.status === ApplicationStatus.REJECTED && item.rejectionReason ? (
+                  <Text style={styles.rejectNote}>Recruiter note: {item.rejectionReason}</Text>
+                ) : null}
                 {item.coverNote ? <CoverNoteBlock note={item.coverNote} style={{ marginTop: 10 }} /> : null}
                 <ScreeningAnswersList
                   questions={item.job.screeningQuestions}

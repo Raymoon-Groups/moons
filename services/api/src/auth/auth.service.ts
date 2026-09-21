@@ -31,6 +31,12 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { AdminPortalLoginDto } from './dto/admin-portal-login.dto';
+import {
+  ADMIN_PORTAL_JWT_TYP,
+  isAdminPortalConfigured,
+} from './admin-portal-auth';
+import { timingSafeEqual } from 'crypto';
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
 /** Keep a rotated refresh token reusable briefly so concurrent refreshes don't log users out. */
@@ -960,5 +966,51 @@ export class AuthService {
     if (claimed !== current) {
       throw new UnauthorizedException('Session has been revoked. Please sign in again.');
     }
+  }
+
+  async adminPortalLogin(dto: AdminPortalLoginDto) {
+    if (!isAdminPortalConfigured()) {
+      throw new UnauthorizedException(
+        'Admin portal login is not configured. Set ADMIN_PORTAL_USERNAME and ADMIN_PORTAL_PASSWORD on the API.',
+      );
+    }
+
+    const expectedUser = process.env.ADMIN_PORTAL_USERNAME!.trim();
+    const plainPassword = process.env.ADMIN_PORTAL_PASSWORD?.trim();
+    const passwordHash = process.env.ADMIN_PORTAL_PASSWORD_HASH?.trim();
+
+    if (dto.username.trim() !== expectedUser) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    let valid = false;
+    if (passwordHash) {
+      valid = await bcrypt.compare(dto.password, passwordHash);
+    } else if (plainPassword) {
+      valid = this.timingSafeEqualString(dto.password, plainPassword);
+    }
+
+    if (!valid) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    const token = await this.jwtService.signAsync(
+      { typ: ADMIN_PORTAL_JWT_TYP, sub: expectedUser },
+      {
+        secret:
+          process.env.JWT_ACCESS_SECRET ??
+          'moons-dev-access-secret-change-in-production',
+        expiresIn: '12h',
+      },
+    );
+
+    return { ok: true as const, username: expectedUser, token };
+  }
+
+  private timingSafeEqualString(a: string, b: string): boolean {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return timingSafeEqual(bufA, bufB);
   }
 }

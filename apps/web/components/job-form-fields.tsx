@@ -7,12 +7,12 @@ import {
   ScreeningQuestionType,
   type ScreeningQuestion,
 } from '@moons/shared';
-import { ExperienceRequiredPicker } from '@/components/jobs/experience-required-picker';
-import { RichTextEditor } from '@/components/rich-text-editor';
 import {
-  experienceValueToJobYears,
-  jobYearsToExperienceValue,
-} from '@/lib/experience-options';
+  ExperienceRequiredPicker,
+  experienceRangeToJobYears,
+  jobYearsToExperienceRange,
+} from '@/components/jobs/experience-required-picker';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { SALARY_OPTIONS } from '@/lib/jobs';
 
 const inputClass =
@@ -25,7 +25,8 @@ interface JobFormValues {
   location: string;
   employmentType: EmploymentType;
   salaryRange: string;
-  experienceBand: string;
+  minExperienceYears: string;
+  maxExperienceYears: string;
   screeningQuestions: ScreeningQuestion[];
 }
 
@@ -177,10 +178,14 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
       <div>
         <label className="block text-sm font-medium text-moons-silver">Experience required</label>
         <ExperienceRequiredPicker
-          value={values.experienceBand}
-          onChange={(next) => onChange('experienceBand', next)}
-          placeholder="Not specified"
+          minYears={values.minExperienceYears}
+          maxYears={values.maxExperienceYears}
+          onChange={(minYears, maxYears) => {
+            onChange('minExperienceYears', minYears);
+            onChange('maxExperienceYears', maxYears);
+          }}
         />
+        <p className="mt-1.5 text-xs text-moons-muted">Set a custom min–max range, or leave as Any.</p>
       </div>
     </div>
   );
@@ -359,15 +364,15 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
   );
 }
 
-export function experienceBandToYears(band: string) {
-  return experienceValueToJobYears(band);
+export function experienceBandToYears(minYears: string, maxYears: string) {
+  return experienceRangeToJobYears(minYears, maxYears);
 }
 
 export function yearsToExperienceBand(
   min: number | null | undefined,
   max: number | null | undefined,
 ) {
-  return jobYearsToExperienceValue(min, max);
+  return jobYearsToExperienceRange(min, max);
 }
 
 export type { JobFormValues };

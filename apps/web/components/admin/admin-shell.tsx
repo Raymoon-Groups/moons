@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ApiError, authFetch } from '@/lib/api-client';
-import { useAuth } from '@/lib/auth-context';
+import { ApiError, adminFetch, apiFetch } from '@/lib/api-client';
+import { clearAdminPortalFlagCookie } from '@/lib/admin-portal';
 
 const NAV = [
   { href: '/admin', label: 'Overview' },
@@ -14,38 +14,31 @@ const NAV = [
   { href: '/admin/reports', label: 'Reports' },
 ] as const;
 
+type AdminMe =
+  | { ok: true; mode: 'portal'; username: string }
+  | { ok: true; mode: 'user'; email: string };
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  const { user, ready } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [allowed, setAllowed] = useState(false);
+  const [session, setSession] = useState<AdminMe | null>(null);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!ready) return;
-    if (!user) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-      return;
-    }
-
     let active = true;
     setChecking(true);
-    authFetch<{ ok: boolean }>('/auth/admin/me')
-      .then(() => {
-        if (active) {
-          setAllowed(true);
-          setError('');
-        }
+    authFetchAdminMe()
+      .then((data) => {
+        if (!active) return;
+        setSession(data);
+        setError('');
       })
       .catch((err) => {
         if (!active) return;
-        setAllowed(false);
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : 'You do not have admin access. Ask the developer to add your email to ADMIN_EMAILS.',
-        );
+        setSession(null);
+        setError(err instanceof ApiError ? err.message : 'Admin session expired');
+        router.replace(`/admin/login?next=${encodeURIComponent(pathname)}`);
       })
       .finally(() => {
         if (active) setChecking(false);
@@ -54,9 +47,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [ready, user, router, pathname]);
+  }, [router, pathname]);
 
-  if (!ready || checking) {
+  async function handleLogout() {
+    try {
+      await apiFetch('/auth/admin/logout', { method: 'POST', skipAuthRetry: true });
+    } catch {
+      // still clear local state
+    }
+    clearAdminPortalFlagCookie();
+    router.replace('/admin/login');
+  }
+
+  if (checking) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-sm text-moons-muted">
         Checking admin access…
@@ -64,27 +67,23 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!allowed) {
+  if (!session) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-foreground">Admin access required</h1>
-        <p className="mt-3 text-sm text-moons-muted">{error}</p>
-        {user?.email && (
-          <p className="mt-4 rounded-xl bg-surface px-4 py-3 text-left text-sm text-foreground">
-            Add this line to <code className="font-mono text-xs">services/api/.env</code>, then
-            restart <code className="font-mono text-xs">pnpm dev</code>:
-            <br />
-            <code className="mt-2 block break-all font-mono text-xs text-moons-blue">
-              ADMIN_EMAILS={user.email}
-            </code>
-          </p>
-        )}
-        <Link href="/" className="mt-6 inline-block text-sm font-semibold text-moons-blue">
-          Back to home
+        <h1 className="text-2xl font-bold text-foreground">Admin sign in required</h1>
+        {error ? <p className="mt-3 text-sm text-moons-muted">{error}</p> : null}
+        <Link
+          href={`/admin/login?next=${encodeURIComponent(pathname)}`}
+          className="mt-6 inline-block text-sm font-semibold text-moons-blue"
+        >
+          Go to admin login
         </Link>
       </div>
     );
   }
+
+  const signedInAs =
+    session.mode === 'portal' ? session.username : session.email ?? 'admin';
 
   return (
     <div className="li-page-bg min-h-screen">
@@ -95,31 +94,45 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               MoonsJob Admin
             </p>
             <h1 className="text-lg font-bold text-foreground">Content desk</h1>
+            <p className="text-xs text-moons-muted">Signed in as {signedInAs}</p>
           </div>
-          <nav className="flex flex-wrap gap-2">
-            {NAV.map((item) => {
-              const active =
-                item.href === '/admin'
-                  ? pathname === '/admin'
-                  : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
-                    active
-                      ? 'bg-moons-blue text-white'
-                      : 'bg-surface text-moons-muted hover:text-foreground'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="flex flex-wrap items-center gap-2">
+            <nav className="flex flex-wrap gap-2">
+              {NAV.map((item) => {
+                const active =
+                  item.href === '/admin'
+                    ? pathname === '/admin'
+                    : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
+                      active
+                        ? 'bg-moons-blue text-white'
+                        : 'bg-surface text-moons-muted hover:text-foreground'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm font-semibold text-moons-muted hover:text-foreground"
+            >
+              Log out
+            </button>
+          </div>
         </div>
       </div>
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</div>
     </div>
   );
+}
+
+function authFetchAdminMe(): Promise<AdminMe> {
+  return adminFetch<AdminMe>('/auth/admin/me');
 }

@@ -10,7 +10,6 @@ const PROTECTED_PREFIXES = [
   '/settings',
   '/network',
   '/feed',
-  '/admin',
 ];
 
 const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
@@ -18,6 +17,25 @@ const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.get('moons_session')?.value === '1';
+  const hasAdminPortal = request.cookies.get('moons_admin_portal')?.value === '1';
+
+  const isAdminLogin = pathname === '/admin/login';
+  const isAdminRoute =
+    pathname === '/admin' || pathname.startsWith('/admin/');
+
+  if (isAdminRoute && !isAdminLogin && !hasAdminPortal) {
+    const loginUrl = new URL('/admin/login', request.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (isAdminLogin && hasAdminPortal) {
+    const next = request.nextUrl.searchParams.get('next');
+    if (next?.startsWith('/admin') && !next.startsWith('//')) {
+      return NextResponse.redirect(new URL(next, request.url));
+    }
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
 
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -32,10 +50,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const isAdminRoute =
-    pathname === '/admin' || pathname.startsWith('/admin/');
-
-  // Marketers on /admin should not be forced through product onboarding.
   if (isProtected && hasSession && pathname !== '/onboarding' && !isAdminRoute) {
     const onboarded = request.cookies.get('moons_onboarded')?.value === '1';
     if (!onboarded) {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin/admin-shell';
-import { ApiError, authFetch } from '@/lib/api-client';
+import { ApiError, adminFetch } from '@/lib/api-client';
 
 type AbuseReportStatus = 'OPEN' | 'REVIEWED' | 'DISMISSED' | 'ACTIONED';
 type AbuseReportTarget = 'COMMENT' | 'POST' | 'USER' | 'JOB' | 'MESSAGE';
@@ -51,7 +51,7 @@ export default function AdminReportsPage() {
     setError('');
     try {
       const query = statusFilter ? `?status=${statusFilter}&limit=100` : '?limit=100';
-      const data = await authFetch<{ items: AbuseReportItem[] }>(`/reports/admin${query}`);
+      const data = await adminFetch<{ items: AbuseReportItem[] }>(`/reports/admin${query}`);
       setItems(data.items);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load reports');
@@ -69,7 +69,7 @@ export default function AdminReportsPage() {
     setError('');
     setMessage('');
     try {
-      await authFetch(`/reports/admin/${id}`, {
+      await adminFetch(`/reports/admin/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       });

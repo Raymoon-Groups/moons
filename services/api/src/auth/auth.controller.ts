@@ -21,7 +21,12 @@ import {
   CurrentUser,
   JwtPayload,
 } from '../common/decorators/current-user.decorator';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminAccessGuard } from '../common/guards/admin-access.guard';
+import {
+  clearAdminPortalCookies,
+  setAdminPortalCookies,
+} from './admin-portal-auth';
+import { AdminPortalLoginDto } from './dto/admin-portal-login.dto';
 import { THROTTLE } from '../common/throttle.constants';
 import { AuthService } from './auth.service';
 import {
@@ -60,10 +65,33 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Get('admin/me')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @ApiBearerAuth()
-  adminMe(@CurrentUser() user: JwtPayload) {
-    return { ok: true, email: user.email };
+  @UseGuards(AdminAccessGuard)
+  adminMe(@CurrentUser() user: JwtPayload & { adminPortal?: boolean }) {
+    if (user.adminPortal) {
+      return {
+        ok: true,
+        mode: 'portal' as const,
+        username: process.env.ADMIN_PORTAL_USERNAME?.trim() ?? 'admin',
+      };
+    }
+    return { ok: true, mode: 'user' as const, email: user.email };
+  }
+
+  @Post('admin/login')
+  @Throttle(THROTTLE.authStrict)
+  async adminPortalLogin(
+    @Body() dto: AdminPortalLoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.adminPortalLogin(dto);
+    setAdminPortalCookies(res, result.token);
+    return { ok: true, username: result.username };
+  }
+
+  @Post('admin/logout')
+  adminPortalLogout(@Res({ passthrough: true }) res: Response) {
+    clearAdminPortalCookies(res);
+    return { ok: true };
   }
 
   /** Issue / refresh the readable CSRF cookie for web cookie-auth sessions. */

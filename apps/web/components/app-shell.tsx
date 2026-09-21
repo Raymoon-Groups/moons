@@ -11,8 +11,9 @@ const AUTH_PATHS = ['/login', '/register', '/onboarding', '/forgot-password'];
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = AUTH_PATHS.includes(pathname);
+  const isAdminPage = pathname === '/admin' || pathname.startsWith('/admin/');
 
-  if (isAuthPage) {
+  if (isAuthPage || isAdminPage) {
     return <>{children}</>;
   }
 

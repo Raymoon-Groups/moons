@@ -93,6 +93,13 @@ function ApplicationCard({
                 <span className="font-semibold text-foreground">{app.job.companyName}</span>
               </p>
 
+              {app.status === ApplicationStatus.REJECTED && app.rejectionReason ? (
+                <p className="mt-3 rounded-2xl border border-red-200/70 bg-red-50/70 px-3.5 py-2.5 text-sm leading-relaxed text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                  <span className="font-semibold">Recruiter note: </span>
+                  {app.rejectionReason}
+                </p>
+              ) : null}
+
               <div className="mt-4 flex flex-wrap gap-3">
                 <div className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/80 px-3.5 py-2 text-sm text-moons-muted shadow-sm">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-moons-blue/10 text-moons-blue">

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "applications" ADD COLUMN "rejection_reason" TEXT;

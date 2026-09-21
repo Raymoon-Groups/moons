@@ -70,7 +70,7 @@ export default function EditJobPage() {
           location: job.location,
           employmentType: job.employmentType as EmploymentType,
           salaryRange: job.salaryRange ?? '',
-          experienceBand: yearsToExperienceBand(job.minExperienceYears, job.maxExperienceYears),
+          ...yearsToExperienceBand(job.minExperienceYears, job.maxExperienceYears),
           screeningQuestions: job.screeningQuestions ?? [],
         });
       })
@@ -94,7 +94,7 @@ export default function EditJobPage() {
       return;
     }
     setLoading(true);
-    const exp = experienceBandToYears(values.experienceBand);
+    const exp = experienceBandToYears(values.minExperienceYears, values.maxExperienceYears);
     try {
       await authFetch<JobListing>(`/jobs/${jobId}`, {
         method: 'PATCH',

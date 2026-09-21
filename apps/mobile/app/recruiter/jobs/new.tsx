@@ -11,8 +11,8 @@ import { LoadingScreen } from '@/components/loading-screen';
 import { Card, ErrorText, FieldLabel, Input, PrimaryButton, Screen } from '@/components/ui';
 import { ApiError, authFetch } from '@/lib/api';
 import {
-  EXPERIENCE_SELECT_OPTIONS,
-  experienceValueToJobYears,
+  EXPERIENCE_YEAR_OPTIONS,
+  experienceRangeToJobYears,
 } from '@/lib/experience-options';
 import { formatEmploymentType } from '@/lib/format';
 import { isDescriptionValid } from '@/lib/rich-text';
@@ -34,7 +34,8 @@ export default function NewJobScreen() {
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
   const [employmentType, setEmploymentType] = useState(EmploymentType.FULL_TIME);
-  const [experienceBand, setExperienceBand] = useState('');
+  const [minExperienceYears, setMinExperienceYears] = useState('');
+  const [maxExperienceYears, setMaxExperienceYears] = useState('');
   const [askForCv, setAskForCv] = useState(true);
   const [customQuestions, setCustomQuestions] = useState<ScreeningQuestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,7 +75,7 @@ export default function NewJobScreen() {
       return;
     }
     setLoading(true);
-    const exp = experienceValueToJobYears(experienceBand);
+    const exp = experienceRangeToJobYears(minExperienceYears, maxExperienceYears);
     try {
       const job = await authFetch<JobListing>('/jobs', {
         method: 'POST',
@@ -124,11 +125,28 @@ export default function NewJobScreen() {
           onChange={(value) => setEmploymentType(value as EmploymentType)}
         />
         <SelectField
-          label="Experience required"
-          value={experienceBand}
-          options={EXPERIENCE_SELECT_OPTIONS}
-          onChange={setExperienceBand}
-          placeholder="Not specified"
+          label="Experience min (years)"
+          value={minExperienceYears}
+          options={EXPERIENCE_YEAR_OPTIONS}
+          onChange={(value) => {
+            setMinExperienceYears(value);
+            if (value && maxExperienceYears && Number(value) > Number(maxExperienceYears)) {
+              setMaxExperienceYears(value);
+            }
+          }}
+          placeholder="Any"
+        />
+        <SelectField
+          label="Experience max (years)"
+          value={maxExperienceYears}
+          options={EXPERIENCE_YEAR_OPTIONS}
+          onChange={(value) => {
+            setMaxExperienceYears(value);
+            if (value && minExperienceYears && Number(value) < Number(minExperienceYears)) {
+              setMinExperienceYears(value);
+            }
+          }}
+          placeholder="Any"
         />
         <RichTextField value={description} onChange={setDescription} />
 

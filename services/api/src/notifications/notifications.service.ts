@@ -358,6 +358,7 @@ export class NotificationsService {
     jobTitle: string,
     companyName: string,
     status: ApplicationStatus,
+    rejectionReason?: string,
   ) {
     if (status === ApplicationStatus.SUBMITTED) return null;
 
@@ -373,10 +374,15 @@ export class NotificationsService {
       [ApplicationStatus.REJECTED]: 'Application update',
     };
 
+    const reasonNote =
+      status === ApplicationStatus.REJECTED && rejectionReason?.trim()
+        ? ` Reason: ${rejectionReason.trim()}`
+        : '';
+
     const bodyMap: Partial<Record<ApplicationStatus, string>> = {
       [ApplicationStatus.VIEWED]: `Your application for ${jobTitle} at ${companyName} was viewed by the recruiter.`,
       [ApplicationStatus.SHORTLISTED]: `Great news! You were shortlisted for ${jobTitle} at ${companyName}.`,
-      [ApplicationStatus.REJECTED]: `Your application for ${jobTitle} at ${companyName} was not selected at this time.`,
+      [ApplicationStatus.REJECTED]: `Your application for ${jobTitle} at ${companyName} was not selected at this time.${reasonNote}`,
     };
 
     const type = typeMap[status];
@@ -390,7 +396,10 @@ export class NotificationsService {
       title,
       body,
       linkUrl: '/applications',
-      metadata: { status },
+      metadata: {
+        status,
+        ...(rejectionReason?.trim() ? { rejectionReason: rejectionReason.trim() } : {}),
+      },
       skipAbuseChecks: true,
     });
   }

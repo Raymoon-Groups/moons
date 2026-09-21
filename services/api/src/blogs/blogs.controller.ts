@@ -9,8 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminAccessGuard } from '../common/guards/admin-access.guard';
 import { BlogsService } from './blogs.service';
 import { CreateBlogPostDto, UpdateBlogPostDto } from './dto/blogs.dto';
 
@@ -25,35 +24,35 @@ export class BlogsController {
   }
 
   @Get('admin/all')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   listAdmin() {
     return this.blogs.listAdmin();
   }
 
   @Get('admin/:id')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   getAdmin(@Param('id') id: string) {
     return this.blogs.getAdmin(id);
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   create(@Body() dto: CreateBlogPostDto) {
     return this.blogs.create(dto);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   update(@Param('id') id: string, @Body() dto: UpdateBlogPostDto) {
     return this.blogs.update(id, dto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   remove(@Param('id') id: string) {
     return this.blogs.remove(id);

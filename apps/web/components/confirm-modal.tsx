@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 type ConfirmTone = 'default' | 'warning' | 'danger';
 
@@ -48,22 +49,33 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape' && !loading) onCancel();
     }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open, loading, onCancel]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const styles = TONE_STYLES[tone];
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[110] flex items-end justify-center p-4 sm:items-center"
+      className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
@@ -71,13 +83,15 @@ export function ConfirmModal({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+        className="absolute inset-0 z-0 bg-black/50"
         aria-label="Cancel"
         disabled={loading}
-        onClick={onCancel}
+        onClick={() => {
+          if (!loading) onCancel();
+        }}
       />
 
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_24px_60px_-12px_rgba(26,39,68,0.35)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.65)] max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-[0_24px_60px_-12px_rgba(26,39,68,0.35)] dark:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.65)] max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div
           className={`h-1 w-full ${
             tone === 'danger'
@@ -129,6 +143,7 @@ export function ConfirmModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

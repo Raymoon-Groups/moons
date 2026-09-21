@@ -280,12 +280,24 @@ export function buildApplicationStatusEmail(
   jobTitle: string,
   companyName: string,
   status: string,
+  rejectionReason?: string,
 ): { html: string; text: string } {
   const tone = statusTone(status);
   const safeJob = escapeHtml(jobTitle);
   const safeCompany = escapeHtml(companyName);
   const statusLabel = escapeHtml(formatStatusLabel(status));
   const applicationsUrl = `${getWebAppUrl()}/applications`;
+  const safeReason =
+    rejectionReason && status.toUpperCase() === 'REJECTED'
+      ? escapeHtml(rejectionReason.trim())
+      : '';
+
+  const reasonBlock = safeReason
+    ? `<div style="margin:0 0 18px;padding:14px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;">
+          <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#b91c1c;">Recruiter note</p>
+          <p style="margin:0;font-size:14px;line-height:1.55;color:${BRAND.text};">${safeReason}</p>
+        </div>`
+    : '';
 
   const body = `
     <tr>
@@ -298,6 +310,7 @@ export function buildApplicationStatusEmail(
           <strong style="color:${BRAND.text};">${safeCompany}</strong> is now
           <strong style="color:${tone.accent};">${statusLabel}</strong>.
         </p>
+        ${reasonBlock}
         <p style="margin:0 0 24px;font-size:15px;line-height:1.65;color:${BRAND.muted};">${escapeHtml(tone.message)}</p>
         ${nextStepsSection([
           'Track all your applications from your MoonsJob dashboard.',
@@ -307,7 +320,10 @@ export function buildApplicationStatusEmail(
       </td>
     </tr>`;
 
-  const text = `${tone.headline}\n\n${jobTitle} at ${companyName}\nStatus: ${formatStatusLabel(status)}\n\n${tone.message}\n\nView applications: ${applicationsUrl}`;
+  const textReason = safeReason
+    ? `\n\nRecruiter note:\n${rejectionReason!.trim()}`
+    : '';
+  const text = `${tone.headline}\n\n${jobTitle} at ${companyName}\nStatus: ${formatStatusLabel(status)}${textReason}\n\n${tone.message}\n\nView applications: ${applicationsUrl}`;
 
   return {
     html: buildEmailLayout({

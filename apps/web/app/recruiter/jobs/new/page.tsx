@@ -43,7 +43,8 @@ export default function NewJobPage() {
     location: '',
     employmentType: EmploymentType.FULL_TIME,
     salaryRange: '',
-    experienceBand: '',
+    minExperienceYears: '',
+    maxExperienceYears: '',
     screeningQuestions: [],
   });
   const [error, setError] = useState('');
@@ -85,7 +86,7 @@ export default function NewJobPage() {
       return;
     }
     setLoading(true);
-    const exp = experienceBandToYears(values.experienceBand);
+    const exp = experienceBandToYears(values.minExperienceYears, values.maxExperienceYears);
     try {
       const job = await authFetch<JobListing>('/jobs', {
         method: 'POST',

@@ -186,14 +186,15 @@ model Job {
 }
 
 model Application {
-  id          String            @id @default(uuid())
-  jobId       String            @map("job_id")
-  candidateId String            @map("candidate_id")
-  status      ApplicationStatus @default(SUBMITTED)
-  coverNote   String?           @map("cover_note")
-  screeningAnswers Json         @default("[]") @map("screening_answers")
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  id               String            @id @default(uuid())
+  jobId            String            @map("job_id")
+  candidateId      String            @map("candidate_id")
+  status           ApplicationStatus @default(SUBMITTED)
+  coverNote        String?           @map("cover_note")
+  rejectionReason  String?           @map("rejection_reason")
+  screeningAnswers Json              @default("[]") @map("screening_answers")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
 
   job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   candidate User @relation(fields: [candidateId], references: [id], onDelete: Cascade)

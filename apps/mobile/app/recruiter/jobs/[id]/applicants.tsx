@@ -3,10 +3,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'reac
 import {
   Alert,
   FlatList,
+  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { ApplicationStatus } from '@moons/shared';
@@ -48,6 +50,8 @@ export default function ApplicantsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<ApplicantRow | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [messagingId, setMessagingId] = useState<string | null>(null);
 
   useLayoutEffect(() => {
@@ -118,6 +122,60 @@ export default function ApplicantsScreen() {
         },
         chipActive: { borderColor: colors.blue, backgroundColor: colors.surface },
         chipText: { fontSize: 11, color: colors.foreground, fontFamily: theme.fonts.semibold },
+        rejectNote: {
+          marginTop: 10,
+          fontSize: 12,
+          lineHeight: 18,
+          color: '#b91c1c',
+          fontFamily: theme.fonts.regular,
+        },
+        modalBackdrop: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          padding: 20,
+        },
+        modalCard: {
+          borderRadius: theme.radius.lg,
+          padding: 18,
+        },
+        modalTitle: {
+          fontSize: 17,
+          fontFamily: theme.fonts.bold,
+        },
+        modalHint: {
+          marginTop: 6,
+          fontSize: 13,
+          lineHeight: 18,
+          fontFamily: theme.fonts.regular,
+        },
+        modalInput: {
+          marginTop: 12,
+          minHeight: 96,
+          borderWidth: 1,
+          borderRadius: theme.radius.md,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          textAlignVertical: 'top',
+          fontSize: 14,
+          fontFamily: theme.fonts.regular,
+        },
+        modalActions: {
+          marginTop: 14,
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
+          gap: 10,
+        },
+        modalCancel: {
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+        },
+        modalConfirm: {
+          backgroundColor: '#dc2626',
+          borderRadius: theme.radius.md,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+        },
       }),
     [colors],
   );
@@ -146,16 +204,45 @@ export default function ApplicantsScreen() {
     load();
   }, [load]);
 
-  async function updateStatus(applicationId: string, status: ApplicationStatus) {
+  async function updateStatus(
+    applicationId: string,
+    status: ApplicationStatus,
+    rejectionReason?: string,
+  ) {
+    if (status === ApplicationStatus.REJECTED && rejectionReason === undefined) {
+      const target = applicants.find((a) => a.id === applicationId) ?? null;
+      setRejectReason('');
+      setRejectTarget(target);
+      return;
+    }
+
     setUpdatingId(applicationId);
     try {
-      await authFetch(`/applications/${applicationId}/status`, {
+      const updated = await authFetch<ApplicantRow>(`/applications/${applicationId}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status,
+          ...(status === ApplicationStatus.REJECTED && rejectionReason
+            ? { rejectionReason }
+            : {}),
+        }),
       });
       setApplicants((prev) =>
-        prev.map((a) => (a.id === applicationId ? { ...a, status } : a)),
+        prev.map((a) =>
+          a.id === applicationId
+            ? {
+                ...a,
+                status: updated.status ?? status,
+                rejectionReason:
+                  status === ApplicationStatus.REJECTED
+                    ? updated.rejectionReason ?? rejectionReason ?? null
+                    : null,
+              }
+            : a,
+        ),
       );
+      setRejectTarget(null);
+      setRejectReason('');
     } catch (err) {
       Alert.alert(
         'Could not update status',
@@ -313,10 +400,73 @@ export default function ApplicantsScreen() {
                   </Pressable>
                 ))}
               </View>
+              {item.status === ApplicationStatus.REJECTED && item.rejectionReason ? (
+                <Text style={styles.rejectNote}>Note: {item.rejectionReason}</Text>
+              ) : null}
             </View>
           );
         }}
       />
+
+      <Modal
+        visible={!!rejectTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!updatingId) setRejectTarget(null);
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surfaceElevated }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Reject {rejectTarget?.candidate.profile?.fullName ?? rejectTarget?.candidate.email ?? 'candidate'}?
+            </Text>
+            <Text style={[styles.modalHint, { color: colors.muted }]}>
+              Optional reason — the candidate will see this in their application update.
+            </Text>
+            <TextInput
+              value={rejectReason}
+              onChangeText={(text) => setRejectReason(text.slice(0, 500))}
+              placeholder="e.g. Looking for more relevant experience"
+              placeholderTextColor={colors.muted}
+              multiline
+              style={[
+                styles.modalInput,
+                {
+                  color: colors.text,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                },
+              ]}
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                disabled={!!updatingId}
+                onPress={() => setRejectTarget(null)}
+                style={styles.modalCancel}
+              >
+                <Text style={{ color: colors.text, fontWeight: '600' }}>Keep reviewing</Text>
+              </Pressable>
+              <Pressable
+                disabled={!!updatingId}
+                onPress={() => {
+                  if (!rejectTarget) return;
+                  void updateStatus(
+                    rejectTarget.id,
+                    ApplicationStatus.REJECTED,
+                    rejectReason.trim(),
+                  );
+                }}
+                style={styles.modalConfirm}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>
+                  {updatingId ? 'Rejecting…' : 'Reject'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </AppScreen>
   );
 }

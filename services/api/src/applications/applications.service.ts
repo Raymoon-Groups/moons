@@ -424,6 +424,7 @@ export class ApplicationsService {
     applicationId: string,
     recruiterId: string,
     status: ApplicationStatus,
+    rejectionReason?: string,
   ) {
     const application = await this.prisma.application.findUnique({
       where: { id: applicationId },
@@ -439,9 +440,17 @@ export class ApplicationsService {
       throw new ForbiddenException('Not allowed to update this application');
     }
 
+    const trimmedReason =
+      status === ApplicationStatus.REJECTED
+        ? rejectionReason?.trim().slice(0, 500) || null
+        : null;
+
     const updated = await this.prisma.application.update({
       where: { id: applicationId },
-      data: { status },
+      data: {
+        status,
+        rejectionReason: trimmedReason,
+      },
     });
 
     void this.emailService
@@ -450,6 +459,7 @@ export class ApplicationsService {
         application.job.title,
         application.job.companyName,
         status,
+        trimmedReason ?? undefined,
       )
       .catch(() => undefined);
     void this.notificationsService
@@ -458,6 +468,7 @@ export class ApplicationsService {
         application.job.title,
         application.job.companyName,
         status,
+        trimmedReason ?? undefined,
       )
       .catch(() => undefined);
 

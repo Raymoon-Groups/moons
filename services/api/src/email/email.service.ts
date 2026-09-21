@@ -90,10 +90,16 @@ export class EmailService implements OnModuleInit {
     jobTitle: string,
     companyName: string,
     status: string,
+    rejectionReason?: string,
   ) {
     const from = process.env.SMTP_FROM ?? 'MoonsJob <noreply@moonsjob.com>';
     const subject = `Application update: ${jobTitle}`;
-    const { text, html } = buildApplicationStatusEmail(jobTitle, companyName, status);
+    const { text, html } = buildApplicationStatusEmail(
+      jobTitle,
+      companyName,
+      status,
+      rejectionReason,
+    );
     await this.deliverEmail(
       from,
       candidateEmail,

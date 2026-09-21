@@ -1,8 +1,7 @@
 import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminAccessGuard } from '../common/guards/admin-access.guard';
 import { THROTTLE } from '../common/throttle.constants';
 import { SubscribeNewsletterDto } from './dto/subscribe-newsletter.dto';
 import { NewsletterService } from './newsletter.service';
@@ -19,7 +18,7 @@ export class NewsletterController {
   }
 
   @Get('subscribers')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   listSubscribers() {
     return this.newsletterService.listSubscribers();

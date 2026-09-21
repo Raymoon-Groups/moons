@@ -19,8 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminAccessGuard } from '../common/guards/admin-access.guard';
 import { AnnouncementsService } from './announcements.service';
 import { UpsertAnnouncementDto } from './dto/announcements.dto';
 
@@ -35,14 +34,14 @@ export class AnnouncementsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   listAdmin() {
     return this.announcements.listAdmin();
   }
 
   @Post('image')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -65,21 +64,21 @@ export class AnnouncementsController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   create(@Body() dto: UpsertAnnouncementDto) {
     return this.announcements.create(dto);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   update(@Param('id') id: string, @Body() dto: UpsertAnnouncementDto) {
     return this.announcements.update(id, dto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminAccessGuard)
   @ApiBearerAuth()
   remove(@Param('id') id: string) {
     return this.announcements.remove(id);

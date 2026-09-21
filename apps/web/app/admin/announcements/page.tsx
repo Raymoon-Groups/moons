@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { AdminShell } from '@/components/admin/admin-shell';
-import { ApiError, authFetch, authUpload } from '@/lib/api-client';
+import { ApiError, adminFetch, adminUpload } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 
 type Announcement = {
@@ -42,7 +42,7 @@ export default function AdminAnnouncementsPage() {
   async function load() {
     setLoading(true);
     try {
-      const data = await authFetch<Announcement[]>('/announcements');
+      const data = await adminFetch<Announcement[]>('/announcements');
       setItems(data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load announcements');
@@ -91,7 +91,7 @@ export default function AdminAnnouncementsPage() {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const result = await authUpload<{ imageUrl: string }>(
+      const result = await adminUpload<{ imageUrl: string }>(
         '/announcements/image',
         formData,
       );
@@ -121,13 +121,13 @@ export default function AdminAnnouncementsPage() {
     };
     try {
       if (editingId) {
-        await authFetch(`/announcements/${editingId}`, {
+        await adminFetch(`/announcements/${editingId}`, {
           method: 'PATCH',
           body: JSON.stringify(payload),
         });
         setMessage('Announcement updated.');
       } else {
-        await authFetch('/announcements', {
+        await adminFetch('/announcements', {
           method: 'POST',
           body: JSON.stringify(payload),
         });
@@ -148,7 +148,7 @@ export default function AdminAnnouncementsPage() {
     setError('');
     setMessage('');
     try {
-      await authFetch(`/announcements/${item.id}`, {
+      await adminFetch(`/announcements/${item.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           title: item.title,
@@ -179,7 +179,7 @@ export default function AdminAnnouncementsPage() {
   async function remove(id: string) {
     if (!confirm('Delete this announcement?')) return;
     try {
-      await authFetch(`/announcements/${id}`, { method: 'DELETE' });
+      await adminFetch(`/announcements/${id}`, { method: 'DELETE' });
       await load();
       if (editingId === id) resetForm();
     } catch (err) {

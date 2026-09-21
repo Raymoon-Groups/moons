@@ -147,5 +147,5 @@ export const JOB_EXPERIENCE_OPTIONS = [
   { label: '1–3 years', min: 1, max: 3 },
   { label: '3–6 years', min: 3, max: 6 },
   { label: '6–10 years', min: 6, max: 10 },
-  { label: '10+ years', min: 10, max: 31 },
+  { label: '10+ years', min: 10, max: null as number | null },
 ];

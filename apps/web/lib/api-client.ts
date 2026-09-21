@@ -196,7 +196,7 @@ export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  const { cache = true, token, ...rest } = options;
+  const { cache = true, token, skipAuthRetry: _skip, ...rest } = options;
   const method = (rest.method ?? 'GET').toUpperCase();
   const isPublicGet = method === 'GET' && !token;
 
@@ -249,6 +249,23 @@ export function authFetch<T>(
 ): Promise<T> {
   // Prefer cookie auth; Bearer is optional (in-memory) for media/dev convenience.
   return withAuthRetry((token) => apiFetch<T>(path, { ...options, token }));
+}
+
+/** Admin portal requests — HttpOnly `moons_admin` cookie, no MoonsJob user session required. */
+export function adminFetch<T>(
+  path: string,
+  options: Omit<ApiFetchOptions, 'token' | 'skipAuthRetry'> = {},
+): Promise<T> {
+  return apiFetch<T>(path, { ...options, skipAuthRetry: true, cache: false });
+}
+
+export function adminUpload<T>(path: string, formData: FormData): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'POST',
+    body: formData,
+    skipAuthRetry: true,
+    cache: false,
+  });
 }
 
 export async function authUpload<T>(path: string, formData: FormData): Promise<T> {

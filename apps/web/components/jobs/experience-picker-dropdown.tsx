@@ -1,6 +1,10 @@
 'use client';
 
-import { EXPERIENCE_SEARCH_OPTIONS } from '@/lib/experience-options';
+import {
+  EXPERIENCE_REQUIRED_OPTIONS,
+  EXPERIENCE_SEARCH_OPTIONS,
+  type ExperienceSearchOption,
+} from '@/lib/experience-options';
 import type { CSSProperties, RefObject } from 'react';
 
 /** ~6 visible rows before scrolling (Naukri-style) */
@@ -13,6 +17,7 @@ export function ExperiencePickerDropdown({
   style,
   menuRef,
   emptyOption,
+  options = EXPERIENCE_SEARCH_OPTIONS,
 }: {
   value: string;
   onSelect: (value: string) => void;
@@ -20,6 +25,7 @@ export function ExperiencePickerDropdown({
   style?: CSSProperties;
   menuRef?: RefObject<HTMLDivElement | null>;
   emptyOption?: { label: string };
+  options?: ExperienceSearchOption[];
 }) {
   return (
     <div
@@ -42,9 +48,9 @@ export function ExperiencePickerDropdown({
             </button>
           </li>
         )}
-        {EXPERIENCE_SEARCH_OPTIONS.map((opt, index) => {
+        {options.map((opt, index) => {
           const selected = value === opt.value;
-          const isLast = index === EXPERIENCE_SEARCH_OPTIONS.length - 1;
+          const isLast = index === options.length - 1;
           return (
             <li key={opt.value} className={!isLast ? 'border-b border-border' : undefined}>
               <button
@@ -70,3 +76,6 @@ export function ExperiencePickerDropdown({
     </div>
   );
 }
+
+/** Options for recruiter “Experience required” — re-exported for convenience */
+export { EXPERIENCE_REQUIRED_OPTIONS };

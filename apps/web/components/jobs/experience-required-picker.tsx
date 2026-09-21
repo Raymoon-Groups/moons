@@ -1,148 +1,109 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { createPortal } from 'react-dom';
-import { ExperiencePickerDropdown } from '@/components/jobs/experience-picker-dropdown';
-import {
-  getExperienceSearchLabel,
-  normalizeExperienceValue,
-} from '@/lib/experience-options';
+const YEAR_CHOICES = Array.from({ length: 31 }, (_, years) => ({
+  value: String(years),
+  label: years === 0 ? 'Fresher (0)' : years === 1 ? '1 year' : `${years} years`,
+}));
 
-const inputClass =
-  'mt-1 flex w-full items-center justify-between gap-2 rounded-md border border-border bg-surface-elevated px-3 py-2 text-left text-sm outline-none transition focus:border-moons-blue focus:ring-1 focus:ring-moons-blue/30';
+const selectClass =
+  'mt-1 w-full rounded-md border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition focus:border-moons-blue focus:ring-1 focus:ring-moons-blue/30';
 
 export function ExperienceRequiredPicker({
-  value,
+  minYears,
+  maxYears,
   onChange,
-  placeholder = 'Not specified',
   id,
 }: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
+  minYears: string;
+  maxYears: string;
+  onChange: (minYears: string, maxYears: string) => void;
   id?: string;
 }) {
-  const anchorRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
-
-  const normalizedValue = value ? normalizeExperienceValue(value) : '';
-  const displayLabel = normalizedValue ? getExperienceSearchLabel(normalizedValue) : '';
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (menuRef.current?.contains(target)) return;
-      if (anchorRef.current?.contains(target)) return;
-      setOpen(false);
+  function handleMin(next: string) {
+    let max = maxYears;
+    if (next && max && Number(next) > Number(max)) {
+      max = next;
     }
+    onChange(next, max);
+  }
 
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || !anchorRef.current) return;
-
-    const menuMaxHeightPx = 252;
-    const gap = 8;
-
-    function updateMenuPosition() {
-      const anchor = anchorRef.current;
-      if (!anchor) return;
-
-      const rect = anchor.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom - gap;
-      const spaceAbove = rect.top - gap;
-      const openUp = spaceBelow < menuMaxHeightPx && spaceAbove > spaceBelow;
-
-      setMenuStyle(
-        openUp
-          ? {
-              position: 'fixed',
-              left: rect.left,
-              width: rect.width,
-              bottom: window.innerHeight - rect.top + gap,
-              zIndex: 9999,
-            }
-          : {
-              position: 'fixed',
-              left: rect.left,
-              width: rect.width,
-              top: rect.bottom + gap,
-              zIndex: 9999,
-            },
-      );
+  function handleMax(next: string) {
+    let min = minYears;
+    if (next && min && Number(next) < Number(min)) {
+      min = next;
     }
-
-    updateMenuPosition();
-    window.addEventListener('resize', updateMenuPosition);
-    window.addEventListener('scroll', updateMenuPosition, true);
-
-    return () => {
-      window.removeEventListener('resize', updateMenuPosition);
-      window.removeEventListener('scroll', updateMenuPosition, true);
-    };
-  }, [open]);
-
-  function handleSelect(next: string) {
-    onChange(next);
-    setOpen(false);
+    onChange(min, next);
   }
 
   return (
-    <>
-      <button
-        ref={anchorRef}
-        id={id}
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        className={`${inputClass} ${displayLabel ? 'text-foreground' : 'text-moons-muted'}`}
-      >
-        <span className="truncate">{displayLabel || placeholder}</span>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-moons-muted transition-transform ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-
-      {mounted &&
-        open &&
-        createPortal(
-          <div ref={menuRef}>
-            <ExperiencePickerDropdown
-              value={normalizedValue}
-              onSelect={handleSelect}
-              style={menuStyle}
-              emptyOption={{ label: placeholder }}
-            />
-          </div>,
-          document.body,
-        )}
-    </>
+    <div className="mt-1 grid grid-cols-2 gap-3">
+      <div>
+        <label htmlFor={id ? `${id}-min` : undefined} className="block text-xs font-medium text-moons-muted">
+          Min
+        </label>
+        <select
+          id={id ? `${id}-min` : undefined}
+          value={minYears}
+          onChange={(e) => handleMin(e.target.value)}
+          className={selectClass}
+        >
+          <option value="">Any</option>
+          {YEAR_CHOICES.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor={id ? `${id}-max` : undefined} className="block text-xs font-medium text-moons-muted">
+          Max
+        </label>
+        <select
+          id={id ? `${id}-max` : undefined}
+          value={maxYears}
+          onChange={(e) => handleMax(e.target.value)}
+          className={selectClass}
+        >
+          <option value="">Any</option>
+          {YEAR_CHOICES.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
   );
 }
 
-function ChevronDown({ className = '' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-      aria-hidden
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-    </svg>
-  );
+/** Convert form min/max strings into API years. Empty = not specified. */
+export function experienceRangeToJobYears(minYears: string, maxYears: string) {
+  const min =
+    minYears.trim() === '' ? undefined : Number.parseInt(minYears, 10);
+  const max =
+    maxYears.trim() === '' ? undefined : Number.parseInt(maxYears, 10);
+
+  const minOk = min != null && Number.isFinite(min) && min >= 0 && min <= 30 ? min : undefined;
+  const maxOk = max != null && Number.isFinite(max) && max >= 0 && max <= 30 ? max : undefined;
+
+  if (minOk == null && maxOk == null) {
+    return { minExperienceYears: undefined, maxExperienceYears: undefined };
+  }
+
+  if (minOk != null && maxOk != null && minOk > maxOk) {
+    return { minExperienceYears: maxOk, maxExperienceYears: minOk };
+  }
+
+  return { minExperienceYears: minOk, maxExperienceYears: maxOk };
+}
+
+export function jobYearsToExperienceRange(
+  min: number | null | undefined,
+  max: number | null | undefined,
+): { minYears: string; maxYears: string } {
+  return {
+    minYears: min == null ? '' : String(min),
+    maxYears: max == null ? '' : String(max),
+  };
 }

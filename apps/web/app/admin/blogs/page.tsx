@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { AdminShell } from '@/components/admin/admin-shell';
-import { ApiError, authFetch } from '@/lib/api-client';
+import { ApiError, adminFetch } from '@/lib/api-client';
 
 type BlogPost = {
   id: string;
@@ -43,7 +43,7 @@ export default function AdminBlogsPage() {
   async function load() {
     setLoading(true);
     try {
-      const data = await authFetch<BlogPost[]>('/blogs/admin/all');
+      const data = await adminFetch<BlogPost[]>('/blogs/admin/all');
       setPosts(data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load blogs');
@@ -96,13 +96,13 @@ export default function AdminBlogsPage() {
     };
     try {
       if (editingId) {
-        await authFetch(`/blogs/${editingId}`, {
+        await adminFetch(`/blogs/${editingId}`, {
           method: 'PATCH',
           body: JSON.stringify(payload),
         });
         setMessage('Blog updated.');
       } else {
-        await authFetch('/blogs', {
+        await adminFetch('/blogs', {
           method: 'POST',
           body: JSON.stringify(payload),
         });
@@ -120,7 +120,7 @@ export default function AdminBlogsPage() {
   async function remove(id: string) {
     if (!confirm('Delete this blog post?')) return;
     try {
-      await authFetch(`/blogs/${id}`, { method: 'DELETE' });
+      await adminFetch(`/blogs/${id}`, { method: 'DELETE' });
       await load();
       if (editingId === id) resetForm();
     } catch (err) {

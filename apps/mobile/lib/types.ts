@@ -84,6 +84,7 @@ export interface ApplicationWithJob {
   candidateId: string;
   status: string;
   coverNote: string | null;
+  rejectionReason?: string | null;
   screeningAnswers?: ScreeningAnswer[];
   createdAt: string;
   job: {
@@ -154,6 +155,7 @@ export interface ApplicantRow {
   id: string;
   status: string;
   coverNote: string | null;
+  rejectionReason?: string | null;
   screeningAnswers?: ScreeningAnswer[];
   createdAt: string;
   candidate: {

@@ -7,6 +7,7 @@ import { ApplicationStatus, UserRole, type ScreeningQuestion } from '@moons/shar
 import { authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 import { getStoredUser } from '@/lib/auth';
+import { RejectionReasonModal } from '@/components/recruiter/rejection-reason-modal';
 import {
   CoverNoteBlock,
   ScreeningAnswersList,
@@ -84,11 +85,13 @@ function ApplicantCard({
   app,
   questions,
   updatingId,
+  pendingRejectId,
   onStatusChange,
 }: {
   app: ApplicantRow;
   questions?: ScreeningQuestion[];
   updatingId: string | null;
+  pendingRejectId: string | null;
   onStatusChange: (applicationId: string, status: ApplicationStatus) => void;
 }) {
   const profile = app.candidate.profile;
@@ -209,7 +212,7 @@ function ApplicantCard({
                 Update status
               </span>
               <select
-                value={app.status}
+                value={pendingRejectId === app.id ? ApplicationStatus.REJECTED : app.status}
                 disabled={updatingId === app.id}
                 onChange={(e) => onStatusChange(app.id, e.target.value as ApplicationStatus)}
                 className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2.5 text-sm font-medium text-heading outline-none transition focus:border-moons-blue focus:ring-2 focus:ring-moons-blue/20 disabled:opacity-60"
@@ -221,6 +224,12 @@ function ApplicantCard({
                 ))}
               </select>
             </label>
+            {app.status === ApplicationStatus.REJECTED && app.rejectionReason ? (
+              <p className="mt-2 rounded-lg border border-red-200/70 bg-red-50/60 px-3 py-2 text-xs leading-relaxed text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+                <span className="font-semibold">Rejection note: </span>
+                {app.rejectionReason}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -283,6 +292,7 @@ export default function JobApplicantsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<ApplicantRow | null>(null);
 
   const stats = useMemo(() => {
     const countBy = (status: ApplicationStatus) =>
@@ -319,17 +329,44 @@ export default function JobApplicantsPage() {
       .finally(() => setLoading(false));
   }, [jobId, router]);
 
-  async function updateStatus(applicationId: string, status: ApplicationStatus) {
+  async function updateStatus(
+    applicationId: string,
+    status: ApplicationStatus,
+    rejectionReason?: string,
+  ) {
+    if (status === ApplicationStatus.REJECTED && rejectionReason === undefined) {
+      const target = applicants.find((a) => a.id === applicationId) ?? null;
+      setRejectTarget(target);
+      return;
+    }
+
     setUpdatingId(applicationId);
     setError('');
     try {
-      await authFetch(`/applications/${applicationId}/status`, {
+      const updated = await authFetch<ApplicantRow>(`/applications/${applicationId}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status,
+          ...(status === ApplicationStatus.REJECTED && rejectionReason
+            ? { rejectionReason }
+            : {}),
+        }),
       });
       setApplicants((prev) =>
-        prev.map((a) => (a.id === applicationId ? { ...a, status } : a)),
+        prev.map((a) =>
+          a.id === applicationId
+            ? {
+                ...a,
+                status: updated.status ?? status,
+                rejectionReason:
+                  status === ApplicationStatus.REJECTED
+                    ? updated.rejectionReason ?? rejectionReason ?? null
+                    : null,
+              }
+            : a,
+        ),
       );
+      setRejectTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -422,6 +459,7 @@ export default function JobApplicantsPage() {
                     app={app}
                     questions={job?.screeningQuestions}
                     updatingId={updatingId}
+                    pendingRejectId={rejectTarget?.id ?? null}
                     onStatusChange={updateStatus}
                   />
                 ))}
@@ -522,6 +560,21 @@ export default function JobApplicantsPage() {
           </aside>
         </div>
       </div>
+
+      <RejectionReasonModal
+        open={!!rejectTarget}
+        candidateName={
+          rejectTarget?.candidate.profile?.fullName ??
+          rejectTarget?.candidate.email ??
+          'candidate'
+        }
+        loading={!!rejectTarget && updatingId === rejectTarget.id}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={(reason) => {
+          if (!rejectTarget) return;
+          void updateStatus(rejectTarget.id, ApplicationStatus.REJECTED, reason);
+        }}
+      />
     </div>
   );
 }
