@@ -372,7 +372,11 @@ export function yearsToExperienceBand(
   min: number | null | undefined,
   max: number | null | undefined,
 ) {
-  return jobYearsToExperienceRange(min, max);
+  const range = jobYearsToExperienceRange(min, max);
+  return {
+    minExperienceYears: range.minYears,
+    maxExperienceYears: range.maxYears,
+  };
 }
 
 export type { JobFormValues };
