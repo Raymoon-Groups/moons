@@ -104,13 +104,18 @@ export class AnnouncementsService {
   }
 
   async create(dto: UpsertAnnouncementDto) {
+    const imageUrl = dto.imageUrl?.trim();
+    if (!imageUrl) {
+      throw new BadRequestException('Popup image is required');
+    }
+
     const item = await this.prisma.siteAnnouncement.create({
       data: {
-        title: dto.title.trim(),
+        title: dto.title?.trim() || '',
         body: dto.body?.trim() ?? '',
         ctaLabel: dto.ctaLabel?.trim() || null,
         ctaUrl: dto.ctaUrl?.trim() || null,
-        imageUrl: dto.imageUrl?.trim() || null,
+        imageUrl,
         active: Boolean(dto.active),
         durationSec: dto.durationSec ?? 5,
       },
@@ -122,14 +127,21 @@ export class AnnouncementsService {
     const existing = await this.prisma.siteAnnouncement.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Announcement not found');
 
+    const imageUrl =
+      dto.imageUrl !== undefined ? dto.imageUrl?.trim() || null : existing.imageUrl;
+    if (!imageUrl) {
+      throw new BadRequestException('Popup image is required');
+    }
+
     const item = await this.prisma.siteAnnouncement.update({
       where: { id },
       data: {
-        title: dto.title.trim(),
-        body: dto.body?.trim() ?? '',
-        ctaLabel: dto.ctaLabel?.trim() || null,
-        ctaUrl: dto.ctaUrl?.trim() || null,
-        imageUrl: dto.imageUrl?.trim() || null,
+        title: dto.title !== undefined ? dto.title.trim() : existing.title,
+        body: dto.body !== undefined ? dto.body.trim() : existing.body,
+        ctaLabel:
+          dto.ctaLabel !== undefined ? dto.ctaLabel?.trim() || null : existing.ctaLabel,
+        ctaUrl: dto.ctaUrl !== undefined ? dto.ctaUrl?.trim() || null : existing.ctaUrl,
+        imageUrl,
         active: dto.active !== undefined ? Boolean(dto.active) : existing.active,
         durationSec: dto.durationSec ?? existing.durationSec,
       },

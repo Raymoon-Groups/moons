@@ -2,6 +2,8 @@
 
 import DOMPurify from 'isomorphic-dompurify';
 import { isRichTextHtml } from '@/lib/rich-text';
+import { storedHtmlWithMentionLinks } from '@/lib/post-rich-text';
+import { MentionText } from '@/components/mentions/mention-text';
 
 const ALLOWED_TAGS = [
   'p',
@@ -17,20 +19,27 @@ const ALLOWED_TAGS = [
   'blockquote',
   'hr',
   'code',
+  'a',
 ];
+
+const ALLOWED_ATTR = ['href', 'class', 'data-mention-id'];
 
 export function RichTextContent({ content }: { content: string }) {
   if (!content.trim()) return null;
 
   if (!isRichTextHtml(content)) {
     return (
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{content}</p>
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+        <MentionText value={content} />
+      </p>
     );
   }
 
-  const clean = DOMPurify.sanitize(content, {
+  const withMentions = storedHtmlWithMentionLinks(content);
+  const clean = DOMPurify.sanitize(withMentions, {
     ALLOWED_TAGS,
-    ALLOWED_ATTR: [],
+    ALLOWED_ATTR,
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|\/network\/)/i,
   });
 
   return (
@@ -38,5 +47,30 @@ export function RichTextContent({ content }: { content: string }) {
       className="rich-text-content text-sm leading-relaxed text-foreground"
       dangerouslySetInnerHTML={{ __html: clean }}
     />
+  );
+}
+
+/** Feed / post body — rich HTML or legacy plain text with mentions. */
+export function PostBody({
+  value,
+  className = '',
+}: {
+  value: string;
+  className?: string;
+}) {
+  if (!value.trim()) return null;
+
+  if (!isRichTextHtml(value)) {
+    return (
+      <p className={`whitespace-pre-wrap text-[15px] leading-7 text-heading ${className}`}>
+        <MentionText value={value} />
+      </p>
+    );
+  }
+
+  return (
+    <div className={className}>
+      <RichTextContent content={value} />
+    </div>
   );
 }

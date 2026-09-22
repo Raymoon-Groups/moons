@@ -12,6 +12,7 @@ import { resolveAssetUrl } from '@/lib/assets';
 import { getStoredUser } from '@/lib/auth';
 import { formatEmploymentType, formatPostedAgo } from '@/lib/job-formatters';
 import { isPostedByOtherCompany, type JobListing } from '@/lib/jobs';
+import { notify } from '@/lib/toast';
 
 function StatusBadge({ status }: { status: string }) {
   const isLive = status === 'PUBLISHED';
@@ -219,6 +220,7 @@ export default function RecruiterJobsPage() {
         prev.map((j) => (j.id === job.id ? { ...j, status: 'CLOSED' } : j)),
       );
       setConfirmAction(null);
+      notify.success('Job closed', `${job.title} is no longer accepting applications.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to close job');
     } finally {
@@ -233,6 +235,7 @@ export default function RecruiterJobsPage() {
       await authDelete(`/jobs/${job.id}`);
       setJobs((prev) => prev.filter((j) => j.id !== job.id));
       setConfirmAction(null);
+      notify.success('Job deleted', `${job.title} has been removed.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete job');
     } finally {

@@ -23,6 +23,7 @@ import {
 } from '@/components/job-form-fields';
 import { authFetch } from '@/lib/api-client';
 import { getStoredUser } from '@/lib/auth';
+import { notify } from '@/lib/toast';
 import { isDescriptionValid } from '@/lib/rich-text';
 import type { JobListing } from '@/lib/jobs';
 
@@ -104,12 +105,13 @@ export default function EditJobPage() {
           description: values.description,
           location: values.location,
           employmentType: values.employmentType,
-          salaryRange: values.salaryRange || null,
+          salaryRange: values.salaryRange?.trim() ? values.salaryRange.trim() : null,
           minExperienceYears: exp.minExperienceYears ?? null,
           maxExperienceYears: exp.maxExperienceYears ?? null,
           screeningQuestions: values.screeningQuestions,
         }),
       });
+      notify.success('Job updated', 'Your changes have been saved.');
       router.push(`/recruiter/jobs/${jobId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update job');

@@ -63,9 +63,92 @@ function createQuestion(
     prompt,
     type,
     required: true,
-    options: type === ScreeningQuestionType.SINGLE_CHOICE ? ['Yes', 'No'] : undefined,
+    options:
+      type === ScreeningQuestionType.SINGLE_CHOICE
+        ? ['Immediate', '15 days', '30 days', '60+ days']
+        : undefined,
     sortOrder,
   };
+}
+
+const QUESTION_TYPE_LABELS: Record<ScreeningQuestionType, string> = {
+  [ScreeningQuestionType.TEXT]: 'Short text',
+  [ScreeningQuestionType.YES_NO]: 'Yes / No',
+  [ScreeningQuestionType.SINGLE_CHOICE]: 'Multiple choice',
+  [ScreeningQuestionType.RESUME]: 'CV upload',
+};
+
+function ChoiceOptionsEditor({
+  options,
+  onChange,
+}: {
+  options: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const rows = options.length > 0 ? options : ['', ''];
+
+  function setOption(index: number, value: string) {
+    const next = [...rows];
+    next[index] = value;
+    onChange(next);
+  }
+
+  function addOption() {
+    if (rows.length >= 10) return;
+    onChange([...rows, '']);
+  }
+
+  function removeOption(index: number) {
+    if (rows.length <= 2) {
+      const next = [...rows];
+      next[index] = '';
+      onChange(next);
+      return;
+    }
+    onChange(rows.filter((_, i) => i !== index));
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-sm font-medium text-moons-silver">Answer choices *</label>
+        <span className="text-[11px] text-moons-muted">{rows.length}/10</span>
+      </div>
+      <ul className="space-y-2">
+        {rows.map((option, index) => (
+          <li key={index} className="flex items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-xs font-bold text-moons-muted ring-1 ring-border/70">
+              {String.fromCharCode(65 + index)}
+            </span>
+            <input
+              value={option}
+              onChange={(e) => setOption(index, e.target.value)}
+              className={`${inputClass} mt-0`}
+              placeholder={`Choice ${index + 1}`}
+              maxLength={100}
+            />
+            <button
+              type="button"
+              onClick={() => removeOption(index)}
+              className="shrink-0 rounded-full px-2 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-500/10"
+              aria-label={`Remove choice ${index + 1}`}
+            >
+              ✕
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        disabled={rows.length >= 10}
+        onClick={addOption}
+        className="text-xs font-semibold text-moons-blue transition hover:underline disabled:opacity-50"
+      >
+        + Add choice
+      </button>
+      <p className="text-[11px] text-moons-muted">At least 2 non-empty choices are required.</p>
+    </div>
+  );
 }
 
 export function JobFormFields({ values, onChange, showProfileHint, layout = 'default' }: Props) {
@@ -82,21 +165,40 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
     updateQuestions(questions.map((q) => (q.id === id ? { ...q, ...patch } : q)));
   }
 
+  function changeQuestionType(id: string, type: ScreeningQuestionType) {
+    const current = questions.find((q) => q.id === id);
+    if (!current) return;
+    patchQuestion(id, {
+      type,
+      options:
+        type === ScreeningQuestionType.SINGLE_CHOICE
+          ? current.options?.length
+            ? current.options
+            : ['Immediate', '15 days', '30 days', '60+ days']
+          : undefined,
+    });
+  }
+
   function removeQuestion(id: string) {
     updateQuestions(questions.filter((q) => q.id !== id));
   }
 
+  function moveQuestion(id: string, direction: -1 | 1) {
+    const index = questions.findIndex((q) => q.id === id);
+    if (index < 0) return;
+    const target = index + direction;
+    if (target < 0 || target >= questions.length) return;
+    const next = [...questions];
+    const [item] = next.splice(index, 1);
+    next.splice(target, 0, item);
+    updateQuestions(next);
+  }
+
   function addQuestion(type: ScreeningQuestionType) {
     if (questions.length >= 10) return;
-    const prompts: Record<ScreeningQuestionType, string> = {
-      [ScreeningQuestionType.TEXT]: 'Why are you a good fit for this role?',
-      [ScreeningQuestionType.YES_NO]: 'Are you currently available to join?',
-      [ScreeningQuestionType.SINGLE_CHOICE]: 'What is your notice period?',
-      [ScreeningQuestionType.RESUME]: 'Upload your latest CV / resume',
-    };
     updateQuestions([
       ...questions,
-      createQuestion(type, prompts[type], questions.length),
+      createQuestion(type, '', questions.length),
     ]);
   }
 
@@ -209,16 +311,39 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
   const screeningField = (
     <div className="space-y-4">
       <p className="text-sm text-moons-muted">
-        Ask applicants custom questions or request their latest CV. Candidates must answer these
-        when they apply.
+        Optional questions candidates answer when they apply. You can change the type, edit the
+        wording, and manage multiple-choice answers one at a time.
       </p>
 
       {questions.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-surface/40 px-4 py-6 text-center">
           <p className="text-sm font-medium text-heading">No screening questions yet</p>
           <p className="mt-1 text-xs text-moons-muted">
-            Optional — add up to 10 questions for this job.
+            Add up to 10 questions — start with a common one below.
           </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => addQuestion(ScreeningQuestionType.SINGLE_CHOICE)}
+              className="rounded-full bg-moons-blue px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-moons-blue-dark"
+            >
+              + Notice period
+            </button>
+            <button
+              type="button"
+              onClick={() => addQuestion(ScreeningQuestionType.YES_NO)}
+              className="rounded-full border border-border bg-surface-elevated px-3.5 py-1.5 text-xs font-semibold text-heading transition hover:border-moons-blue/40"
+            >
+              + Availability
+            </button>
+            <button
+              type="button"
+              onClick={() => addQuestion(ScreeningQuestionType.RESUME)}
+              className="rounded-full border border-border bg-surface-elevated px-3.5 py-1.5 text-xs font-semibold text-heading transition hover:border-moons-blue/40"
+            >
+              + Ask for CV
+            </button>
+          </div>
         </div>
       ) : (
         <ul className="space-y-3">
@@ -228,61 +353,101 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
               className="rounded-xl border border-border/70 bg-surface-elevated p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-bold uppercase tracking-wide text-moons-muted">
-                  Question {index + 1}
-                  <span className="ml-2 rounded-full bg-moons-blue/10 px-2 py-0.5 text-[10px] font-semibold text-moons-blue">
-                    {question.type === ScreeningQuestionType.RESUME
-                      ? 'CV upload'
-                      : question.type === ScreeningQuestionType.YES_NO
-                        ? 'Yes / No'
-                        : question.type === ScreeningQuestionType.SINGLE_CHOICE
-                          ? 'Multiple choice'
-                          : 'Text answer'}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wide text-moons-muted">
+                    Question {index + 1}
                   </span>
-                </p>
-                <button
-                  type="button"
-                  onClick={() => removeQuestion(question.id)}
-                  className="text-xs font-semibold text-red-600 hover:underline"
-                >
-                  Remove
-                </button>
+                  <select
+                    value={question.type}
+                    onChange={(e) =>
+                      changeQuestionType(question.id, e.target.value as ScreeningQuestionType)
+                    }
+                    className="rounded-full border border-moons-blue/20 bg-moons-blue/10 px-2.5 py-1 text-[11px] font-semibold text-moons-blue outline-none focus:ring-1 focus:ring-moons-blue/30"
+                    aria-label={`Type for question ${index + 1}`}
+                  >
+                    {(Object.keys(QUESTION_TYPE_LABELS) as ScreeningQuestionType[]).map((type) => (
+                      <option key={type} value={type}>
+                        {QUESTION_TYPE_LABELS[type]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => moveQuestion(question.id, -1)}
+                    className="rounded-md px-2 py-1 text-xs font-semibold text-moons-muted transition hover:bg-surface hover:text-heading disabled:opacity-40"
+                    aria-label="Move question up"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === questions.length - 1}
+                    onClick={() => moveQuestion(question.id, 1)}
+                    className="rounded-md px-2 py-1 text-xs font-semibold text-moons-muted transition hover:bg-surface hover:text-heading disabled:opacity-40"
+                    aria-label="Move question down"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeQuestion(question.id)}
+                    className="rounded-md px-2 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-500/10"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
 
               <label className="mt-3 block text-sm font-medium text-moons-silver">
                 Question text *
               </label>
-              <input
+              <textarea
                 required
                 minLength={3}
                 maxLength={300}
+                rows={2}
                 value={question.prompt}
                 onChange={(e) => patchQuestion(question.id, { prompt: e.target.value })}
-                className={inputClass}
-                placeholder="What do you want applicants to answer?"
+                className={`${inputClass} resize-y`}
+                placeholder={
+                  question.type === ScreeningQuestionType.RESUME
+                    ? 'e.g. Upload your latest CV / resume'
+                    : question.type === ScreeningQuestionType.YES_NO
+                      ? 'e.g. Are you currently available to join?'
+                      : question.type === ScreeningQuestionType.SINGLE_CHOICE
+                        ? 'e.g. What is your notice period?'
+                        : 'e.g. Why are you a good fit for this role?'
+                }
               />
+              <p className="mt-1 text-right text-[11px] text-moons-muted">
+                {question.prompt.length}/300
+              </p>
 
               {question.type === ScreeningQuestionType.SINGLE_CHOICE && (
-                <div className="mt-3">
-                  <label className="block text-sm font-medium text-moons-silver">
-                    Options (one per line, min 2)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={(question.options ?? []).join('\n')}
-                    onChange={(e) =>
-                      patchQuestion(question.id, {
-                        options: e.target.value
-                          .split('\n')
-                          .map((line) => line.trim())
-                          .filter(Boolean)
-                          .slice(0, 10),
-                      })
-                    }
-                    className={inputClass}
-                    placeholder={'Immediate\n15 days\n30 days\n60+ days'}
-                  />
-                </div>
+                <ChoiceOptionsEditor
+                  options={question.options ?? ['', '']}
+                  onChange={(next) =>
+                    patchQuestion(question.id, {
+                      options: next.map((line) => line.trimEnd()).slice(0, 10),
+                    })
+                  }
+                />
+              )}
+
+              {question.type === ScreeningQuestionType.YES_NO && (
+                <p className="mt-3 rounded-lg bg-surface px-3 py-2 text-xs text-moons-muted ring-1 ring-border/60">
+                  Applicants will choose <span className="font-semibold text-heading">Yes</span> or{' '}
+                  <span className="font-semibold text-heading">No</span>.
+                </p>
+              )}
+
+              {question.type === ScreeningQuestionType.RESUME && (
+                <p className="mt-3 rounded-lg bg-surface px-3 py-2 text-xs text-moons-muted ring-1 ring-border/60">
+                  Applicants will upload a CV / resume file for this question.
+                </p>
               )}
 
               <label className="mt-3 flex items-center gap-2 text-sm text-foreground">
@@ -292,7 +457,7 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
                   onChange={(e) => patchQuestion(question.id, { required: e.target.checked })}
                   className="rounded border-border"
                 />
-                Required
+                Required answer
               </label>
             </li>
           ))}
@@ -333,6 +498,9 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
           + Multiple choice
         </button>
       </div>
+      {questions.length > 0 && (
+        <p className="text-xs text-moons-muted">{questions.length}/10 questions added</p>
+      )}
     </div>
   );
 

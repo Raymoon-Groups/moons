@@ -164,14 +164,14 @@ export function ConnectionInvitesBanner() {
 
   return (
     <div
-      className={`pointer-events-none fixed right-3 top-[5.75rem] z-40 w-[min(100vw-1.5rem,22rem)] transition-all duration-500 ease-out sm:right-4 sm:top-24 lg:right-[max(1rem,calc((100vw-80rem)/2+1rem))] ${
+      className={`pointer-events-auto w-full transition-all duration-500 ease-out ${
         entered && !dismissing ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0'
       }`}
       role="status"
       aria-live="polite"
     >
       <div
-        className={`pointer-events-auto overflow-hidden rounded-2xl border shadow-[0_20px_50px_-12px_rgba(26,39,68,0.28)] backdrop-blur-md transition-colors duration-500 dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)] ${
+        className={`overflow-hidden rounded-2xl border shadow-[0_20px_50px_-12px_rgba(26,39,68,0.28)] backdrop-blur-md transition-colors duration-500 dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)] ${
           isAccepted
             ? 'border-emerald-300/80 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/60 dark:border-emerald-500/35 dark:from-emerald-500/10 dark:via-surface-elevated dark:to-emerald-500/5'
             : isIgnored

@@ -2,9 +2,9 @@
 
 import { FormEvent, useMemo, useRef, useState } from 'react';
 import { ResumeDownloadButton } from '@/components/resume-download-button';
-import { SuccessModal } from '@/components/success-modal';
 import { authDelete, authFetch, authUpload } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
+import { notify } from '@/lib/toast';
 import type { CertificationEntry, EducationEntry, Profile, WorkExperienceEntry } from '@/lib/types';
 import {
   sanitizeCertifications,
@@ -96,7 +96,6 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [savedCardSignal, setSavedCardSignal] = useState<{ id: string; at: number } | null>(null);
   const [error, setError] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false);
   const [photoKey, setPhotoKey] = useState(0);
 
   const displayName = fullName.trim() || profile.email.split('@')[0];
@@ -205,7 +204,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
       setPendingPhoto(null);
       setPendingRemovePhoto(false);
       setPhotoKey((k) => k + 1);
-      setShowSuccess(true);
+      notify.success('Photo updated', 'Your profile photo has been saved.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save photo');
     } finally {
@@ -267,7 +266,7 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
       setPendingResume(null);
       setPendingRemoveResume(false);
       setPhotoKey((k) => k + 1);
-      setShowSuccess(true);
+      notify.success('Profile saved', 'Your jobseeker profile has been updated.');
       if (cardId) setSavedCardSignal({ id: cardId, at: Date.now() });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
@@ -278,11 +277,6 @@ export function CandidateProfileView({ profile: initial, onSaved }: Props) {
 
   return (
     <>
-      <SuccessModal
-        open={showSuccess}
-        message="Your jobseeker profile has been saved successfully."
-        onClose={() => setShowSuccess(false)}
-      />
       <ProfilePageShell
         completion={liveCompletion}
         completionItems={completionItems}

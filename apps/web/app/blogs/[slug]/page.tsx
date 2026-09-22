@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BLOG_POSTS } from '@/lib/blog-posts';
+import { resolveAssetUrl } from '@/lib/assets';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -82,7 +83,11 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
         {post.coverImageUrl ? (
           <div className="relative mt-8 aspect-[16/9] overflow-hidden rounded-[24px] bg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={post.coverImageUrl} alt="" className="h-full w-full object-cover" />
+            <img
+              src={resolveAssetUrl(post.coverImageUrl) ?? post.coverImageUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
           </div>
         ) : null}
 

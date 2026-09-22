@@ -18,6 +18,7 @@ import {
   notifyNotificationsRefresh,
   type NotificationItem,
 } from '@/lib/notifications';
+import { notify } from '@/lib/toast';
 
 const POLL_MS = 10_000;
 const INITIAL_DELAY_MS = 1200;
@@ -264,9 +265,11 @@ export function NotificationBell({
       if (action === 'accept') {
         await acceptConnectionInvite(connectionId);
         setActionById((prev) => ({ ...prev, [item.id]: 'accepted' }));
+        notify.success('Connection accepted');
       } else {
         await ignoreConnectionInvite(connectionId);
         setActionById((prev) => ({ ...prev, [item.id]: 'ignored' }));
+        notify.success('Request declined');
       }
       setPendingInviteIds((prev) => {
         const next = new Set(prev);

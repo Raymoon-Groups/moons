@@ -110,14 +110,23 @@ export default function AdminAnnouncementsPage() {
     setSaving(true);
     setError('');
     setMessage('');
+
+    const imageUrl = form.imageUrl.trim();
+    if (!imageUrl) {
+      setError('Popup image is required. Upload a file or paste an image URL.');
+      setSaving(false);
+      return;
+    }
+
+    const durationSec = Math.min(30, Math.max(3, Number(form.durationSec) || 5));
     const payload = {
-      title: form.title,
-      body: form.body,
-      ctaLabel: form.ctaLabel || null,
-      ctaUrl: form.ctaUrl || null,
-      imageUrl: form.imageUrl || null,
+      title: form.title.trim(),
+      body: form.body.trim(),
+      ctaLabel: form.ctaLabel.trim() || null,
+      ctaUrl: form.ctaUrl.trim() || null,
+      imageUrl,
       active: form.active,
-      durationSec: Number(form.durationSec) || 5,
+      durationSec,
     };
     try {
       if (editingId) {
@@ -162,8 +171,8 @@ export default function AdminAnnouncementsPage() {
       });
       setMessage(
         nextActive
-          ? `"${item.title}" is now active.`
-          : `"${item.title}" deactivated.`,
+          ? `"${item.title || 'Announcement'}" is now active.`
+          : `"${item.title || 'Announcement'}" deactivated.`,
       );
       if (editingId === item.id) {
         setForm((f) => ({ ...f, active: nextActive }));
@@ -192,8 +201,9 @@ export default function AdminAnnouncementsPage() {
   return (
     <AdminShell>
       <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground">
-        Active popups appear on the landing page. If more than one is active, they show as a
-        carousel with left/right controls (3 seconds per slide) and a close (×) button.
+        Active popups appear on the landing page every time a visitor loads or refreshes the
+        page. Image is required; title, message, and button are optional. Duration controls how
+        long each slide stays visible (3–30 seconds). Multiple active popups rotate as a carousel.
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -206,14 +216,13 @@ export default function AdminAnnouncementsPage() {
           </h2>
           <input
             className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            placeholder="Popup title"
+            placeholder="Popup title (optional)"
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            required
           />
           <textarea
             className="min-h-24 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            placeholder="Popup message"
+            placeholder="Popup message (optional)"
             value={form.body}
             onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
           />
@@ -231,7 +240,10 @@ export default function AdminAnnouncementsPage() {
           />
 
           <div className="space-y-2 rounded-xl border border-border/70 bg-surface p-3">
-            <p className="text-sm font-semibold text-foreground">Popup image (optional)</p>
+            <p className="text-sm font-semibold text-foreground">
+              Popup image <span className="text-red-500">*</span>
+            </p>
+            <p className="text-xs text-moons-muted">Required — upload a file or paste an image URL.</p>
             {previewSrc ? (
               <div className="relative overflow-hidden rounded-xl bg-surface-elevated">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -270,17 +282,25 @@ export default function AdminAnnouncementsPage() {
             />
           </div>
 
-          <input
-            type="number"
-            min={3}
-            max={30}
-            className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            placeholder="Duration seconds"
-            value={form.durationSec}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, durationSec: Number(e.target.value) || 5 }))
-            }
-          />
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-foreground">
+              Display duration (seconds)
+            </label>
+            <input
+              type="number"
+              min={3}
+              max={30}
+              className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+              placeholder="5"
+              value={form.durationSec}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, durationSec: Number(e.target.value) || 5 }))
+              }
+            />
+            <p className="mt-1 text-xs text-moons-muted">
+              How long this popup stays on screen (or each carousel slide). Min 3, max 30.
+            </p>
+          </div>
           <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
@@ -334,7 +354,9 @@ export default function AdminAnnouncementsPage() {
                           />
                         ) : null}
                         <div className="min-w-0">
-                          <p className="font-semibold text-foreground">{item.title}</p>
+                          <p className="font-semibold text-foreground">
+                            {item.title?.trim() || 'Untitled popup'}
+                          </p>
                           <div className="mt-2 flex flex-wrap items-center gap-3">
                             <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-foreground">
                               <span className="relative inline-flex h-5 w-9 shrink-0 items-center">
@@ -343,8 +365,8 @@ export default function AdminAnnouncementsPage() {
                                   role="switch"
                                   aria-label={
                                     item.active
-                                      ? `Deactivate ${item.title}`
-                                      : `Activate ${item.title}`
+                                      ? `Deactivate ${item.title || 'announcement'}`
+                                      : `Activate ${item.title || 'announcement'}`
                                   }
                                   checked={item.active}
                                   disabled={togglingId === item.id}

@@ -7,13 +7,14 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class UpsertAnnouncementDto {
+  @IsOptional()
   @IsString()
-  @MinLength(2)
   @MaxLength(120)
-  title!: string;
+  title?: string;
 
   @IsOptional()
   @IsString()
@@ -30,16 +31,18 @@ export class UpsertAnnouncementDto {
   @MaxLength(1000)
   ctaUrl?: string | null;
 
-  @IsOptional()
+  /** Required — landing popups are image-led. */
   @IsString()
+  @MinLength(1)
   @MaxLength(1000)
-  imageUrl?: string | null;
+  imageUrl!: string;
 
   @IsOptional()
   @IsBoolean()
   active?: boolean;
 
   @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
   @IsInt()
   @Min(3)
   @Max(30)

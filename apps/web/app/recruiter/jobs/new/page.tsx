@@ -23,6 +23,7 @@ import {
 import { authFetch } from '@/lib/api-client';
 import { getStoredUser } from '@/lib/auth';
 import type { JobListing } from '@/lib/jobs';
+import { notify } from '@/lib/toast';
 import { isDescriptionValid } from '@/lib/rich-text';
 import type { Profile } from '@/lib/types';
 
@@ -101,6 +102,7 @@ export default function NewJobPage() {
           screeningQuestions: values.screeningQuestions,
         }),
       });
+      notify.success('Job posted', `${job.title} is now live.`);
       router.push(`/recruiter/jobs/${job.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to post job');

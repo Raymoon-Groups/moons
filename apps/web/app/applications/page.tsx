@@ -19,6 +19,7 @@ import { authDelete, authFetch } from '@/lib/api-client';
 import { getStoredUser } from '@/lib/auth';
 import { formatEmploymentType } from '@/lib/job-formatters';
 import type { ApplicationWithJob } from '@/lib/types';
+import { notify } from '@/lib/toast';
 import {
   CoverNoteBlock,
   ScreeningAnswersList,
@@ -214,6 +215,7 @@ export default function ApplicationsPage() {
       await authDelete(`/applications/${app.id}`);
       setApplications((prev) => prev.filter((a) => a.id !== app.id));
       setWithdrawTarget(null);
+      notify.success('Application withdrawn', `You withdrew from ${app.job.title}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to withdraw');
     } finally {

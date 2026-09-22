@@ -22,6 +22,7 @@ import {
   removeConnection,
 } from '@/lib/network';
 import type { NetworkUserCard } from '@moons/shared';
+import { notify } from '@/lib/toast';
 
 export type ConnectionUpdate = {
   connectionId: string;
@@ -166,6 +167,7 @@ function ConnectActions({
               run(
                 async () => {
                   await removeConnection(userId);
+                  notify.success('Connection removed');
                 },
                 {
                   refreshAll: true,
@@ -198,6 +200,7 @@ function ConnectActions({
               run(
                 async () => {
                   await acceptConnectionInvite(connectionId);
+                  notify.success('Connection accepted', `${fullName.split(' ')[0]} is now in your network.`);
                 },
                 {
                   update: {
@@ -219,6 +222,7 @@ function ConnectActions({
               run(
                 async () => {
                   await ignoreConnectionInvite(connectionId);
+                  notify.success('Request declined');
                 },
                 {
                   refreshAll: true,

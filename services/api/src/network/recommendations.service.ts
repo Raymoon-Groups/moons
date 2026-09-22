@@ -14,6 +14,7 @@ import {
   uniqueStrings,
   workCompanies,
 } from './network.utils';
+import { applicantIdsForRecruiter } from './recruiter-applicant-access';
 
 interface ScoredCandidate {
   profile: ProfileWithUser;
@@ -270,7 +271,19 @@ export class RecommendationsService {
       myConnections.map((c) => (c.fromUserId === userId ? c.toUserId : c.fromUserId)),
     );
 
-    const eligibleCandidates = candidates.filter((c) => !excluded.has(c.userId));
+    let eligibleCandidates = candidates.filter((c) => !excluded.has(c.userId));
+
+    // Recruiters only get suggested other recruiters + candidates who applied to them.
+    if (viewer.user.role === UserRole.RECRUITER) {
+      const applicantIds = new Set(
+        await applicantIdsForRecruiter(this.prisma, userId),
+      );
+      eligibleCandidates = eligibleCandidates.filter(
+        (c) =>
+          c.user.role === UserRole.RECRUITER || applicantIds.has(c.userId),
+      );
+    }
+
     const candidateIds = eligibleCandidates.map((c) => c.userId);
 
     const theirConnectionRows = candidateIds.length

@@ -7,6 +7,7 @@ import {
   OPEN_ON_MOONS_LABEL,
   OPEN_ON_MOONS_TAGLINE,
 } from '@/lib/open-on-moons';
+import { notify } from '@/lib/toast';
 import type { Profile } from '@/lib/types';
 
 export function OpenOnMoonsToggle({
@@ -31,6 +32,12 @@ export function OpenOnMoonsToggle({
       });
       setEnabled(Boolean(saved.openToWork));
       onUpdated(saved);
+      notify.success(
+        saved.openToWork ? `${OPEN_ON_MOONS_LABEL} enabled` : `${OPEN_ON_MOONS_LABEL} turned off`,
+        saved.openToWork
+          ? 'Recruiters can see you are open to opportunities.'
+          : 'You are no longer shown as open to work.',
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update setting');
     } finally {

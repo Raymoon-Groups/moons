@@ -293,6 +293,213 @@ async function main() {
     },
   });
 
+  const fakeCandidates = [
+    {
+      email: 'fake.candidate1@moons.com',
+      fullName: 'Aisha Khan',
+      headline: 'Frontend Engineer',
+      currentCompany: 'PixelCraft',
+      location: 'Bangalore',
+      experienceYears: 3,
+      noticePeriod: '15 Days',
+      skills: ['React', 'TypeScript', 'CSS', 'Next.js'],
+      preferredRoles: ['Frontend Engineer', 'UI Engineer'],
+      openToWork: true,
+    },
+    {
+      email: 'fake.candidate2@moons.com',
+      fullName: 'Vikram Patel',
+      headline: 'Backend Engineer',
+      currentCompany: 'DataNest',
+      location: 'Hyderabad',
+      experienceYears: 4,
+      noticePeriod: '1 Month',
+      skills: ['Node.js', 'PostgreSQL', 'Redis', 'AWS'],
+      preferredRoles: ['Backend Engineer', 'API Developer'],
+      openToWork: true,
+    },
+    {
+      email: 'fake.candidate3@moons.com',
+      fullName: 'Meera Iyer',
+      headline: 'Full Stack Developer',
+      currentCompany: 'CloudForge',
+      location: 'Chennai',
+      experienceYears: 5,
+      noticePeriod: '2 Months',
+      skills: ['React', 'Node.js', 'GraphQL', 'Docker'],
+      preferredRoles: ['Full Stack Developer'],
+      openToWork: false,
+    },
+    {
+      email: 'fake.candidate4@moons.com',
+      fullName: 'Rohan Desai',
+      headline: 'DevOps Engineer',
+      currentCompany: 'InfraHub',
+      location: 'Pune',
+      experienceYears: 6,
+      noticePeriod: '1 Month',
+      skills: ['Kubernetes', 'Terraform', 'AWS', 'CI/CD'],
+      preferredRoles: ['DevOps Engineer', 'SRE'],
+      openToWork: true,
+    },
+    {
+      email: 'fake.candidate5@moons.com',
+      fullName: 'Neha Reddy',
+      headline: 'Product Designer',
+      currentCompany: 'StudioNorth',
+      location: 'Mumbai',
+      experienceYears: 4,
+      noticePeriod: 'Immediate',
+      skills: ['Figma', 'Design Systems', 'Prototyping', 'User Research'],
+      preferredRoles: ['UI/UX Designer', 'Product Designer'],
+      openToWork: true,
+    },
+    {
+      email: 'fake.candidate6@moons.com',
+      fullName: 'Karan Malhotra',
+      headline: 'Data Analyst',
+      currentCompany: 'InsightWorks',
+      location: 'Delhi',
+      experienceYears: 2,
+      noticePeriod: '15 Days',
+      skills: ['SQL', 'Python', 'Tableau', 'Excel'],
+      preferredRoles: ['Data Analyst', 'Business Analyst'],
+      openToWork: true,
+    },
+    {
+      email: 'fake.candidate7@moons.com',
+      fullName: 'Ananya Bose',
+      headline: 'Mobile Developer',
+      currentCompany: 'AppOrbit',
+      location: 'Kolkata',
+      experienceYears: 3,
+      noticePeriod: '1 Month',
+      skills: ['React Native', 'TypeScript', 'iOS', 'Android'],
+      preferredRoles: ['Mobile Developer', 'React Native Developer'],
+      openToWork: false,
+    },
+    {
+      email: 'fake.candidate8@moons.com',
+      fullName: 'Siddharth Nair',
+      headline: 'QA Automation Engineer',
+      currentCompany: 'QualityFirst',
+      location: 'Bangalore',
+      experienceYears: 5,
+      noticePeriod: '2 Months',
+      skills: ['Playwright', 'Cypress', 'Jest', 'Selenium'],
+      preferredRoles: ['QA Engineer', 'SDET'],
+      openToWork: true,
+    },
+    {
+      email: 'fake.candidate9@moons.com',
+      fullName: 'Pooja Agarwal',
+      headline: 'Product Manager',
+      currentCompany: 'LaunchPad',
+      location: 'Gurugram',
+      experienceYears: 7,
+      noticePeriod: '1 Month',
+      skills: ['Roadmapping', 'Agile', 'Analytics', 'Stakeholder Management'],
+      preferredRoles: ['Product Manager'],
+      openToWork: true,
+    },
+    {
+      email: 'fake.candidate10@moons.com',
+      fullName: 'Aditya Joshi',
+      headline: 'Machine Learning Engineer',
+      currentCompany: 'NeuralStack',
+      location: 'Remote',
+      experienceYears: 4,
+      noticePeriod: 'Immediate',
+      skills: ['Python', 'PyTorch', 'NLP', 'MLOps'],
+      preferredRoles: ['ML Engineer', 'Data Scientist'],
+      openToWork: true,
+    },
+  ] as const;
+
+  const createdFakeCandidates: { id: string; email: string; fullName: string }[] = [];
+
+  for (const fake of fakeCandidates) {
+    const user = await prisma.user.upsert({
+      where: { email: fake.email },
+      update: {
+        emailVerified: true,
+        onboardingCompleted: true,
+      },
+      create: {
+        email: fake.email,
+        passwordHash,
+        role: 'CANDIDATE',
+        emailVerified: true,
+        onboardingCompleted: true,
+        profile: {
+          create: {
+            fullName: fake.fullName,
+            headline: fake.headline,
+            currentCompany: fake.currentCompany,
+            location: fake.location,
+            experienceYears: fake.experienceYears,
+            noticePeriod: fake.noticePeriod,
+            skills: [...fake.skills],
+            preferredRoles: [...fake.preferredRoles],
+            preferredLocations: [fake.location, 'Remote'],
+            preferredIndustries: ['IT Services & Consulting', 'Software Product'],
+            openToWork: fake.openToWork,
+            summary: `${fake.headline} with ${fake.experienceYears}+ years of experience. Looking for strong product teams.`,
+            phone: `+91 9${String(Math.floor(100000000 + Math.random() * 899999999)).slice(0, 9)}`,
+            currentCtc: '8 - 12 LPA',
+            expectedCtc: '12 - 20 LPA',
+            educations: [
+              {
+                degree: 'B.Tech',
+                institute: 'Demo Institute of Technology',
+                fieldOfStudy: 'Computer Science',
+                year: String(2024 - fake.experienceYears),
+              },
+            ],
+            workExperiences: [
+              {
+                company: fake.currentCompany,
+                designation: fake.headline,
+                startDate: `${2024 - Math.min(fake.experienceYears, 3)}-01`,
+                endDate: null,
+                isCurrent: true,
+                description: `Working as ${fake.headline} at ${fake.currentCompany}.`,
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    await prisma.profile.upsert({
+      where: { userId: user.id },
+      update: {
+        fullName: fake.fullName,
+        headline: fake.headline,
+        currentCompany: fake.currentCompany,
+        location: fake.location,
+        experienceYears: fake.experienceYears,
+        noticePeriod: fake.noticePeriod,
+        skills: [...fake.skills],
+        preferredRoles: [...fake.preferredRoles],
+        openToWork: fake.openToWork,
+      },
+      create: {
+        userId: user.id,
+        fullName: fake.fullName,
+        headline: fake.headline,
+        skills: [...fake.skills],
+        openToWork: fake.openToWork,
+      },
+    });
+
+    createdFakeCandidates.push({
+      id: user.id,
+      email: fake.email,
+      fullName: fake.fullName,
+    });
+  }
+
   const jobs = [
     {
       title: 'Senior Software Engineer',
@@ -380,6 +587,50 @@ async function main() {
     }
   }
 
+  // Apply fake candidates across TechNova (recruiter) jobs so they appear under Candidates.
+  const recruiterJobs = await prisma.job.findMany({
+    where: { recruiterId: recruiter.id, status: 'PUBLISHED' },
+    select: { id: true },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const applicationStatuses = [
+    'SUBMITTED',
+    'VIEWED',
+    'SHORTLISTED',
+    'REJECTED',
+    'SUBMITTED',
+    'VIEWED',
+    'SHORTLISTED',
+    'SUBMITTED',
+    'VIEWED',
+    'SHORTLISTED',
+  ] as const;
+
+  for (let i = 0; i < createdFakeCandidates.length; i++) {
+    const fakeUser = createdFakeCandidates[i];
+    const job = recruiterJobs[i % Math.max(recruiterJobs.length, 1)];
+    if (!job) continue;
+
+    await prisma.application.upsert({
+      where: {
+        jobId_candidateId: {
+          jobId: job.id,
+          candidateId: fakeUser.id,
+        },
+      },
+      update: {
+        status: applicationStatuses[i] ?? 'SUBMITTED',
+      },
+      create: {
+        jobId: job.id,
+        candidateId: fakeUser.id,
+        status: applicationStatuses[i] ?? 'SUBMITTED',
+        coverNote: `Hi, I'm interested in this role. — ${fakeUser.fullName}`,
+      },
+    });
+  }
+
   const accounts = [
     { user: recruiter, label: 'Employer 1' },
     { user: recruiter2, label: 'Employer 2' },
@@ -396,6 +647,12 @@ async function main() {
     console.log(`  User ID: ${user.id}`);
     console.log(`  Profile: http://localhost:3000/network/${user.id}\n`);
   }
+
+  console.log(`Fake candidates (${createdFakeCandidates.length}, password: password123):`);
+  for (const fake of createdFakeCandidates) {
+    console.log(`  ${fake.fullName} <${fake.email}>`);
+  }
+  console.log('');
 }
 
 main()

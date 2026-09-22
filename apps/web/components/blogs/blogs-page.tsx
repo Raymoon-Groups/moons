@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '@/lib/api-client';
+import { resolveAssetUrl } from '@/lib/assets';
 
 type ApiBlogPost = {
   id: string;
@@ -42,7 +43,7 @@ function mapApiPost(post: ApiBlogPost): UiPost {
     category: post.category,
     date: post.date,
     readTime: post.readTime,
-    image: post.coverImageUrl || FALLBACK_IMAGE,
+    image: resolveAssetUrl(post.coverImageUrl) || FALLBACK_IMAGE,
     section:
       post.section === 'FEATURED'
         ? 'featured'
@@ -112,8 +113,9 @@ function ArrowButton({
 }
 
 function Cover({ src, className }: { src: string; className?: string }) {
-  const isRemote = src.startsWith('http');
-  if (!isRemote) {
+  const useNextImage =
+    src.includes('images.unsplash.com') || src.includes('logo.clearbit.com');
+  if (!useNextImage) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={src} alt="" className={className ?? 'h-full w-full object-cover'} />

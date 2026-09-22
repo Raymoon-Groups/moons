@@ -9,10 +9,10 @@ import {
   POST_MEDIA_ACCEPT,
   postImageTooLargeMessage,
   postVideoTooLargeMessage,
-  storedToEditable,
 } from '@moons/shared';
 import { resolveAssetUrl } from '@/lib/assets';
 import { authFetch } from '@/lib/api-client';
+import { notify } from '@/lib/toast';
 import {
   addComment,
   createPost,
@@ -33,7 +33,18 @@ import { InlineUploadProgress } from '@/components/feed/inline-upload-progress';
 import { MoonsPlusPromo } from '@/components/dashboard/moons-plus-promo';
 import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
 import { MentionText } from '@/components/mentions/mention-text';
+import { PostBody } from '@/components/rich-text-content';
+import {
+  RichTextEditor,
+  type RichTextEditorHandle,
+} from '@/components/rich-text-editor';
 import { useMentionComposer } from '@/lib/use-mention-composer';
+import {
+  htmlEditableToStored,
+  htmlStoredToEditable,
+  isPostBodyEmpty,
+  postBodyPlainText,
+} from '@/lib/post-rich-text';
 import { UserRole } from '@moons/shared';
 
 function guessMimeFromName(name: string): string {
@@ -407,8 +418,8 @@ function ForwardPostModal({
         ? `${window.location.origin}/dashboard?post=${post.id}`
         : `/dashboard?post=${post.id}`;
     const author = post.author.fullName?.trim() || 'a MoonsJob member';
-    const preview = post.body.trim()
-      ? post.body.trim().slice(0, 120)
+    const preview = postBodyPlainText(post.body)
+      ? postBodyPlainText(post.body).slice(0, 120)
       : post.media.length
         ? 'Shared a photo/video'
         : 'Shared a post';
@@ -1062,7 +1073,8 @@ export function FeedPostCard({
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body);
   const editMention = useMentionComposer();
-  const editMentionSuggestions = editMention.suggestionsFor(editBody);
+  const [editPlain, setEditPlain] = useState('');
+  const editMentionSuggestions = editMention.suggestionsFor(editPlain);
   const [showComments, setShowComments] = useState((post.recentComments?.length ?? 0) > 0);
   const [showLikers, setShowLikers] = useState(false);
   const [showForward, setShowForward] = useState(false);
@@ -1073,7 +1085,7 @@ export function FeedPostCard({
   const commentMention = useMentionComposer();
   const commentMentionSuggestions = commentMention.suggestionsFor(commentText);
   const commentInputRef = useRef<HTMLInputElement>(null);
-  const editInputRef = useRef<HTMLTextAreaElement>(null);
+  const editEditorRef = useRef<RichTextEditorHandle>(null);
   const [commentFile, setCommentFile] = useState<File | null>(null);
   const [commentPreview, setCommentPreview] = useState<string | null>(null);
   const commentFileRef = useRef<HTMLInputElement>(null);
@@ -1173,6 +1185,10 @@ export function FeedPostCard({
     try {
       await sendConnectionRequest(post.author.userId);
       onChange({ ...post, connectionStatus: 'PENDING', connectionDirection: 'sent' });
+      notify.success(
+        'Invitation sent',
+        `Your connection request was sent to ${post.author.fullName?.split(' ')[0] ?? 'them'}.`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not connect');
     } finally {
@@ -1185,6 +1201,7 @@ export function FeedPostCard({
     setBusy(true);
     try {
       await deletePost(post.id);
+      notify.success('Post deleted');
       onRemove(post.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete');
@@ -1196,9 +1213,11 @@ export function FeedPostCard({
     setBusy(true);
     setError('');
     try {
-      const next = await updatePost(post.id, editMention.toStored(editBody));
+      const stored = htmlEditableToStored(editBody, editMention.mentions);
+      const next = await updatePost(post.id, stored);
       onChange(next);
       setEditing(false);
+      notify.success('Post updated');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save edits');
     } finally {
@@ -1304,8 +1323,8 @@ export function FeedPostCard({
         <PostMoreMenu
           isMine={isMine}
           onEdit={() => {
-            const editable = storedToEditable(post.body);
-            setEditBody(editable.text);
+            const editable = htmlStoredToEditable(post.body);
+            setEditBody(editable.html);
             editMention.resetMentions(editable.mentions);
             setEditing(true);
           }}
@@ -1320,35 +1339,32 @@ export function FeedPostCard({
 
       {editing ? (
         <div className="mt-3 space-y-3">
-          <textarea
-            ref={editInputRef}
+          <RichTextEditor
+            ref={editEditorRef}
+            variant="compact"
             value={editBody}
-            onChange={(e) => {
-              setEditBody(e.target.value);
-              editMention.setCaret(e.target.selectionStart ?? e.target.value.length);
-              editMention.syncMentionsFromText(e.target.value);
+            onChange={setEditBody}
+            onPlainTextChange={(text, caret) => {
+              setEditPlain(text);
+              editMention.setCaret(caret);
+              editMention.syncMentionsFromText(text);
               editMention.ensureLoaded();
             }}
-            onSelect={(e) =>
-              editMention.setCaret((e.target as HTMLTextAreaElement).selectionStart ?? editBody.length)
-            }
-            rows={4}
-            maxLength={3000}
             placeholder="Use @ to mention someone in your network"
-            className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-heading outline-none ring-moons-blue/30 focus:ring-2"
+            minLength={0}
+            maxLength={3000}
+            disabled={busy}
+            showFooter={false}
           />
           <MentionSuggestions
             people={editMentionSuggestions}
             onSelect={(person) => {
-              const result = editMention.pickMention(editBody, person);
-              setEditBody(result.text);
-              requestAnimationFrame(() => {
-                const el = editInputRef.current;
-                if (!el) return;
-                el.focus();
-                el.setSelectionRange(result.caret, result.caret);
-                editMention.setCaret(result.caret);
-              });
+              const inserted = editEditorRef.current?.insertMention(person.fullName);
+              if (!inserted) return;
+              editMention.resetMentions([
+                ...editMention.mentions.filter((m) => m.userId !== person.userId),
+                { userId: person.userId, displayName: person.fullName },
+              ]);
             }}
           />
           <div className="flex justify-end gap-2">
@@ -1366,7 +1382,10 @@ export function FeedPostCard({
             </button>
             <button
               type="button"
-              disabled={busy || editMention.toStored(editBody).trim() === post.body.trim()}
+              disabled={
+                busy ||
+                htmlEditableToStored(editBody, editMention.mentions).trim() === post.body.trim()
+              }
               onClick={() => void handleSaveEdit()}
               className="rounded-full bg-moons-navy px-4 py-1.5 text-sm font-semibold text-white hover:bg-moons-blue-dark disabled:opacity-60"
             >
@@ -1375,9 +1394,9 @@ export function FeedPostCard({
           </div>
         </div>
       ) : post.body ? (
-        <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-heading">
-          <MentionText value={post.body} />
-        </p>
+        <div className="mt-3">
+          <PostBody value={post.body} />
+        </div>
       ) : null}
       <MediaCarousel
         media={post.media}
@@ -1400,9 +1419,9 @@ export function FeedPostCard({
             Shared from {original.author.fullName || 'a member'}
           </p>
           {original.body ? (
-            <p className="mt-1 whitespace-pre-wrap text-sm text-heading">
-              <MentionText value={original.body} />
-            </p>
+            <div className="mt-1">
+              <PostBody value={original.body} />
+            </div>
           ) : null}
           <MediaCarousel
             media={original.media}
@@ -1678,9 +1697,10 @@ function Composer({
   uploading: boolean;
 }) {
   const [body, setBody] = useState('');
+  const [plainBody, setPlainBody] = useState('');
   const mention = useMentionComposer();
-  const mentionSuggestions = mention.suggestionsFor(body);
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const mentionSuggestions = mention.suggestionsFor(plainBody);
+  const editorRef = useRef<RichTextEditorHandle>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -1690,7 +1710,7 @@ function Composer({
 
   const hasVideo = files.some((f) => f.type.startsWith('video/'));
   const canAddMore = !hasVideo && files.length < 10;
-  const canPost = Boolean(body.trim() || files.length > 0);
+  const canPost = Boolean(!isPostBodyEmpty(body) || files.length > 0);
   const locked = busy || uploading;
 
   useEffect(() => {
@@ -1753,21 +1773,24 @@ function Composer({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!body.trim() && files.length === 0) return;
+    if (isPostBodyEmpty(body) && files.length === 0) return;
     if (locked) return;
+    if (postBodyPlainText(body).length > 3000) {
+      setError('Post text must be 3000 characters or less');
+      return;
+    }
 
     const attached = files;
-    const storedBody = mention.toStored(body);
+    const storedBody = htmlEditableToStored(body, mention.mentions);
     const startProgress = attached.length ? 8 : 35;
 
     setBusy(true);
     setError('');
     setBody('');
+    setPlainBody('');
     mention.resetMentions();
     setFiles([]);
-    if (bodyRef.current) {
-      bodyRef.current.style.height = '44px';
-    }
+    editorRef.current?.clear();
     onUploadChange({
       progress: startProgress,
       label: getUploadLabel(attached, startProgress),
@@ -1785,6 +1808,7 @@ function Composer({
       await waitForUploadHold();
       await onCreated(post);
       onUploadChange(null);
+      notify.success('Post shared', 'Your update is now visible on the feed.');
     } catch (err) {
       onUploadChange(null);
       setError(err instanceof Error ? err.message : 'Could not create post');
@@ -1800,42 +1824,41 @@ function Composer({
         focused ? 'border-moons-blue shadow-md' : 'border-border'
       } ${locked ? 'opacity-80' : ''}`}
     >
-      <textarea
-        ref={bodyRef}
-        value={body}
-        onChange={(e) => {
-          setBody(e.target.value);
-          mention.setCaret(e.target.selectionStart ?? e.target.value.length);
-          mention.syncMentionsFromText(e.target.value);
-          mention.ensureLoaded();
-          const el = e.target;
-          el.style.height = 'auto';
-          el.style.height = `${Math.min(180, Math.max(44, el.scrollHeight))}px`;
+      <div
+        onFocusCapture={() => setFocused(true)}
+        onBlurCapture={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            setFocused(false);
+          }
         }}
-        onSelect={(e) =>
-          mention.setCaret((e.target as HTMLTextAreaElement).selectionStart ?? body.length)
-        }
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        rows={1}
-        maxLength={3000}
-        disabled={locked}
-        placeholder="Share an update with your network…"
-        className="w-full resize-none overflow-hidden rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm leading-6 text-heading outline-none placeholder:text-moons-muted focus:border-moons-blue/40 disabled:opacity-70"
-        style={{ height: 44 }}
-      />
+      >
+        <RichTextEditor
+          ref={editorRef}
+          variant="compact"
+          value={body}
+          onChange={setBody}
+          onPlainTextChange={(text, caret) => {
+            setPlainBody(text);
+            mention.setCaret(caret);
+            mention.syncMentionsFromText(text);
+            mention.ensureLoaded();
+          }}
+          placeholder="Share an update with your network…"
+          minLength={0}
+          maxLength={3000}
+          disabled={locked}
+          showFooter={false}
+        />
+      </div>
       <MentionSuggestions
         people={mentionSuggestions}
         onSelect={(person) => {
-          const result = mention.pickMention(body, person);
-          setBody(result.text);
-          requestAnimationFrame(() => {
-            const el = bodyRef.current;
-            if (!el) return;
-            el.focus();
-            el.setSelectionRange(result.caret, result.caret);
-            mention.setCaret(result.caret);
-          });
+          const inserted = editorRef.current?.insertMention(person.fullName);
+          if (!inserted) return;
+          mention.resetMentions([
+            ...mention.mentions.filter((m) => m.userId !== person.userId),
+            { userId: person.userId, displayName: person.fullName },
+          ]);
         }}
       />
 
@@ -1921,6 +1944,7 @@ function Composer({
     </form>
   );
 }
+
 
 function feedRootId(post: FeedPost) {
   if (post.originalPost && !('unavailable' in post.originalPost)) {

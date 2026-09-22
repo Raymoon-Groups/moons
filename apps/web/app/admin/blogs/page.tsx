@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { AdminShell } from '@/components/admin/admin-shell';
-import { ApiError, adminFetch } from '@/lib/api-client';
+import { ApiError, adminFetch, adminUpload } from '@/lib/api-client';
+import { resolveAssetUrl } from '@/lib/assets';
 
 type BlogPost = {
   id: string;
@@ -32,11 +33,13 @@ const EMPTY: Omit<BlogPost, 'id' | 'slug' | 'date'> & { slug: string } = {
 };
 
 export default function AdminBlogsPage() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [form, setForm] = useState({ ...EMPTY });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -76,6 +79,38 @@ export default function AdminBlogsPage() {
   function resetForm() {
     setEditingId(null);
     setForm({ ...EMPTY });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  async function onUploadCover(file: File | undefined) {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setError('Please choose an image file (JPG, PNG, WEBP, or GIF)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be 5 MB or smaller');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+    setMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const result = await adminUpload<{ coverImageUrl: string }>(
+        '/blogs/cover',
+        formData,
+      );
+      setForm((f) => ({ ...f, coverImageUrl: result.coverImageUrl }));
+      setMessage('Cover image uploaded. Save the blog to apply it.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Image upload failed');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   }
 
   async function onSubmit(e: FormEvent) {
@@ -128,6 +163,8 @@ export default function AdminBlogsPage() {
     }
   }
 
+  const previewSrc = resolveAssetUrl(form.coverImageUrl || null);
+
   return (
     <AdminShell>
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -171,12 +208,39 @@ export default function AdminBlogsPage() {
             <option value="LATEST">Latest</option>
             <option value="FOUNDERS">Founders</option>
           </select>
-          <input
-            className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            placeholder="Cover image URL"
-            value={form.coverImageUrl ?? ''}
-            onChange={(e) => setForm((f) => ({ ...f, coverImageUrl: e.target.value }))}
-          />
+
+          <div className="space-y-2 rounded-xl border border-border/70 bg-surface p-3">
+            <p className="text-sm font-semibold text-foreground">Cover image</p>
+            {previewSrc ? (
+              <div className="relative overflow-hidden rounded-xl bg-surface-elevated">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewSrc}
+                  alt=""
+                  className="h-36 w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, coverImageUrl: '' }))}
+                  className="absolute right-2 top-2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : null}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="block w-full text-sm text-moons-muted file:mr-3 file:rounded-full file:border-0 file:bg-moons-blue file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white"
+              disabled={uploading || saving}
+              onChange={(e) => void onUploadCover(e.target.files?.[0])}
+            />
+            {uploading ? (
+              <p className="text-xs text-moons-muted">Uploading…</p>
+            ) : null}
+          </div>
+
           <input
             type="number"
             min={1}
@@ -213,7 +277,7 @@ export default function AdminBlogsPage() {
           <div className="flex gap-2">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploading}
               className="rounded-full bg-moons-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
             >
               {saving ? 'Saving…' : editingId ? 'Update' : 'Create'}

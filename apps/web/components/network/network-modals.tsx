@@ -5,6 +5,7 @@ import { resolveAvatarUrl } from '@/lib/assets';
 import { fetchConnectionStatus, sendConnectionRequest } from '@/lib/network';
 import { fetchConversationWithUser, notifyMessagesRefresh, sendMessageToUser } from '@/lib/messages';
 import { MessageComposeField } from '@/components/messages/message-compose-field';
+import { notify } from '@/lib/toast';
 
 const NOTE_MAX = 300;
 
@@ -70,6 +71,7 @@ export function ConnectInviteModal({
     try {
       const result = await sendConnectionRequest(userId, note.trim() || undefined);
       const id = result && typeof result === 'object' && 'id' in result ? String((result as { id: string }).id) : '';
+      notify.success('Invitation sent', `Your connection request was sent to ${fullName.split(' ')[0]}.`);
       onSent(id);
       onClose();
     } catch (err) {
@@ -205,6 +207,7 @@ export function MessageComposeModal({
       await sendMessageToUser(userId, trimmed, attachment ?? undefined);
       const conversation = await fetchConversationWithUser(userId);
       notifyMessagesRefresh();
+      notify.success('Message sent', `Your message to ${fullName.split(' ')[0]} was delivered.`);
       onSent?.(conversation.id);
       onClose();
     } catch (err) {

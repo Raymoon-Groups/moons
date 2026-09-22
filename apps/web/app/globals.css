@@ -756,8 +756,8 @@ body {
     color: var(--moons-muted);
   }
 
-  .rich-text-content strong {
-    font-weight: 600;
+  .rich-text-content a.mention-link {
+    @apply font-semibold text-moons-blue hover:underline;
   }
 
   /* Shared mobile helpers */

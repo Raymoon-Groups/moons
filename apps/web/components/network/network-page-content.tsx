@@ -346,7 +346,7 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
   };
 
   const heroSubtitle = isRecruiter
-    ? 'Discover talent and build your professional network. Search by skills, location, or who is Open on Moons.'
+    ? 'Connect with other recruiters and professionals. Review people who applied to your jobs from Candidates.'
     : 'Connect with professionals who share your skills and industry. Grow relationships that open doors.';
 
   return (
@@ -376,7 +376,7 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
                   <p className="text-sm font-bold text-heading">Search professionals</p>
                   <p className="mt-0.5 text-xs text-moons-muted">
                     {isRecruiter
-                      ? 'Find candidates by name, skills, location, or availability'
+                      ? 'Search other recruiters, or applicants who applied to your jobs'
                       : 'Name, skills, location, or hiring status'}
                   </p>
                 </div>
@@ -430,7 +430,9 @@ export function NetworkPageContent({ initialTab = 'connections' }: { initialTab?
                     className="space-input h-10"
                   >
                     <option value="">All roles</option>
-                    <option value={UserRole.CANDIDATE}>Candidates</option>
+                    <option value={UserRole.CANDIDATE}>
+                      {isRecruiter ? 'Your applicants' : 'Candidates'}
+                    </option>
                     <option value={UserRole.RECRUITER}>Recruiters</option>
                   </select>
                 </div>

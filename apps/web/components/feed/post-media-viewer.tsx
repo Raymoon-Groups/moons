@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { FeedPost } from '@moons/shared';
 import { resolveAssetUrl } from '@/lib/assets';
+import { postBodyPlainText } from '@/lib/post-rich-text';
 
 function formatCount(n: number) {
   if (n <= 0) return '';
@@ -139,7 +140,8 @@ export function PostMediaViewer({
 
   const current = items[Math.min(index, items.length - 1)];
   const src = resolveAssetUrl(current.url);
-  const hasCaption = Boolean(caption?.trim());
+  const captionText = caption ? postBodyPlainText(caption) : '';
+  const hasCaption = Boolean(captionText.trim());
   const showActions = Boolean(onLike || onComment || onShare);
 
   return (
@@ -264,7 +266,7 @@ export function PostMediaViewer({
           {hasCaption ? (
             captionExpanded ? (
               <p className="mt-1.5 max-h-[30vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-white/90">
-                {caption}
+                {captionText}
               </p>
             ) : (
               <button
@@ -272,7 +274,7 @@ export function PostMediaViewer({
                 onClick={() => setCaptionExpanded(true)}
                 className="mt-1.5 line-clamp-3 text-left text-sm leading-relaxed text-white/90"
               >
-                {caption}
+                {captionText}
               </button>
             )
           ) : null}

@@ -23,6 +23,10 @@ import {
   publicHeadline,
   ProfileWithUser,
 } from './network.utils';
+import {
+  applicantIdsForRecruiter,
+  recruiterCanViewCandidate,
+} from './recruiter-applicant-access';
 
 @Injectable()
 export class NetworkProfilesService {
@@ -194,6 +198,31 @@ export class NetworkProfilesService {
       throw new ForbiddenException('Profile unavailable');
     }
 
+    const viewerUser = viewerId
+      ? await this.prisma.user.findUnique({
+          where: { id: viewerId },
+          select: { role: true },
+        })
+      : null;
+
+    // Recruiters may only open candidate profiles for people who applied to their jobs.
+    if (
+      viewerId &&
+      viewerUser?.role === UserRole.RECRUITER &&
+      profile.user.role === UserRole.CANDIDATE
+    ) {
+      const allowed = await recruiterCanViewCandidate(
+        this.prisma,
+        viewerId,
+        targetUserId,
+      );
+      if (!allowed) {
+        throw new ForbiddenException(
+          'You can only view candidates who applied to your jobs',
+        );
+      }
+    }
+
     const connectionState = viewerId
       ? await this.getViewerConnectionState(viewerId, targetUserId)
       : {
@@ -216,13 +245,6 @@ export class NetworkProfilesService {
         ? this.getSharedSkills(viewerId, targetUserId)
         : { items: [] as string[] },
     ]);
-
-    const viewerUser = viewerId
-      ? await this.prisma.user.findUnique({
-          where: { id: viewerId },
-          select: { role: true },
-        })
-      : null;
 
     return {
       profile: this.sanitizeProfile(
@@ -328,6 +350,30 @@ export class NetworkProfilesService {
           ],
         },
       ];
+    }
+
+    // Recruiters cannot browse the general candidate pool — only their applicants
+    // (plus other recruiters for professional networking).
+    if (viewerRole === UserRole.RECRUITER) {
+      const applicantIds = await applicantIdsForRecruiter(this.prisma, viewerId);
+      const andClauses: Prisma.ProfileWhereInput[] = Array.isArray(where.AND)
+        ? [...where.AND]
+        : where.AND
+          ? [where.AND]
+          : [];
+      andClauses.push({
+        OR: [
+          { user: { role: UserRole.RECRUITER } },
+          {
+            userId: {
+              in: applicantIds.length
+                ? applicantIds
+                : ['00000000-0000-0000-0000-000000000000'],
+            },
+          },
+        ],
+      });
+      where.AND = andClauses;
     }
 
     const [profiles, total] = await Promise.all([

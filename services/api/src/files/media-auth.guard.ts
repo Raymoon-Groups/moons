@@ -32,7 +32,7 @@ export class MediaAuthGuard implements CanActivate {
     >();
 
     const category = String(req.params.category ?? '');
-    if (category === 'announcements') {
+    if (category === 'announcements' || category === 'blogs') {
       req.mediaAllowAnonymous = true;
     }
 

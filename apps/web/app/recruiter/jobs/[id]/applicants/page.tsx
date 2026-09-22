@@ -16,6 +16,7 @@ import { getResumeDisplayName } from '@/components/profile/profile-shared';
 import { ResumeDownloadButton } from '@/components/resume-download-button';
 import type { JobListing } from '@/lib/jobs';
 import type { ApplicantRow } from '@/lib/types';
+import { notify } from '@/lib/toast';
 
 const STATUS_OPTIONS = [
   ApplicationStatus.SUBMITTED,
@@ -367,6 +368,10 @@ export default function JobApplicantsPage() {
         ),
       );
       setRejectTarget(null);
+      notify.success(
+        'Status updated',
+        `Applicant marked as ${formatApplicationStatus(updated.status ?? status)}.`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
     } finally {

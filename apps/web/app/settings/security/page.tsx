@@ -8,6 +8,7 @@ import { PasswordField } from '@/components/auth/password-field';
 import { SettingsShell } from '@/components/settings/settings-shell';
 import { authFetch } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
+import { notify } from '@/lib/toast';
 
 function StatusItem({
   label,
@@ -88,6 +89,7 @@ export default function SecuritySettingsPage() {
         result.message ||
           'Password created successfully. Other devices have been signed out.',
       );
+      notify.success('Password created', 'Other devices have been signed out.');
       setPassword('');
       setConfirmPassword('');
     } catch (err) {
@@ -129,6 +131,7 @@ export default function SecuritySettingsPage() {
         result.message ||
           'Password changed successfully. Other devices have been signed out.',
       );
+      notify.success('Password updated', 'Other devices have been signed out.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');

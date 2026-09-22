@@ -7,9 +7,11 @@ import { createReadStream, existsSync, statSync } from 'fs';
 import { extname, join, normalize, sep } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import type { MediaJwtPayload } from './media-auth.guard';
+import { UserRole } from '@prisma/client';
 
 const ALLOWED_CATEGORIES = new Set([
   'announcements',
+  'blogs',
   'avatars',
   'banners',
   'company-logos',
@@ -97,7 +99,7 @@ export class FilesService {
     filename: string,
     user: MediaJwtPayload | undefined,
   ) {
-    if (category === 'announcements') {
+    if (category === 'announcements' || category === 'blogs') {
       return;
     }
 
@@ -133,6 +135,11 @@ export class FilesService {
     const ownerId = filename.replace(/\.[^.]+$/, '');
     if (ownerId === viewerId) return;
 
+    const viewer = await this.prisma.user.findUnique({
+      where: { id: viewerId },
+      select: { role: true },
+    });
+
     // Recruiter who received an application from this candidate
     const application = await this.prisma.application.findFirst({
       where: {
@@ -142,6 +149,13 @@ export class FilesService {
       select: { id: true },
     });
     if (application) return;
+
+    // Recruiters may not download resumes via public/connected network visibility.
+    if (viewer?.role === UserRole.RECRUITER) {
+      throw new ForbiddenException(
+        'You can only view resumes of candidates who applied to your jobs',
+      );
+    }
 
     // Match network profile visibility: connected (or public) + resume not hidden
     const profile = await this.prisma.profile.findUnique({

@@ -1,9 +1,9 @@
 'use client';
 
 import { FormEvent, useMemo, useState } from 'react';
-import { SuccessModal } from '@/components/success-modal';
 import { authDelete, authFetch, authUpload } from '@/lib/api-client';
 import type { Profile } from '@/lib/types';
+import { notify } from '@/lib/toast';
 import { COMPANY_TYPE_OPTIONS, INDUSTRY_OPTIONS } from './profile-constants';
 import {
   buildRecruiterCompletionItems,
@@ -53,7 +53,6 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [savedCardSignal, setSavedCardSignal] = useState<{ id: string; at: number } | null>(null);
   const [error, setError] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false);
   const [photoKey, setPhotoKey] = useState(0);
   const [logoKey, setLogoKey] = useState(0);
 
@@ -103,11 +102,11 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
     (completionItems.filter((i) => i.done).length / completionItems.length) * 100,
   );
 
-  async function refreshProfileAfterUpload() {
+  async function refreshProfileAfterUpload(message = 'Photo updated') {
     const saved = await authFetch<Profile>('/profiles/me');
     setProfile(saved);
     onSaved(saved);
-    setShowSuccess(true);
+    notify.success(message, 'Your employer profile has been updated.');
   }
 
   async function saveAvatarOnly(file?: File | null) {
@@ -150,7 +149,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
       setPendingLogo(null);
       setPendingRemoveLogo(false);
       setLogoKey((k) => k + 1);
-      await refreshProfileAfterUpload();
+      await refreshProfileAfterUpload('Logo updated');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save logo');
     } finally {
@@ -207,7 +206,7 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
       setPendingRemoveLogo(false);
       setPhotoKey((k) => k + 1);
       setLogoKey((k) => k + 1);
-      setShowSuccess(true);
+      notify.success('Profile saved', 'Your employer profile has been updated.');
       if (cardId) setSavedCardSignal({ id: cardId, at: Date.now() });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
@@ -218,11 +217,6 @@ export function RecruiterProfileView({ profile: initial, onSaved }: Props) {
 
   return (
     <>
-      <SuccessModal
-        open={showSuccess}
-        message="Your employer profile has been saved successfully."
-        onClose={() => setShowSuccess(false)}
-      />
       <ProfilePageShell
         completion={liveCompletion}
         completionItems={completionItems}

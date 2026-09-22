@@ -17,6 +17,7 @@ import {
   type RecruiterCandidateFilters,
   type RecruiterCandidateRow,
 } from '@/lib/recruiter-candidates';
+import { notify } from '@/lib/toast';
 
 const STATUS_OPTIONS = [
   ApplicationStatus.SUBMITTED,
@@ -208,14 +209,8 @@ function CandidateCard({
     <article className="candidate-card">
       <div className="candidate-card-accent" aria-hidden />
 
-      <div className="flex gap-4 px-5 pb-4 pt-5 md:px-6">
-        <input
-          type="checkbox"
-          className="mt-2 h-4 w-4 shrink-0 rounded accent-moons-blue"
-          aria-label={`Select ${name}`}
-        />
-
-        <div className="min-w-0 flex-1">
+      <div className="px-5 pb-4 pt-5 md:px-6">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <Link
@@ -564,6 +559,10 @@ export function RecruiterCandidatesBrowse() {
         ),
       );
       setRejectTarget(null);
+      notify.success(
+        'Status updated',
+        `Candidate marked as ${formatApplicationStatus(updated.status ?? status)}.`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
     } finally {

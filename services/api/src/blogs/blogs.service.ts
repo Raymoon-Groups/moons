@@ -4,8 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { BlogSection, Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { extname, join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogPostDto, UpdateBlogPostDto } from './dto/blogs.dto';
+
+const BLOG_UPLOAD_DIR = join(process.cwd(), 'uploads', 'blogs');
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 function slugify(input: string) {
   return input
@@ -19,6 +26,46 @@ function slugify(input: string) {
 @Injectable()
 export class BlogsService {
   constructor(private prisma: PrismaService) {}
+
+  private extFromMime(mime: string): string | null {
+    switch (mime) {
+      case 'image/jpeg':
+        return '.jpg';
+      case 'image/png':
+        return '.png';
+      case 'image/webp':
+        return '.webp';
+      case 'image/gif':
+        return '.gif';
+      default:
+        return null;
+    }
+  }
+
+  async uploadCoverImage(file: {
+    buffer: Buffer;
+    mimetype: string;
+    originalname: string;
+  }) {
+    if (!ALLOWED_IMAGE_MIME.has(file.mimetype)) {
+      throw new BadRequestException('Only JPG, PNG, WEBP, or GIF images are allowed');
+    }
+    if (file.buffer.length > MAX_IMAGE_BYTES) {
+      throw new BadRequestException('Image must be 5 MB or smaller');
+    }
+
+    if (!existsSync(BLOG_UPLOAD_DIR)) {
+      mkdirSync(BLOG_UPLOAD_DIR, { recursive: true });
+    }
+
+    const ext =
+      this.extFromMime(file.mimetype) ??
+      (extname(file.originalname).toLowerCase() || '.jpg');
+    const filename = `${randomUUID()}${ext}`;
+    writeFileSync(join(BLOG_UPLOAD_DIR, filename), file.buffer);
+
+    return { coverImageUrl: `/uploads/blogs/${filename}` };
+  }
 
   private serialize(post: {
     id: string;

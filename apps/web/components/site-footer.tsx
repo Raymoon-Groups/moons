@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { MoonsLogo } from '@/components/moons-logo';
 import { apiFetch } from '@/lib/api-client';
+import { notify } from '@/lib/toast';
 
 const navigationLinks = [
   { label: 'Browse jobs', href: '/jobs' },
@@ -87,6 +88,7 @@ export function SiteFooter() {
       });
       setSubscribed(true);
       setEmail('');
+      notify.success('Subscribed', 'Thanks for joining the Moons newsletter.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not subscribe. Please try again.');
     } finally {

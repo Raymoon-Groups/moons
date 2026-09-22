@@ -40,8 +40,9 @@ export class UpdateJobDto {
   employmentType?: EmploymentType;
 
   @IsOptional()
+  @ValidateIf((_, v) => v !== null)
   @IsString()
-  salaryRange?: string;
+  salaryRange?: string | null;
 
   @IsOptional()
   @ValidateIf((_, v) => v !== null)

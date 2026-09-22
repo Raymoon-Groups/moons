@@ -10,6 +10,7 @@ import { ResumeDownloadButton } from '@/components/resume-download-button';
 import { authFetch, authUpload } from '@/lib/api-client';
 import type { JobListing } from '@/lib/jobs';
 import { notifyNotificationsRefresh } from '@/lib/notifications';
+import { notify } from '@/lib/toast';
 import type { Profile } from '@/lib/types';
 
 type Step = 'questions' | 'preview';
@@ -168,6 +169,7 @@ export function ApplyJobModal({
         }),
       });
       notifyNotificationsRefresh();
+      notify.success('Application submitted', `You applied to ${job.title} at ${job.companyName}.`);
       onSubmitted();
       onClose();
     } catch (err) {

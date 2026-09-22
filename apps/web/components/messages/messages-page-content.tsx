@@ -18,6 +18,7 @@ import {
   type MessageItem,
   type MessageParticipant,
 } from '@/lib/messages';
+import { notify } from '@/lib/toast';
 import {
   acceptConnectionInvite,
   ignoreConnectionInvite,
@@ -415,6 +416,7 @@ function MessagesPageInner() {
     setError('');
     try {
       await acceptConnectionInvite(threadDetail.connectionId);
+      notify.success('Connection accepted', `${displayName.split(' ')[0]} is now in your network.`);
       if (activeId) await loadThread(activeId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not accept invitation');
@@ -429,6 +431,7 @@ function MessagesPageInner() {
     setError('');
     try {
       await ignoreConnectionInvite(threadDetail.connectionId);
+      notify.success('Request declined');
       backToInbox();
       void loadConversations();
     } catch (err) {

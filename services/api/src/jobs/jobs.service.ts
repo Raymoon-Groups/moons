@@ -86,7 +86,7 @@ export class JobsService {
     if (dto.location !== undefined) data.location = dto.location;
     if (dto.employmentType !== undefined) data.employmentType = dto.employmentType;
     if (dto.salaryRange !== undefined) {
-      data.salaryRange = dto.salaryRange.trim() || null;
+      data.salaryRange = dto.salaryRange?.trim() || null;
     }
     if (dto.minExperienceYears !== undefined) {
       data.minExperienceYears = dto.minExperienceYears;

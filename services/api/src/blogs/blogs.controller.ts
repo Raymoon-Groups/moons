@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,9 +7,18 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiTags,
+} from '@nestjs/swagger';
+import { memoryStorage } from 'multer';
 import { AdminAccessGuard } from '../common/guards/admin-access.guard';
 import { BlogsService } from './blogs.service';
 import { CreateBlogPostDto, UpdateBlogPostDto } from './dto/blogs.dto';
@@ -35,6 +45,29 @@ export class BlogsController {
   @ApiBearerAuth()
   getAdmin(@Param('id') id: string) {
     return this.blogs.getAdmin(id);
+  }
+
+  @Post('cover')
+  @UseGuards(AdminAccessGuard)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { image: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  uploadCover(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No image uploaded');
+    }
+    return this.blogs.uploadCoverImage(file);
   }
 
   @Post()
