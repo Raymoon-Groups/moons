@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import type { FeedPost } from '@moons/shared';
+import { PostBody } from '@/components/rich-text-content';
 import { resolveAssetUrl } from '@/lib/assets';
-import { postBodyPlainText } from '@/lib/post-rich-text';
+import { isPostBodyEmpty } from '@/lib/post-rich-text';
+
+const CAPTION_ON_DARK =
+  'text-[15px] leading-relaxed text-white/90 [&_h2]:text-white [&_h3]:text-white [&_blockquote]:border-white/30 [&_blockquote]:text-white/70 [&_.mention-link]:text-sky-300';
 
 function formatCount(n: number) {
   if (n <= 0) return '';
@@ -140,8 +144,7 @@ export function PostMediaViewer({
 
   const current = items[Math.min(index, items.length - 1)];
   const src = resolveAssetUrl(current.url);
-  const captionText = caption ? postBodyPlainText(caption) : '';
-  const hasCaption = Boolean(captionText.trim());
+  const hasCaption = Boolean(caption && !isPostBodyEmpty(caption));
   const showActions = Boolean(onLike || onComment || onShare);
 
   return (
@@ -263,18 +266,18 @@ export function PostMediaViewer({
               ) : null}
             </p>
           ) : null}
-          {hasCaption ? (
+          {hasCaption && caption ? (
             captionExpanded ? (
-              <p className="mt-1.5 max-h-[30vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-white/90">
-                {captionText}
-              </p>
+              <div className="mt-1.5 max-h-[30vh] overflow-y-auto">
+                <PostBody value={caption} className={CAPTION_ON_DARK} />
+              </div>
             ) : (
               <button
                 type="button"
                 onClick={() => setCaptionExpanded(true)}
-                className="mt-1.5 line-clamp-3 text-left text-sm leading-relaxed text-white/90"
+                className="mt-1.5 line-clamp-3 w-full overflow-hidden text-left"
               >
-                {captionText}
+                <PostBody value={caption} className={CAPTION_ON_DARK} />
               </button>
             )
           ) : null}

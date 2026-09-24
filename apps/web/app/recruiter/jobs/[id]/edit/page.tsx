@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
-import { EmploymentType, UserRole } from '@moons/shared';
+import { EmploymentType, UserRole, WorkMode } from '@moons/shared';
 import {
   DashBackLink,
   DashErrorBanner,
@@ -70,6 +70,7 @@ export default function EditJobPage() {
           description: job.description,
           location: job.location,
           employmentType: job.employmentType as EmploymentType,
+          workMode: (job.workMode as WorkMode) || WorkMode.ONSITE,
           salaryRange: job.salaryRange ?? '',
           ...yearsToExperienceBand(job.minExperienceYears, job.maxExperienceYears),
           screeningQuestions: job.screeningQuestions ?? [],
@@ -105,6 +106,7 @@ export default function EditJobPage() {
           description: values.description,
           location: values.location,
           employmentType: values.employmentType,
+          workMode: values.workMode,
           salaryRange: values.salaryRange?.trim() ? values.salaryRange.trim() : null,
           minExperienceYears: exp.minExperienceYears ?? null,
           maxExperienceYears: exp.maxExperienceYears ?? null,

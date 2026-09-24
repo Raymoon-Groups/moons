@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
   EmploymentType,
+  WorkMode,
   ScreeningQuestionType,
   type ScreeningQuestion,
 } from '@moons/shared';
@@ -24,11 +25,19 @@ interface JobFormValues {
   description: string;
   location: string;
   employmentType: EmploymentType;
+  workMode: WorkMode;
   salaryRange: string;
   minExperienceYears: string;
   maxExperienceYears: string;
   screeningQuestions: ScreeningQuestion[];
 }
+
+const WORK_MODE_OPTIONS: { value: WorkMode; label: string }[] = [
+  { value: WorkMode.ONSITE, label: 'On-site' },
+  { value: WorkMode.REMOTE, label: 'Remote' },
+  { value: WorkMode.HYBRID, label: 'Hybrid' },
+  { value: WorkMode.WORK_FROM_HOME, label: 'Work from home' },
+];
 
 interface Props {
   values: JobFormValues;
@@ -258,6 +267,21 @@ export function JobFormFields({ values, onChange, showProfileHint, layout = 'def
           {Object.values(EmploymentType).map((type) => (
             <option key={type} value={type}>
               {type.replace('_', ' ')}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-moons-silver">Work mode *</label>
+        <select
+          value={values.workMode}
+          onChange={(e) => onChange('workMode', e.target.value as WorkMode)}
+          className={inputClass}
+          required
+        >
+          {WORK_MODE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>

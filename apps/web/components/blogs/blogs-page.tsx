@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 
@@ -15,6 +15,7 @@ type ApiBlogPost = {
   category: string;
   section: 'FEATURED' | 'LATEST' | 'FOUNDERS';
   coverImageUrl: string | null;
+  externalUrl: string | null;
   readTime: string;
   date: string;
 };
@@ -27,6 +28,8 @@ type UiPost = {
   date: string;
   readTime: string;
   image: string;
+  href: string;
+  external: boolean;
   section: 'featured' | 'latest' | 'founders';
 };
 
@@ -36,6 +39,7 @@ const FALLBACK_IMAGE =
 const FOUNDERS_PER_PAGE = 3;
 
 function mapApiPost(post: ApiBlogPost): UiPost {
+  const external = Boolean(post.externalUrl?.trim());
   return {
     id: post.slug || post.id,
     title: post.title,
@@ -44,6 +48,8 @@ function mapApiPost(post: ApiBlogPost): UiPost {
     date: post.date,
     readTime: post.readTime,
     image: resolveAssetUrl(post.coverImageUrl) || FALLBACK_IMAGE,
+    href: external ? post.externalUrl!.trim() : `/blogs/${post.slug || post.id}`,
+    external,
     section:
       post.section === 'FEATURED'
         ? 'featured'
@@ -51,6 +57,34 @@ function mapApiPost(post: ApiBlogPost): UiPost {
           ? 'founders'
           : 'latest',
   };
+}
+
+function PostLink({
+  post,
+  className,
+  children,
+}: {
+  post: UiPost;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (post.external) {
+    return (
+      <a
+        href={post.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={post.href} className={className}>
+      {children}
+    </Link>
+  );
 }
 
 function CategoryPill({
@@ -181,8 +215,8 @@ export function BlogsPageContent() {
         ) : (
           <>
             <section className="grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)] lg:gap-10">
-              <Link
-                href={`/blogs/${featured.id}`}
+              <PostLink
+                post={featured}
                 className="group relative block min-h-[360px] overflow-hidden rounded-[28px] md:min-h-[460px]"
               >
                 <Cover src={featured.image} />
@@ -196,16 +230,16 @@ export function BlogsPageContent() {
                     <MetaLine date={featured.date} readTime={featured.readTime} light />
                   </div>
                 </div>
-              </Link>
+              </PostLink>
 
               <aside className="rounded-[24px] border border-border/70 bg-surface-elevated/80 p-5 shadow-sm sm:p-6">
                 <h2 className="text-lg font-bold text-foreground">Latest post</h2>
                 <div className="mt-4 divide-y divide-border/70">
                   {latest.length ? (
                     latest.map((post) => (
-                      <Link
+                      <PostLink
                         key={post.id}
-                        href={`/blogs/${post.id}`}
+                        post={post}
                         className="group flex gap-4 py-3 first:pt-0 last:pb-0"
                       >
                         <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-surface">
@@ -220,7 +254,7 @@ export function BlogsPageContent() {
                             <MetaLine date={post.date} readTime={post.readTime} />
                           </div>
                         </div>
-                      </Link>
+                      </PostLink>
                     ))
                   ) : (
                     <p className="py-2 text-sm text-moons-muted">No latest posts yet.</p>
@@ -251,9 +285,9 @@ export function BlogsPageContent() {
 
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {pagePosts.map((post) => (
-                  <Link
+                  <PostLink
                     key={post.id}
-                    href={`/blogs/${post.id}`}
+                    post={post}
                     className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-surface-elevated shadow-sm transition hover:border-moons-blue/30 hover:shadow-md"
                   >
                     <div className="relative aspect-[16/10] overflow-hidden bg-surface">
@@ -276,7 +310,7 @@ export function BlogsPageContent() {
                         <MetaLine date={post.date} readTime={post.readTime} />
                       </div>
                     </div>
-                  </Link>
+                  </PostLink>
                 ))}
               </div>
 

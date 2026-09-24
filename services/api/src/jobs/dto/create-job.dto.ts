@@ -4,6 +4,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -14,6 +15,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ScreeningQuestionDto } from './screening-question.dto';
+
+const WORK_MODES = ['ONSITE', 'REMOTE', 'HYBRID', 'WORK_FROM_HOME'] as const;
 
 export class CreateJobDto {
   @IsString()
@@ -33,6 +36,10 @@ export class CreateJobDto {
 
   @IsEnum(EmploymentType)
   employmentType!: EmploymentType;
+
+  @IsOptional()
+  @IsIn([...WORK_MODES])
+  workMode?: (typeof WORK_MODES)[number];
 
   @IsOptional()
   @IsString()

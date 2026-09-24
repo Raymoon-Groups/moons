@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { EmploymentType, ScreeningQuestionType, type ScreeningQuestion } from '@moons/shared';
+import { EmploymentType, ScreeningQuestionType, WorkMode, type ScreeningQuestion } from '@moons/shared';
 import {
   ScreeningQuestionsEditor,
   buildScreeningQuestions,
@@ -27,6 +27,13 @@ const EMPLOYMENT_OPTIONS = [
   EmploymentType.REMOTE,
 ].map((type) => ({ label: formatEmploymentType(type), value: type }));
 
+const WORK_MODE_OPTIONS = [
+  { label: 'On-site', value: WorkMode.ONSITE },
+  { label: 'Remote', value: WorkMode.REMOTE },
+  { label: 'Hybrid', value: WorkMode.HYBRID },
+  { label: 'Work from home', value: WorkMode.WORK_FROM_HOME },
+];
+
 export default function EditJobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
@@ -36,6 +43,7 @@ export default function EditJobScreen() {
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
   const [employmentType, setEmploymentType] = useState(EmploymentType.FULL_TIME);
+  const [workMode, setWorkMode] = useState(WorkMode.ONSITE);
   const [minExperienceYears, setMinExperienceYears] = useState('');
   const [maxExperienceYears, setMaxExperienceYears] = useState('');
   const [askForCv, setAskForCv] = useState(true);
@@ -61,6 +69,7 @@ export default function EditJobScreen() {
         setLocation(job.location);
         setSalaryRange(job.salaryRange ?? '');
         setEmploymentType(job.employmentType as EmploymentType);
+        setWorkMode((job.workMode as WorkMode) || WorkMode.ONSITE);
         const range = jobYearsToExperienceRange(job.minExperienceYears, job.maxExperienceYears);
         setMinExperienceYears(range.minYears);
         setMaxExperienceYears(range.maxYears);
@@ -110,6 +119,7 @@ export default function EditJobScreen() {
           location: location.trim(),
           salaryRange: salaryRange || undefined,
           employmentType,
+          workMode,
           minExperienceYears: exp.minExperienceYears ?? null,
           maxExperienceYears: exp.maxExperienceYears ?? null,
           screeningQuestions: buildScreeningQuestions(askForCv, customQuestions, existingQuestions),
@@ -154,6 +164,12 @@ export default function EditJobScreen() {
           value={employmentType}
           options={EMPLOYMENT_OPTIONS}
           onChange={(value) => setEmploymentType(value as EmploymentType)}
+        />
+        <SelectField
+          label="Work mode"
+          value={workMode}
+          options={WORK_MODE_OPTIONS}
+          onChange={(value) => setWorkMode(value as WorkMode)}
         />
         <SelectField
           label="Experience min (years)"

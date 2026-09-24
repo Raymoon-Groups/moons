@@ -191,6 +191,7 @@ export enum WorkMode {
   REMOTE = 'REMOTE',
   HYBRID = 'HYBRID',
   ONSITE = 'ONSITE',
+  WORK_FROM_HOME = 'WORK_FROM_HOME',
 }
 
 export interface NotificationItem {

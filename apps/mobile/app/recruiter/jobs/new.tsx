@@ -1,6 +1,6 @@
 import { router, useNavigation } from 'expo-router';
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { EmploymentType, type ScreeningQuestion } from '@moons/shared';
+import { EmploymentType, WorkMode, type ScreeningQuestion } from '@moons/shared';
 import {
   ScreeningQuestionsEditor,
   buildScreeningQuestions,
@@ -26,6 +26,13 @@ const EMPLOYMENT_OPTIONS = [
   EmploymentType.REMOTE,
 ].map((type) => ({ label: formatEmploymentType(type), value: type }));
 
+const WORK_MODE_OPTIONS = [
+  { label: 'On-site', value: WorkMode.ONSITE },
+  { label: 'Remote', value: WorkMode.REMOTE },
+  { label: 'Hybrid', value: WorkMode.HYBRID },
+  { label: 'Work from home', value: WorkMode.WORK_FROM_HOME },
+];
+
 export default function NewJobScreen() {
   const navigation = useNavigation();
   const [title, setTitle] = useState('');
@@ -34,6 +41,7 @@ export default function NewJobScreen() {
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
   const [employmentType, setEmploymentType] = useState(EmploymentType.FULL_TIME);
+  const [workMode, setWorkMode] = useState(WorkMode.ONSITE);
   const [minExperienceYears, setMinExperienceYears] = useState('');
   const [maxExperienceYears, setMaxExperienceYears] = useState('');
   const [askForCv, setAskForCv] = useState(true);
@@ -85,6 +93,7 @@ export default function NewJobScreen() {
           description,
           location: location.trim(),
           employmentType,
+          workMode,
           salaryRange: salaryRange || undefined,
           ...(exp.minExperienceYears != null
             ? {
@@ -123,6 +132,12 @@ export default function NewJobScreen() {
           value={employmentType}
           options={EMPLOYMENT_OPTIONS}
           onChange={(value) => setEmploymentType(value as EmploymentType)}
+        />
+        <SelectField
+          label="Work mode"
+          value={workMode}
+          options={WORK_MODE_OPTIONS}
+          onChange={(value) => setWorkMode(value as WorkMode)}
         />
         <SelectField
           label="Experience min (years)"

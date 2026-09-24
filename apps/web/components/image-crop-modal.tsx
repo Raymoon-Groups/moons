@@ -5,18 +5,20 @@ import { createPortal } from 'react-dom';
 import Cropper, { type Area } from 'react-easy-crop';
 import { getCroppedImageFile, maxEdgeForCropKind } from '@/lib/crop-image';
 
-export type ImageCropAspect = 'avatar' | 'cover' | 'logo';
+export type ImageCropAspect = 'avatar' | 'cover' | 'logo' | 'blog';
 
 const ASPECT_BY_KIND: Record<ImageCropAspect, number> = {
   avatar: 1,
   logo: 1,
   cover: 16 / 5,
+  blog: 16 / 9,
 };
 
 const TITLE_BY_KIND: Record<ImageCropAspect, string> = {
   avatar: 'Adjust profile photo',
   logo: 'Adjust company logo',
   cover: 'Adjust cover photo',
+  blog: 'Adjust cover image (16:9)',
 };
 
 export function ImageCropModal({

@@ -23,6 +23,11 @@ function slugify(input: string) {
     .slice(0, 160);
 }
 
+function emptyToNull(value?: string | null) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
 @Injectable()
 export class BlogsService {
   constructor(private prisma: PrismaService) {}
@@ -76,12 +81,21 @@ export class BlogsService {
     category: string;
     section: BlogSection;
     coverImageUrl: string | null;
+    metaTitle: string | null;
+    metaDescription: string | null;
+    displayDate: string | null;
+    externalUrl: string | null;
     readTimeMinutes: number;
     published: boolean;
     publishedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
   }) {
+    const fallbackDate = (post.publishedAt ?? post.createdAt).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
     return {
       id: post.id,
       slug: post.slug,
@@ -91,16 +105,17 @@ export class BlogsService {
       category: post.category,
       section: post.section,
       coverImageUrl: post.coverImageUrl,
+      metaTitle: post.metaTitle,
+      metaDescription: post.metaDescription,
+      displayDate: post.displayDate,
+      externalUrl: post.externalUrl,
       readTimeMinutes: post.readTimeMinutes,
       readTime: `${post.readTimeMinutes} min read`,
       published: post.published,
       publishedAt: post.publishedAt?.toISOString() ?? null,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
-      date: (post.publishedAt ?? post.createdAt).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      }),
+      date: post.displayDate?.trim() || fallbackDate,
     };
   }
 
@@ -167,7 +182,11 @@ export class BlogsService {
         body: dto.body?.trim() ?? '',
         category: dto.category?.trim() || 'General',
         section: dto.section ?? BlogSection.LATEST,
-        coverImageUrl: dto.coverImageUrl?.trim() || null,
+        coverImageUrl: emptyToNull(dto.coverImageUrl),
+        metaTitle: emptyToNull(dto.metaTitle),
+        metaDescription: emptyToNull(dto.metaDescription),
+        displayDate: emptyToNull(dto.displayDate),
+        externalUrl: emptyToNull(dto.externalUrl),
         readTimeMinutes: dto.readTimeMinutes ?? 5,
         published,
         publishedAt: published ? new Date() : null,
@@ -187,8 +206,14 @@ export class BlogsService {
     if (dto.category !== undefined) data.category = dto.category.trim() || 'General';
     if (dto.section !== undefined) data.section = dto.section;
     if (dto.coverImageUrl !== undefined) {
-      data.coverImageUrl = dto.coverImageUrl?.trim() || null;
+      data.coverImageUrl = emptyToNull(dto.coverImageUrl);
     }
+    if (dto.metaTitle !== undefined) data.metaTitle = emptyToNull(dto.metaTitle);
+    if (dto.metaDescription !== undefined) {
+      data.metaDescription = emptyToNull(dto.metaDescription);
+    }
+    if (dto.displayDate !== undefined) data.displayDate = emptyToNull(dto.displayDate);
+    if (dto.externalUrl !== undefined) data.externalUrl = emptyToNull(dto.externalUrl);
     if (dto.readTimeMinutes !== undefined) data.readTimeMinutes = dto.readTimeMinutes;
     if (dto.slug !== undefined) {
       data.slug = await this.uniqueSlug(dto.slug.trim() || existing.title, id);

@@ -9,6 +9,7 @@ export interface JobListing {
   description: string;
   location: string;
   employmentType: string;
+  workMode?: string | null;
   status: string;
   createdAt: string;
   salaryRange?: string | null;

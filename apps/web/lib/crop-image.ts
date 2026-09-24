@@ -4,6 +4,7 @@ const MAX_EDGE_BY_KIND = {
   avatar: 1024,
   logo: 1024,
   cover: 1600,
+  blog: 1920,
 } as const;
 
 export async function getCroppedImageFile(
@@ -44,7 +45,7 @@ export async function getCroppedImageFile(
   return new File([blob], `${safeName}.jpg`, { type: 'image/jpeg' });
 }
 
-export function maxEdgeForCropKind(kind: 'avatar' | 'logo' | 'cover'): number {
+export function maxEdgeForCropKind(kind: 'avatar' | 'logo' | 'cover' | 'blog'): number {
   return MAX_EDGE_BY_KIND[kind];
 }
 

@@ -29,7 +29,7 @@ export class CreateBlogPostDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20000)
+  @MaxLength(100000)
   body?: string;
 
   @IsOptional()
@@ -45,6 +45,26 @@ export class CreateBlogPostDto {
   @IsString()
   @MaxLength(1000)
   coverImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  metaTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  metaDescription?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  displayDate?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  externalUrl?: string;
 
   @IsOptional()
   @IsInt()
@@ -76,7 +96,7 @@ export class UpdateBlogPostDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20000)
+  @MaxLength(100000)
   body?: string;
 
   @IsOptional()
@@ -92,6 +112,26 @@ export class UpdateBlogPostDto {
   @IsString()
   @MaxLength(1000)
   coverImageUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  metaTitle?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  metaDescription?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  displayDate?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  externalUrl?: string | null;
 
   @IsOptional()
   @IsInt()

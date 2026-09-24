@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { RichTextContent } from '@/components/rich-text-content';
 import { BLOG_POSTS } from '@/lib/blog-posts';
 import { resolveAssetUrl } from '@/lib/assets';
+import { isRichTextHtml } from '@/lib/rich-text';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -18,6 +20,9 @@ type ApiBlogPost = {
   body: string;
   category: string;
   coverImageUrl: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  externalUrl: string | null;
   readTime: string;
   date: string;
 };
@@ -39,6 +44,9 @@ async function loadPost(slug: string): Promise<ApiBlogPost | null> {
     body: staticPost.excerpt,
     category: staticPost.category,
     coverImageUrl: staticPost.image,
+    metaTitle: null,
+    metaDescription: null,
+    externalUrl: null,
     readTime: staticPost.readTime,
     date: staticPost.date,
   };
@@ -49,8 +57,8 @@ export async function generateMetadata({ params }: BlogDetailPageProps): Promise
   const post = await loadPost(slug);
   if (!post) return { title: 'Blog — MoonsJob' };
   return {
-    title: `${post.title} — MoonsJob Blog`,
-    description: post.excerpt,
+    title: post.metaTitle?.trim() || `${post.title} — MoonsJob Blog`,
+    description: post.metaDescription?.trim() || post.excerpt || undefined,
   };
 }
 
@@ -91,10 +99,20 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
           </div>
         ) : null}
 
-        <div className="mt-8 space-y-4 text-[15px] leading-7 text-moons-muted">
-          {post.body
-            ? post.body.split(/\n+/).map((para) => <p key={para.slice(0, 24)}>{para}</p>)
-            : <p>{post.excerpt}</p>}
+        <div className="mt-8 text-[15px] leading-7 text-moons-muted">
+          {post.body ? (
+            isRichTextHtml(post.body) ? (
+              <RichTextContent content={post.body} className="text-[15px] leading-7 text-moons-muted" />
+            ) : (
+              <div className="space-y-4">
+                {post.body.split(/\n+/).map((para) => (
+                  <p key={para.slice(0, 24)}>{para}</p>
+                ))}
+              </div>
+            )
+          ) : (
+            <p>{post.excerpt}</p>
+          )}
         </div>
 
         <div className="mt-10 flex flex-wrap gap-3">

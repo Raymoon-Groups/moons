@@ -10,7 +10,9 @@ const ALLOWED_TAGS = [
   'br',
   'strong',
   'em',
+  'u',
   's',
+  'h1',
   'h2',
   'h3',
   'ul',
@@ -22,14 +24,24 @@ const ALLOWED_TAGS = [
   'a',
 ];
 
-const ALLOWED_ATTR = ['href', 'class', 'data-mention-id'];
+const ALLOWED_ATTR = ['href', 'class', 'data-mention-id', 'rel', 'target'];
 
-export function RichTextContent({ content }: { content: string }) {
+export function RichTextContent({
+  content,
+  className = '',
+}: {
+  content: string;
+  className?: string;
+}) {
   if (!content.trim()) return null;
 
   if (!isRichTextHtml(content)) {
     return (
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+      <p
+        className={`whitespace-pre-wrap text-sm leading-relaxed ${
+          className || 'text-foreground'
+        }`}
+      >
         <MentionText value={content} />
       </p>
     );
@@ -44,7 +56,9 @@ export function RichTextContent({ content }: { content: string }) {
 
   return (
     <div
-      className="rich-text-content text-sm leading-relaxed text-foreground"
+      className={`rich-text-content text-sm leading-relaxed ${
+        className || 'text-foreground'
+      }`}
       dangerouslySetInnerHTML={{ __html: clean }}
     />
   );
@@ -62,15 +76,15 @@ export function PostBody({
 
   if (!isRichTextHtml(value)) {
     return (
-      <p className={`whitespace-pre-wrap text-[15px] leading-7 text-heading ${className}`}>
+      <p
+        className={`whitespace-pre-wrap text-[15px] leading-7 ${
+          className || 'text-heading'
+        }`}
+      >
         <MentionText value={value} />
       </p>
     );
   }
 
-  return (
-    <div className={className}>
-      <RichTextContent content={value} />
-    </div>
-  );
+  return <RichTextContent content={value} className={className} />;
 }

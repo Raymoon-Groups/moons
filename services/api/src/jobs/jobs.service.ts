@@ -63,6 +63,7 @@ export class JobsService {
         description: dto.description,
         location: dto.location?.trim() || profile?.location?.trim() || dto.location,
         employmentType: dto.employmentType,
+        workMode: dto.workMode ?? 'ONSITE',
         salaryRange: dto.salaryRange?.trim() || null,
         minExperienceYears: dto.minExperienceYears ?? null,
         maxExperienceYears: dto.maxExperienceYears ?? null,
@@ -85,6 +86,7 @@ export class JobsService {
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.location !== undefined) data.location = dto.location;
     if (dto.employmentType !== undefined) data.employmentType = dto.employmentType;
+    if (dto.workMode !== undefined) data.workMode = dto.workMode;
     if (dto.salaryRange !== undefined) {
       data.salaryRange = dto.salaryRange?.trim() || null;
     }
@@ -516,6 +518,7 @@ export class JobsService {
       description: job.description,
       location: job.location,
       employmentType: job.employmentType,
+      workMode: job.workMode,
       salaryRange: job.salaryRange,
       minExperienceYears: job.minExperienceYears,
       maxExperienceYears: job.maxExperienceYears,

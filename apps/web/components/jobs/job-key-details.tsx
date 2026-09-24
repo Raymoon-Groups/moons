@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { formatEmploymentType, isRemoteJob } from '@/lib/job-formatters';
+import { formatEmploymentType, formatWorkMode } from '@/lib/job-formatters';
 import { formatExperienceRequiredDetail, type JobListing } from '@/lib/jobs';
 
 export type JobDetailItem = {
@@ -11,18 +11,13 @@ export type JobDetailItem = {
 
 export function getJobDetailItems(job: JobListing): JobDetailItem[] {
   const experience = formatExperienceRequiredDetail(job);
-  const remote = isRemoteJob(job);
-  const hybrid = /hybrid/i.test(job.location);
 
   return [
     { label: 'Location', value: job.location?.trim() || 'Not specified' },
     { label: 'Employment type', value: formatEmploymentType(job.employmentType) },
+    { label: 'Work mode', value: formatWorkMode(job.workMode) },
     { label: 'Experience required', value: experience ?? 'Not specified' },
     { label: 'Salary', value: job.salaryRange?.trim() || 'Not specified' },
-    {
-      label: 'Work mode',
-      value: remote ? 'Remote' : hybrid ? 'Hybrid' : 'On-site',
-    },
   ];
 }
 

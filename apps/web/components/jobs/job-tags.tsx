@@ -1,6 +1,6 @@
 import type { JobListing } from '@/lib/jobs';
 import { formatJobExperience } from '@/lib/jobs';
-import { formatEmploymentType, isRemoteJob } from '@/lib/job-formatters';
+import { formatEmploymentType, formatWorkMode } from '@/lib/job-formatters';
 
 const tagBase = 'rounded-md font-medium ring-1';
 
@@ -15,19 +15,17 @@ const tagStyles = {
 
 export function JobTags({ job, size = 'sm' }: { job: JobListing; size?: 'sm' | 'md' }) {
   const pad = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
-  const remote = isRemoteJob(job);
   const experience = formatJobExperience(job);
+  const workModeLabel = formatWorkMode(job.workMode);
 
   return (
     <div className="flex flex-wrap gap-1.5">
       <span className={`${tagStyles.amber} ${pad}`}>
         {formatEmploymentType(job.employmentType)}
       </span>
-      {remote && (
-        <span className={`${tagStyles.sky} ${pad}`}>
-          Remote
-        </span>
-      )}
+      {job.workMode ? (
+        <span className={`${tagStyles.sky} ${pad}`}>{workModeLabel}</span>
+      ) : null}
       {experience ? (
         <span className={`${tagStyles.emerald} ${pad}`}>
           {experience}

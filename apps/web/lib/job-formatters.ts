@@ -1,4 +1,4 @@
-import { EmploymentType } from '@moons/shared';
+import { WorkMode } from '@moons/shared';
 import type { JobListing } from '@/lib/jobs';
 import { formatJobExperience } from '@/lib/jobs';
 
@@ -7,6 +7,26 @@ export function formatEmploymentType(type: string) {
     .replace(/_/g, ' ')
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function formatWorkMode(mode: string | null | undefined) {
+  switch (mode) {
+    case WorkMode.ONSITE:
+      return 'On-site';
+    case WorkMode.REMOTE:
+      return 'Remote';
+    case WorkMode.HYBRID:
+      return 'Hybrid';
+    case WorkMode.WORK_FROM_HOME:
+      return 'Work from home';
+    default:
+      return mode
+        ? mode
+            .replace(/_/g, ' ')
+            .toLowerCase()
+            .replace(/\b\w/g, (c) => c.toUpperCase())
+        : 'Not specified';
+  }
 }
 
 export function formatPostedAgo(iso: string) {
@@ -21,10 +41,13 @@ export function formatPostedAgo(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function isRemoteJob(job: Pick<JobListing, 'location' | 'employmentType'>) {
+export function isRemoteJob(
+  job: Pick<JobListing, 'location' | 'employmentType' | 'workMode'>,
+) {
   return (
-    job.employmentType === EmploymentType.REMOTE ||
-    /remote/i.test(job.location)
+    job.workMode === WorkMode.REMOTE ||
+    job.workMode === WorkMode.WORK_FROM_HOME ||
+    /remote|work from home|wfh/i.test(job.location ?? '')
   );
 }
 
