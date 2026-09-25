@@ -25,6 +25,7 @@ export function JobsSearchHero({
   const { colors, isDark } = useTheme();
   const inputRef = useRef<TextInput>(null);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestSeq = useRef(0);
   const [queryFocused, setQueryFocused] = useState(false);
   const [querySuggestions, setQuerySuggestions] = useState<SearchSuggestion[]>([]);
   const [loadingQuerySuggestions, setLoadingQuerySuggestions] = useState(false);
@@ -39,23 +40,25 @@ export function JobsSearchHero({
     if (!queryFocused) return;
 
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      setLoadingQuerySuggestions(true);
-      const timer = setTimeout(() => {
-        void fetchSearchSuggestions('')
-          .then(setQuerySuggestions)
-          .finally(() => setLoadingQuerySuggestions(false));
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-
+    const seq = ++suggestSeq.current;
     setLoadingQuerySuggestions(true);
+
+    const delay = trimmed.length < 2 ? 80 : 220;
     const timer = setTimeout(() => {
-      void fetchSearchSuggestions(trimmed)
-        .then(setQuerySuggestions)
-        .catch(() => setQuerySuggestions([]))
-        .finally(() => setLoadingQuerySuggestions(false));
-    }, 250);
+      void fetchSearchSuggestions(trimmed.length < 2 ? '' : trimmed, 'job')
+        .then((items) => {
+          if (seq !== suggestSeq.current) return;
+          setQuerySuggestions(items);
+        })
+        .catch(() => {
+          if (seq !== suggestSeq.current) return;
+          setQuerySuggestions([]);
+        })
+        .finally(() => {
+          if (seq !== suggestSeq.current) return;
+          setLoadingQuerySuggestions(false);
+        });
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [query, queryFocused]);
@@ -158,6 +161,7 @@ export function JobsSearchHero({
       router.push(`/companies/${item.recruiterId}`);
       return;
     }
+    // Skill / keyword — run the jobs list search for that term
     onSearch?.();
   }
 
@@ -167,13 +171,10 @@ export function JobsSearchHero({
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
-        <Pressable
-          onPress={focusInput}
-          style={[styles.field, queryFocused && styles.fieldFocused]}
-        >
-          <View style={styles.searchIcon} pointerEvents="none">
+        <View style={[styles.field, queryFocused && styles.fieldFocused]}>
+          <Pressable onPress={focusInput} style={styles.searchIcon} hitSlop={4}>
             <Ionicons name="search" size={16} color={colors.blue} />
-          </View>
+          </Pressable>
           <TextInput
             ref={inputRef}
             value={query}
@@ -185,8 +186,9 @@ export function JobsSearchHero({
             autoCorrect={false}
             autoComplete="off"
             textContentType="none"
+            importantForAutofill="no"
             returnKeyType="search"
-            blurOnSubmit={false}
+            blurOnSubmit
             showSoftInputOnFocus
             editable
             onFocus={() => {
@@ -199,7 +201,12 @@ export function JobsSearchHero({
             onBlur={() => {
               blurTimerRef.current = setTimeout(() => setQueryFocused(false), 180);
             }}
-            onSubmitEditing={onSearch}
+            onSubmitEditing={() => {
+              setQueryFocused(false);
+              setQuerySuggestions([]);
+              Keyboard.dismiss();
+              onSearch?.();
+            }}
             accessibilityLabel="Search jobs"
           />
           {query.length > 0 ? (
@@ -216,7 +223,7 @@ export function JobsSearchHero({
               <Ionicons name="close" size={14} color={colors.muted} />
             </Pressable>
           ) : null}
-        </Pressable>
+        </View>
 
         {onOpenFilters ? (
           <Pressable

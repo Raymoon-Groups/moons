@@ -18,6 +18,7 @@ import type { PostMediaItem } from '@moons/shared';
 import { resolveAssetUrl } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { safeVideoPause, safeVideoPlay } from '@/lib/safe-video';
+import { PostBody } from '@/components/post-body';
 
 function FullscreenVideo({
   uri,
@@ -259,13 +260,16 @@ export function MediaViewer({
             {hasCaption ? (
               captionExpanded ? (
                 <ScrollView style={{ maxHeight: height * 0.32 }} showsVerticalScrollIndicator={false}>
-                  <Text style={styles.caption}>{caption}</Text>
+                  <PostBody value={caption!} onDark style={styles.caption} />
                 </ScrollView>
               ) : (
                 <Pressable onPress={() => setCaptionExpanded(true)}>
-                  <Text style={styles.caption} numberOfLines={3}>
-                    {caption}
-                  </Text>
+                  <PostBody
+                    value={caption!}
+                    onDark
+                    numberOfLines={3}
+                    style={styles.caption}
+                  />
                 </Pressable>
               )
             ) : null}

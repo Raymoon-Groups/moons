@@ -27,7 +27,7 @@ import { MediaViewer } from '@/components/feed/media-viewer';
 import { PostCommentsSheet } from '@/components/feed/post-comments-sheet';
 import { PostOptionsSheet } from '@/components/feed/post-options-sheet';
 import { MentionSuggestions } from '@/components/mentions/mention-suggestions';
-import { MentionText } from '@/components/mentions/mention-text';
+import { PostBody } from '@/components/post-body';
 import { SuccessModal } from '@/components/success-modal';
 import { ViewableAvatar } from '@/components/profile/protected-avatar-viewer';
 import { authFetch } from '@/lib/api';
@@ -89,9 +89,10 @@ export function PostCard({
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
-  const cardGutter = 16;
+  const cardGutter = 14;
   const cardPad = 16;
-  const mediaWidth = Math.max(0, width - cardGutter * 2 - cardPad * 2);
+  /** Full-bleed media inside the card (card clips with overflow). */
+  const mediaWidth = Math.max(0, width - cardGutter * 2);
   const [busy, setBusy] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -143,91 +144,82 @@ export function PostCard({
       StyleSheet.create({
         card: {
           marginHorizontal: cardGutter,
-          marginBottom: 14,
-          borderRadius: 20,
-          borderWidth: 1,
+          marginBottom: 12,
+          borderRadius: 18,
+          borderWidth: StyleSheet.hairlineWidth,
           borderColor: hairline,
           backgroundColor: colors.surfaceElevated,
           overflow: 'hidden',
-          shadowColor: '#0f1c33',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: isDark ? 0.28 : 0.07,
-          shadowRadius: 16,
-          elevation: 3,
-        },
-        accent: {
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 3,
-          backgroundColor: colors.blue,
-          opacity: 0.85,
+          shadowColor: '#14233f',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: isDark ? 0.35 : 0.06,
+          shadowRadius: 14,
+          elevation: 2,
         },
         header: {
           flexDirection: 'row',
-          alignItems: 'flex-start',
+          alignItems: 'center',
           gap: 12,
           paddingHorizontal: cardPad,
-          paddingTop: 16,
-          paddingBottom: 10,
+          paddingTop: 14,
+          paddingBottom: 12,
         },
         avatar: {
-          width: 48,
-          height: 48,
-          borderRadius: 16,
-          backgroundColor: isDark ? `${colors.blue}22` : `${colors.blue}14`,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: isDark ? `${colors.blue}22` : `${colors.blue}12`,
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: isDark ? `${colors.blue}35` : `${colors.blue}20`,
         },
-        avatarImg: { width: 48, height: 48, borderRadius: 16 },
+        avatarImg: { width: 44, height: 44, borderRadius: 22 },
+        nameRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+        },
         name: {
           color: colors.heading,
           ...fontStyle('bold'),
-          fontSize: 15.5,
-          letterSpacing: -0.2,
+          fontSize: 15,
+          letterSpacing: -0.25,
         },
         headline: {
           color: colors.muted,
           fontSize: 12.5,
           marginTop: 2,
-          lineHeight: 17,
+          lineHeight: 16,
         },
         time: {
           color: colors.silver,
-          fontSize: 11.5,
-          marginTop: 3,
+          fontSize: 12,
+          ...fontStyle('medium'),
         },
-        metaRow: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 5,
-          marginTop: 3,
+        timeDot: {
+          color: colors.silver,
+          fontSize: 12,
         },
         menuBtn: {
-          width: 34,
-          height: 34,
-          borderRadius: 12,
+          width: 32,
+          height: 32,
+          borderRadius: 16,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: isDark ? colors.surface : colors.surface,
         },
         body: {
           color: colors.foreground,
           fontSize: 15,
-          lineHeight: 22,
+          lineHeight: 23,
           paddingHorizontal: cardPad,
-          paddingBottom: 12,
+          paddingBottom: 14,
         },
         mediaWrap: {
-          marginHorizontal: cardPad,
-          marginBottom: 12,
-          borderRadius: 14,
+          marginBottom: 0,
           overflow: 'hidden',
           backgroundColor: isDark ? colors.surface : colors.surfaceHover,
-          borderWidth: 1,
-          borderColor: hairline,
         },
         media: {
           width: mediaWidth,
@@ -238,9 +230,19 @@ export function PostCard({
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: cardPad,
-          paddingBottom: 10,
+          paddingTop: 12,
+          paddingBottom: 4,
         },
         countLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+        likeBadge: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 5,
+          backgroundColor: isDark ? `${colors.blue}18` : `${colors.blue}0F`,
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          borderRadius: 999,
+        },
         countText: {
           color: mutedAction,
           fontSize: 12.5,
@@ -251,10 +253,9 @@ export function PostCard({
           alignItems: 'center',
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: hairline,
-          marginTop: 2,
-          paddingVertical: 6,
-          paddingHorizontal: 8,
-          backgroundColor: isDark ? colors.surface : `${colors.blue}06`,
+          marginTop: 8,
+          paddingVertical: 4,
+          paddingHorizontal: 6,
         },
         actionBtn: {
           flex: 1,
@@ -262,11 +263,11 @@ export function PostCard({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 6,
-          paddingVertical: 10,
+          paddingVertical: 11,
           borderRadius: 12,
         },
         actionBtnActive: {
-          backgroundColor: isDark ? `${colors.blue}20` : `${colors.blue}12`,
+          backgroundColor: isDark ? `${colors.blue}18` : `${colors.blue}0E`,
         },
         actionText: {
           color: mutedAction,
@@ -275,34 +276,34 @@ export function PostCard({
         },
         liked: { color: colors.blue },
         connect: {
-          borderWidth: 1.5,
+          borderWidth: 1,
           borderColor: colors.blue,
-          backgroundColor: isDark ? `${colors.blue}18` : `${colors.blue}10`,
-          borderRadius: 12,
+          backgroundColor: isDark ? `${colors.blue}18` : `${colors.blue}0C`,
+          borderRadius: 999,
           paddingHorizontal: 12,
-          paddingVertical: 7,
+          paddingVertical: 6,
         },
         connectText: { color: colors.blue, fontSize: 12, ...fontStyle('bold') },
         authorActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
         sharedBox: {
           marginHorizontal: cardPad,
           marginBottom: 12,
-          borderWidth: 1,
+          borderWidth: StyleSheet.hairlineWidth,
           borderColor: hairline,
           borderRadius: 14,
           padding: 12,
-          backgroundColor: isDark ? colors.surface : colors.surface,
+          backgroundColor: isDark ? colors.surface : `${colors.blue}06`,
         },
         sharedAvatar: {
-          width: 30,
-          height: 30,
-          borderRadius: 10,
+          width: 28,
+          height: 28,
+          borderRadius: 14,
           backgroundColor: isDark ? `${colors.blue}22` : `${colors.blue}14`,
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
         },
-        sharedAvatarImg: { width: 30, height: 30, borderRadius: 10 },
+        sharedAvatarImg: { width: 28, height: 28, borderRadius: 14 },
         commentsWrap: {
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: hairline,
@@ -588,14 +589,13 @@ export function PostCard({
 
   return (
     <View style={styles.card}>
-      <View style={styles.accent} />
       <View style={styles.header}>
         <ViewableAvatar uri={avatar} name={post.author.fullName}>
           <View style={styles.avatar}>
             {avatar ? (
               <Image source={{ uri: avatar }} style={styles.avatarImg} />
             ) : (
-              <Text style={{ color: colors.blue, ...fontStyle('bold'), fontSize: 17 }}>
+              <Text style={{ color: colors.blue, ...fontStyle('bold'), fontSize: 16 }}>
                 {(post.author.fullName?.[0] || '?').toUpperCase()}
               </Text>
             )}
@@ -605,15 +605,18 @@ export function PostCard({
           onPress={() => openAuthorProfile(post.author.userId)}
           style={{ flex: 1, minWidth: 0 }}
         >
-          <Text style={styles.name} numberOfLines={1}>
-            {post.author.fullName || 'MoonsJob member'}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>
+              {post.author.fullName || 'MoonsJob member'}
+            </Text>
+            <Text style={styles.timeDot}>·</Text>
+            <Text style={styles.time}>{timeAgo(post.createdAt)}</Text>
+          </View>
           {post.author.headline ? (
             <Text style={styles.headline} numberOfLines={1}>
               {post.author.headline}
             </Text>
           ) : null}
-          <Text style={styles.time}>{timeAgo(post.createdAt)}</Text>
         </Pressable>
         {showAuthorActions ? (
           <View style={styles.authorActions}>
@@ -657,7 +660,7 @@ export function PostCard({
         </Pressable>
       </View>
 
-      {post.body ? <MentionText value={post.body} style={styles.body} /> : null}
+      {post.body ? <PostBody value={post.body} style={styles.body} /> : null}
       {post.media.length > 0 ? (
         post.media.length === 1 ? (
           <View style={styles.mediaWrap}>
@@ -718,7 +721,7 @@ export function PostCard({
             </View>
           </View>
           {original.body ? (
-            <MentionText
+            <PostBody
               value={original.body}
               style={[styles.body, { fontSize: 14, marginTop: 8, paddingHorizontal: 0, paddingBottom: 0 }]}
             />
@@ -727,17 +730,17 @@ export function PostCard({
             original.media[0].type === 'VIDEO' && resolveAssetUrl(original.media[0].url) ? (
               <InlineFeedVideo
                 uri={resolveAssetUrl(original.media[0].url)!}
-                width={mediaWidth - 24}
+                width={mediaWidth - 32}
                 playing={isVisible && sharedViewerIndex === null}
-                style={{ marginTop: 10, borderRadius: 10 }}
+                style={{ marginTop: 10, borderRadius: 12 }}
                 onPress={() => setSharedViewerIndex(0)}
               />
             ) : original.media[0].type !== 'VIDEO' ? (
               <View style={{ marginTop: 10 }}>
                 <FeedMediaImage
                   uri={resolveAssetUrl(original.media[0].url)}
-                  width={mediaWidth - 24}
-                  borderRadius={10}
+                  width={mediaWidth - 32}
+                  borderRadius={12}
                   onPress={() => setSharedViewerIndex(0)}
                 />
               </View>
@@ -750,9 +753,12 @@ export function PostCard({
         <View style={styles.counts}>
           <View style={styles.countLeft}>
             {post.likeCount > 0 ? (
-              <Text style={styles.countText}>
-                {post.likeCount} {post.likeCount === 1 ? 'like' : 'likes'}
-              </Text>
+              <View style={styles.likeBadge}>
+                <Ionicons name="heart" size={11} color={colors.blue} />
+                <Text style={[styles.countText, { color: colors.blue }]}>
+                  {post.likeCount}
+                </Text>
+              </View>
             ) : (
               <View />
             )}

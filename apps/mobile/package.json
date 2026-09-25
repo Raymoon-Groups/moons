@@ -4,9 +4,9 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "dev": "expo start --lan",
+    "dev": "node ../../scripts/expo-start.mjs",
     "web": "expo start --web --port 8081 --clear",
-    "start": "expo start --lan",
+    "start": "node ../../scripts/expo-start.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "tsc --noEmit"

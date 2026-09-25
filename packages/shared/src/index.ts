@@ -1,8 +1,8 @@
 export {
   INDIAN_CITIES,
   INDIAN_CITY_OPTIONS,
-  type IndianCity,
 } from './indian-cities';
+export type { IndianCity } from './indian-cities';
 
 export enum UserRole {
   CANDIDATE = 'CANDIDATE',
@@ -65,10 +65,19 @@ export {
   getActiveMention,
   insertMentionText,
   filterMentionCandidates,
-  type MentionRef,
-  type MentionSegment,
-  type ActiveMention,
 } from './mentions';
+export type { MentionRef, MentionSegment, ActiveMention } from './mentions';
+
+export { splitTextWithUrls } from './linkify';
+export type { TextOrLinkSegment } from './linkify';
+
+export {
+  expandSearchTerms,
+  hasWordMatch,
+  scoreJobMatch,
+  rankJobsForQuery,
+} from './job-search';
+export type { JobSearchable } from './job-search';
 
 export enum JobStatus {
   DRAFT = 'DRAFT',

@@ -117,6 +117,13 @@ export function MessageBubble({
               ? { color: '#fff', textDecorationLine: 'underline' }
               : undefined
           }
+          linkStyle={
+            message.isMine && !isDark
+              ? { color: '#fff', textDecorationLine: 'underline' }
+              : message.isMine
+                ? { color: '#c5d9ff', textDecorationLine: 'underline' }
+                : undefined
+          }
         />
       ) : null}
 

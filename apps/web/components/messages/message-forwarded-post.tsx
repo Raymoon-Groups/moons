@@ -38,11 +38,14 @@ export function MessageForwardedPost({ body, isMine }: { body: string; isMine?: 
   const mentionClass = isMine
     ? 'font-semibold text-white underline underline-offset-2'
     : 'font-semibold text-moons-blue hover:underline';
+  const linkClass = isMine
+    ? 'font-semibold text-white underline underline-offset-2 break-all hover:opacity-90'
+    : 'font-semibold text-moons-blue underline underline-offset-2 break-all hover:opacity-90';
 
   if (!postId) {
     return (
       <p className="whitespace-pre-wrap break-words">
-        <MentionText value={body} mentionClassName={mentionClass} />
+        <MentionText value={body} mentionClassName={mentionClass} linkClassName={linkClass} />
       </p>
     );
   }
@@ -57,7 +60,7 @@ export function MessageForwardedPost({ body, isMine }: { body: string; isMine?: 
     <div className="space-y-2">
       {note ? (
         <p className="whitespace-pre-wrap break-words">
-          <MentionText value={note} mentionClassName={mentionClass} />
+          <MentionText value={note} mentionClassName={mentionClass} linkClassName={linkClass} />
         </p>
       ) : null}
       <div

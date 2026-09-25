@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { JobStatus, Prisma } from '@prisma/client';
+import { expandSearchTerms, scoreJobMatch } from '@moons/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ListCompaniesDto } from './dto/list-companies.dto';
@@ -129,14 +130,6 @@ export class JobsService {
       where.location = { contains: filters.location, mode: 'insensitive' };
     }
 
-    if (filters.q) {
-      where.OR = [
-        { title: { contains: filters.q, mode: 'insensitive' } },
-        { description: { contains: filters.q, mode: 'insensitive' } },
-        { companyName: { contains: filters.q, mode: 'insensitive' } },
-      ];
-    }
-
     const experienceFilter = this.buildExperienceFilter(filters.experience);
     if (experienceFilter) {
       const existing = where.AND
@@ -147,19 +140,87 @@ export class JobsService {
       where.AND = [...existing, experienceFilter];
     }
 
-    const [jobs, total] = await Promise.all([
-      this.prisma.job.findMany({
+    const q = filters.q?.trim() ?? '';
+    if (!q) {
+      const [jobs, total] = await Promise.all([
+        this.prisma.job.findMany({
+          where,
+          include: jobWithRecruiterInclude,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        this.prisma.job.count({ where }),
+      ]);
+
+      return {
+        items: jobs.map((job) => this.toJobResponse(job)),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      };
+    }
+
+    // Relevance search. Short queries (HR, QA, …) are ranked in memory so we
+    // never use ILIKE '%hr%' on descriptions (false hits like "through").
+    const terms = expandSearchTerms(q);
+    const shortQuery = q.length <= 3;
+
+    let candidates: JobWithRecruiter[];
+    if (shortQuery) {
+      candidates = await this.prisma.job.findMany({
         where,
         include: jobWithRecruiterInclude,
         orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.job.count({ where }),
-    ]);
+        take: 500,
+      });
+    } else {
+      where.OR = terms.flatMap((term) => {
+        const clause: Prisma.JobWhereInput[] = [
+          { title: { contains: term, mode: 'insensitive' } },
+          { companyName: { contains: term, mode: 'insensitive' } },
+        ];
+        if (term.length >= 3) {
+          clause.push({ description: { contains: term, mode: 'insensitive' } });
+        }
+        return clause;
+      });
+      candidates = await this.prisma.job.findMany({
+        where,
+        include: jobWithRecruiterInclude,
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+      });
+    }
+
+    const ranked = candidates
+      .map((job) => ({
+        job,
+        score: scoreJobMatch(
+          {
+            title: job.title,
+            companyName: job.companyName,
+            description: job.description,
+            createdAt: job.createdAt,
+          },
+          q,
+          terms,
+        ),
+      }))
+      .filter((row) => row.score > 0)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return (
+          new Date(b.job.createdAt).getTime() - new Date(a.job.createdAt).getTime()
+        );
+      });
+
+    const total = ranked.length;
+    const pageItems = ranked.slice(skip, skip + limit).map((row) => row.job);
 
     return {
-      items: jobs.map((job) => this.toJobResponse(job)),
+      items: pageItems.map((job) => this.toJobResponse(job)),
       total,
       page,
       limit,
