@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ImageCropModal } from '@/components/image-crop-modal';
 import { authDelete, authUpload } from '@/lib/api-client';
-import { resolveAssetUrl } from '@/lib/assets';
+import { withAssetCacheBust } from '@/lib/assets';
 import type { Profile } from '@/lib/types';
 
 function CameraIcon({ className }: { className?: string }) {
@@ -43,9 +43,7 @@ export function CoverPhotoBanner({
     setCacheVersion(updatedAt ?? '');
   }, [bannerUrl, updatedAt]);
 
-  const displayUrl = localBanner
-    ? `${resolveAssetUrl(localBanner)}${cacheVersion ? `?v=${new Date(cacheVersion).getTime()}` : ''}`
-    : null;
+  const displayUrl = withAssetCacheBust(localBanner, cacheVersion || null);
 
   function handleFilePick(file: File) {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {

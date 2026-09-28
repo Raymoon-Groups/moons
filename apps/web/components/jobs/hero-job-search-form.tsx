@@ -66,7 +66,7 @@ export function HeroJobSearchForm({
     if (!suggestionsOpen) return;
 
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
+    if (!trimmed) {
       setSuggestions([]);
       setLoadingSuggestions(false);
       return;
@@ -78,7 +78,7 @@ export function HeroJobSearchForm({
         .then(setSuggestions)
         .catch(() => setSuggestions([]))
         .finally(() => setLoadingSuggestions(false));
-    }, 250);
+    }, trimmed.length === 1 ? 120 : 200);
 
     return () => window.clearTimeout(timer);
   }, [query, suggestionsOpen]);
@@ -294,7 +294,7 @@ export function HeroJobSearchForm({
               <div className="border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-moons-muted">
                 {loadingSuggestions ? 'Searching…' : 'Suggestions'}
               </div>
-              <ul className="max-h-60 overflow-y-auto py-1">
+              <ul className="max-h-80 overflow-y-auto py-1">
                 {!loadingSuggestions &&
                   suggestions.map((item, index) => (
                     <li key={`${item.type}-${item.label}-${index}`}>

@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ImageCropModal } from '@/components/image-crop-modal';
 import { ProtectedPhotoViewer } from '@/components/profile/protected-avatar-viewer';
 import { ApiError, authDelete, authUpload } from '@/lib/api';
-import { resolveAssetUrl } from '@/lib/assets';
+import { withAssetCacheBust } from '@/lib/assets';
 import { fontStyle } from '@/lib/font-style';
 import { appendUploadFile } from '@/lib/upload-file';
 import type { Profile } from '@/lib/types';
@@ -45,9 +45,10 @@ export function CoverPhotoBanner({
     setCacheVersion(updatedAt ?? '');
   }, [bannerUrl, updatedAt]);
 
-  const displayUrl = localBanner
-    ? `${resolveAssetUrl(localBanner)}${cacheVersion ? `?v=${new Date(cacheVersion).getTime()}` : ''}`
-    : null;
+  const displayUrl = useMemo(
+    () => withAssetCacheBust(localBanner, cacheVersion || null),
+    [localBanner, cacheVersion],
+  );
 
   const styles = useMemo(
     () =>

@@ -76,6 +76,7 @@ export const config = {
     '/profile/:path*',
     '/applications',
     '/applications/:path*',
+    '/recruiter',
     '/recruiter/:path*',
     '/onboarding',
     '/onboarding/:path*',

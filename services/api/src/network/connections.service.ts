@@ -96,13 +96,21 @@ export class ConnectionsService {
 
   private mapConnectionUser(profile: ProfileWithUser | null, userId: string) {
     if (!profile) {
-      return { userId, fullName: null, headline: null, avatarUrl: null, role: null };
+      return {
+        userId,
+        fullName: null,
+        headline: null,
+        avatarUrl: null,
+        bannerUrl: null,
+        role: null,
+      };
     }
     return {
       userId: profile.userId,
       fullName: publicDisplayName(profile),
       headline: publicHeadline(profile),
       avatarUrl: profile.avatarUrl,
+      bannerUrl: profile.bannerUrl,
       role: profile.user.role,
       currentCompany: profile.currentCompany,
       location: profile.location,
@@ -292,7 +300,45 @@ export class ConnectionsService {
       throw new NotFoundException('Connection not found');
     }
 
-    return this.prisma.connection.delete({ where: { id: connection.id } });
+    // Soft-cancel so both people stay discoverable/searchable and can reconnect.
+    // Hard-deleting made former connections vanish from recruiter search pools
+    // (and broke reconnect flows that reuse the existing row).
+    return this.prisma.connection.update({
+      where: { id: connection.id },
+      data: {
+        status: ConnectionStatus.CANCELLED,
+        respondedAt: new Date(),
+      },
+    });
+  }
+
+  /** Any prior/current connection between two users (including cancelled/rejected). */
+  async hasConnectionHistory(userId: string, otherUserId: string): Promise<boolean> {
+    const row = await this.prisma.connection.findFirst({
+      where: {
+        OR: [
+          { fromUserId: userId, toUserId: otherUserId },
+          { fromUserId: otherUserId, toUserId: userId },
+        ],
+      },
+      select: { id: true },
+    });
+    return Boolean(row);
+  }
+
+  /** Other user IDs this user has any connection row with (any status). */
+  async listRelatedUserIds(userId: string): Promise<string[]> {
+    const rows = await this.prisma.connection.findMany({
+      where: {
+        OR: [{ fromUserId: userId }, { toUserId: userId }],
+      },
+      select: { fromUserId: true, toUserId: true },
+    });
+    const ids = new Set<string>();
+    for (const row of rows) {
+      ids.add(row.fromUserId === userId ? row.toUserId : row.fromUserId);
+    }
+    return [...ids];
   }
 
   async getStatus(userId: string, otherUserId: string) {

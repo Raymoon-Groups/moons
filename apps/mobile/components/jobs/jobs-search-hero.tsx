@@ -43,9 +43,9 @@ export function JobsSearchHero({
     const seq = ++suggestSeq.current;
     setLoadingQuerySuggestions(true);
 
-    const delay = trimmed.length < 2 ? 80 : 220;
+    const delay = trimmed.length === 0 ? 80 : trimmed.length === 1 ? 120 : 200;
     const timer = setTimeout(() => {
-      void fetchSearchSuggestions(trimmed.length < 2 ? '' : trimmed, 'job')
+      void fetchSearchSuggestions(trimmed, 'job')
         .then((items) => {
           if (seq !== suggestSeq.current) return;
           setQuerySuggestions(items);
@@ -166,7 +166,7 @@ export function JobsSearchHero({
   }
 
   const showQuerySuggestions =
-    queryFocused && (loadingQuerySuggestions || querySuggestions.length > 0 || query.trim().length < 2);
+    queryFocused && (loadingQuerySuggestions || querySuggestions.length > 0 || query.trim().length === 0);
 
   return (
     <View style={styles.wrap}>

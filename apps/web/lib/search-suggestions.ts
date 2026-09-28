@@ -1,6 +1,6 @@
 import { apiFetch } from './api-client';
 import { popularSearches, quickFilters } from './landing-data';
-import type { CompaniesPage, JobsPage } from './jobs';
+import type { CompaniesPage, JobListing, JobsPage } from './jobs';
 
 export type SearchSuggestionType = 'job' | 'company' | 'skill';
 
@@ -29,6 +29,9 @@ const STATIC_SKILL_TERMS = [
   'Sales',
 ];
 
+const API_MAX_LIMIT = 50;
+const JOB_SUGGESTION_MAX_PAGES = 20;
+
 export function getPopularSuggestions(limit = 6): SearchSuggestion[] {
   return popularSearches.slice(0, limit).map((term) => ({
     type: 'skill' as const,
@@ -50,31 +53,52 @@ function matchSkillTerms(query: string, limit = 3): SearchSuggestion[] {
     }));
 }
 
+async function fetchAllMatchingJobs(q: string): Promise<JobListing[]> {
+  const allJobs: JobListing[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages && page <= JOB_SUGGESTION_MAX_PAGES) {
+    const params = new URLSearchParams({
+      q,
+      limit: String(API_MAX_LIMIT),
+      page: String(page),
+    });
+    const jobsResult = await apiFetch<JobsPage>(`/jobs?${params.toString()}`, {
+      cache: false,
+    }).catch(() => null);
+    if (!jobsResult) break;
+    allJobs.push(...(jobsResult.items ?? []));
+    totalPages = Math.max(1, jobsResult.totalPages || 1);
+    if ((jobsResult.items?.length ?? 0) === 0) break;
+    page += 1;
+  }
+
+  return allJobs;
+}
+
 export async function fetchSearchSuggestions(query: string): Promise<SearchSuggestion[]> {
   const q = query.trim();
-  if (q.length < 2) return getPopularSuggestions();
+  if (!q) return getPopularSuggestions();
 
-  const params = new URLSearchParams({ q, limit: '5' });
-  const companyParams = new URLSearchParams({ q, limit: '4' });
+  const companyParams = new URLSearchParams({ q, limit: '8' });
 
-  const [jobsResult, companiesResult] = await Promise.all([
-    apiFetch<JobsPage>(`/jobs?${params.toString()}`, { cache: false }).catch(() => null),
+  const [jobs, companiesResult] = await Promise.all([
+    fetchAllMatchingJobs(q),
     apiFetch<CompaniesPage>(`/jobs/companies?${companyParams.toString()}`, {
       cache: false,
     }).catch(() => null),
   ]);
 
-  const jobSuggestions: SearchSuggestion[] = (jobsResult?.items ?? [])
-    .slice(0, 4)
-    .map((job) => ({
-      type: 'job',
-      label: job.title,
-      meta: job.companyName,
-      href: `/jobs?job=${job.id}&q=${encodeURIComponent(q)}`,
-    }));
+  const jobSuggestions: SearchSuggestion[] = jobs.map((job) => ({
+    type: 'job',
+    label: job.title,
+    meta: [job.companyName, job.location].filter(Boolean).join(' · ') || undefined,
+    href: `/jobs?job=${job.id}&q=${encodeURIComponent(q)}`,
+  }));
 
   const companySuggestions: SearchSuggestion[] = (companiesResult?.items ?? [])
-    .slice(0, 3)
+    .slice(0, 6)
     .map((company) => ({
       type: 'company',
       label: company.companyName,
@@ -85,14 +109,10 @@ export async function fetchSearchSuggestions(query: string): Promise<SearchSugge
   const skillSuggestions = matchSkillTerms(q, 3);
 
   const seen = new Set<string>();
-  const combined = [...jobSuggestions, ...companySuggestions, ...skillSuggestions].filter(
-    (item) => {
-      const key = `${item.type}:${item.label.toLowerCase()}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    },
-  );
-
-  return combined.slice(0, 8);
+  return [...jobSuggestions, ...companySuggestions, ...skillSuggestions].filter((item) => {
+    const key = `${item.type}:${item.label.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

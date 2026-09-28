@@ -157,7 +157,7 @@ export class NetworkController {
     return this.recommendations.getSuggestions(
       user.sub,
       Number(page) || 1,
-      Number(limit) || 12,
+      Math.min(Number(limit) || 24, 50),
     );
   }
 

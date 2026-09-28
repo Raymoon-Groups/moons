@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { JobStatus, Prisma, UserRole } from '@prisma/client';
+import { JobStatus, Prisma, ProfileVisibility, UserRole } from '@prisma/client';
 import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'fs';
 import { extname, join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
@@ -141,24 +141,17 @@ export class ProfilesService {
   }
 
   async getCandidateForRecruiter(recruiterId: string, candidateUserId: string) {
-    const application = await this.prisma.application.findFirst({
-      where: {
-        candidateId: candidateUserId,
-        job: { recruiterId },
-      },
-    });
-    if (!application) {
-      throw new ForbiddenException('You can only view candidates who applied to your jobs');
-    }
-
     const profile = await this.prisma.profile.findUnique({
       where: { userId: candidateUserId },
       include: {
-        user: { select: { email: true, role: true } },
+        user: { select: { email: true, role: true, onboardingCompleted: true } },
       },
     });
     if (!profile || profile.user.role !== UserRole.CANDIDATE) {
       throw new NotFoundException('Candidate profile not found');
+    }
+    if (profile.profileVisibility === ProfileVisibility.PRIVATE) {
+      throw new ForbiddenException('This profile is private');
     }
 
     return this.toProfileResponse(profile);

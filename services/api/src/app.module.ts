@@ -28,12 +28,12 @@ import { UsersModule } from './users/users.module';
       isGlobal: true,
       envFilePath: join(__dirname, '..', '.env'),
     }),
-    // Global: 120 requests / minute / IP. Route decorators can tighten further.
+    // Global: 300 requests / minute per tracker (user id when logged in, else IP).
     ThrottlerModule.forRoot([
       {
         name: 'default',
         ttl: 60_000,
-        limit: 120,
+        limit: 300,
       },
     ]),
     PrismaModule,

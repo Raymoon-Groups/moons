@@ -220,7 +220,12 @@ function ProfileActionBar({
           <LiButton
             variant="outline"
             disabled={loading}
-            onClick={() => run(() => removeConnection(userId))}
+            onClick={() => {
+              if (typeof window !== 'undefined' && !window.confirm(`Remove connection with ${fullName}?`)) {
+                return;
+              }
+              void run(() => removeConnection(userId));
+            }}
           >
             Remove connection
           </LiButton>

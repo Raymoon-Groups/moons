@@ -72,7 +72,7 @@ export function NavUniversalSearch({
     if (!open) return;
 
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
+    if (!trimmed) {
       setSuggestions([]);
       setLoading(false);
       return;
@@ -84,7 +84,7 @@ export function NavUniversalSearch({
         .then(setSuggestions)
         .catch(() => setSuggestions([]))
         .finally(() => setLoading(false));
-    }, 250);
+    }, trimmed.length === 1 ? 120 : 200);
 
     return () => window.clearTimeout(timer);
   }, [query, open]);

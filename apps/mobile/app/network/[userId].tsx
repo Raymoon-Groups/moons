@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -61,18 +62,23 @@ function ActionButton({
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   disabled?: boolean;
   flex?: boolean;
 }) {
   const { colors, isDark } = useTheme();
   const isPrimary = variant === 'primary';
   const isGhost = variant === 'ghost';
+  const isDanger = variant === 'danger';
+  const iconColor = isPrimary ? '#fff' : isDanger ? colors.error : colors.heading;
+  const textColor = isPrimary ? '#fff' : isDanger ? colors.error : isGhost ? colors.muted : colors.heading;
 
   return (
     <Pressable
       disabled={disabled}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => ({
         flex: flex ? 1 : undefined,
         flexDirection: 'row',
@@ -84,23 +90,33 @@ function ActionButton({
         borderRadius: 14,
         backgroundColor: isPrimary
           ? colors.blue
+          : isDanger
+            ? isDark
+              ? `${colors.error}18`
+              : '#FEF2F2'
+            : isGhost
+              ? 'transparent'
+              : isDark
+                ? colors.surface
+                : '#F3F6FA',
+        borderWidth: isPrimary ? 0 : 1.5,
+        borderColor: isDanger
+          ? isDark
+            ? `${colors.error}55`
+            : '#FECACA'
           : isGhost
             ? 'transparent'
             : isDark
-              ? colors.surface
-              : '#F3F6FA',
-        borderWidth: isPrimary ? 0 : 1,
-        borderColor: isGhost ? 'transparent' : isDark ? colors.border : colors.borderSubtle,
-        opacity: disabled ? 0.55 : pressed ? 0.9 : 1,
+              ? colors.border
+              : colors.borderSubtle,
+        opacity: disabled ? 0.55 : pressed ? 0.88 : 1,
         minHeight: 46,
       })}
     >
-      {icon ? (
-        <Ionicons name={icon} size={17} color={isPrimary ? '#fff' : colors.heading} />
-      ) : null}
+      {icon ? <Ionicons name={icon} size={17} color={iconColor} /> : null}
       <Text
         style={{
-          color: isPrimary ? '#fff' : isGhost ? colors.muted : colors.heading,
+          color: textColor,
           fontSize: 14,
           ...fontStyle('semibold'),
         }}
@@ -202,7 +218,8 @@ function EmptyPane({
 }
 
 export default function NetworkProfileScreen() {
-  const { userId } = useLocalSearchParams<{ userId: string }>();
+  const params = useLocalSearchParams<{ userId: string | string[] }>();
+  const userId = Array.isArray(params.userId) ? params.userId[0] : params.userId;
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const bottomPadding = useTabScreenPadding(24);
@@ -215,18 +232,19 @@ export default function NetworkProfileScreen() {
   const [bannerUpdatedAt, setBannerUpdatedAt] = useState<string | null>(null);
   const [contentTab, setContentTab] = useState<ProfileContentTab>('general');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!userId) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     try {
       const next = await fetchNetworkProfile(userId);
       setData(next);
       setBannerUrl((next.profile.bannerUrl as string | null) ?? null);
       setBannerUpdatedAt((next.profile.updatedAt as string | null) ?? null);
+      setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Profile unavailable');
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [userId]);
 
@@ -450,22 +468,53 @@ export default function NetworkProfileScreen() {
     [bottomPadding, colors, isDark],
   );
 
-  async function runAction(action: () => Promise<unknown>) {
+  async function runAction(
+    action: () => Promise<unknown>,
+    optimistic?: Partial<
+      Pick<NetworkProfileResponse, 'connectionStatus' | 'connectionId' | 'connectionDirection'>
+    >,
+  ) {
     setActionLoading(true);
     setError('');
     try {
       await action();
+      if (optimistic) {
+        setData((prev) => (prev ? { ...prev, ...optimistic } : prev));
+      }
       notifyConnectionsRefresh();
-      await load();
+      await load({ silent: true });
     } catch (err) {
       if (!isStaleConnectionInviteError(err)) {
         setError(err instanceof Error ? err.message : 'Action failed');
       } else {
-        await load();
+        await load({ silent: true });
       }
     } finally {
       setActionLoading(false);
     }
+  }
+
+  function confirmRemoveConnection(displayName: string) {
+    if (!userId) return;
+    const message = `Remove ${displayName} from your connections?`;
+    const doRemove = () =>
+      void runAction(() => removeConnection(userId, { fullName: displayName }), {
+        connectionStatus: 'NONE',
+        connectionId: null,
+        connectionDirection: null,
+      });
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(message)) {
+        doRemove();
+      }
+      return;
+    }
+
+    Alert.alert('Remove connection', message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: doRemove },
+    ]);
   }
 
   async function shareProfile(name: string, headline: string | null) {
@@ -659,23 +708,13 @@ export default function NetworkProfileScreen() {
         </View>
 
         {data.connectionStatus === 'ACCEPTED' && !isOwnProfile ? (
-          <View style={{ marginBottom: 12, marginTop: -4 }}>
+          <View style={{ marginBottom: 12 }}>
             <ActionButton
               label="Remove connection"
               icon="person-remove-outline"
-              variant="ghost"
+              variant="danger"
               disabled={actionLoading}
-              onPress={() => {
-                Alert.alert('Remove connection', `Remove ${name} from your connections?`, [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Remove',
-                    style: 'destructive',
-                    onPress: () =>
-                      void runAction(() => removeConnection(userId!, { fullName: name })),
-                  },
-                ]);
-              }}
+              onPress={() => confirmRemoveConnection(name)}
             />
           </View>
         ) : null}

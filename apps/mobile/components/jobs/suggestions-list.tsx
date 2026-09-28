@@ -1,8 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
+
+const LIST_MAX_HEIGHT = 360;
 
 export function SuggestionsList<T>({
   visible,
@@ -40,35 +49,44 @@ export function SuggestionsList<T>({
       ) : items.length === 0 ? (
         <Text style={[styles.empty, { color: colors.muted }]}>{emptyMessage}</Text>
       ) : (
-        items.map((item, index) => {
-          const row = renderItem(item);
-          return (
-            <Pressable
-              key={`${row.title}-${index}`}
-              onPressIn={() => onSelect(item)}
-              style={({ pressed }) => [
-                styles.row,
-                { borderBottomColor: colors.border },
-                index === items.length - 1 && styles.rowLast,
-                pressed && { backgroundColor: colors.surface },
-              ]}
-            >
-              <View style={[styles.iconWrap, { backgroundColor: `${colors.blue}14` }]}>
-                <Ionicons name={row.icon} size={16} color={colors.blue} />
-              </View>
-              <View style={styles.textWrap}>
-                <Text style={[styles.title, { color: colors.heading }]} numberOfLines={1}>
-                  {row.title}
-                </Text>
-                {row.subtitle ? (
-                  <Text style={[styles.subtitle, { color: colors.muted }]} numberOfLines={1}>
-                    {row.subtitle}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator
+          bounces={items.length > 4}
+        >
+          {items.map((item, index) => {
+            const row = renderItem(item);
+            return (
+              <Pressable
+                key={`${row.title}-${index}`}
+                onPress={() => onSelect(item)}
+                style={({ pressed }) => [
+                  styles.row,
+                  { borderBottomColor: colors.border },
+                  index === items.length - 1 && styles.rowLast,
+                  pressed && { backgroundColor: colors.surface },
+                ]}
+              >
+                <View style={[styles.iconWrap, { backgroundColor: `${colors.blue}14` }]}>
+                  <Ionicons name={row.icon} size={16} color={colors.blue} />
+                </View>
+                <View style={styles.textWrap}>
+                  <Text style={[styles.title, { color: colors.heading }]} numberOfLines={1}>
+                    {row.title}
                   </Text>
-                ) : null}
-              </View>
-            </Pressable>
-          );
-        })
+                  {row.subtitle ? (
+                    <Text style={[styles.subtitle, { color: colors.muted }]} numberOfLines={1}>
+                      {row.subtitle}
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       )}
     </View>
   );
@@ -81,7 +99,13 @@ const styles = StyleSheet.create({
     marginTop: -4,
     marginBottom: 10,
     overflow: 'hidden',
-    maxHeight: 220,
+    maxHeight: LIST_MAX_HEIGHT,
+  },
+  scroll: {
+    maxHeight: LIST_MAX_HEIGHT,
+  },
+  scrollContent: {
+    flexGrow: 0,
   },
   loading: { padding: 16, alignItems: 'center' },
   empty: { padding: 14, fontSize: 13, ...fontStyle('regular') },

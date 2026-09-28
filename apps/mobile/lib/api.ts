@@ -189,7 +189,16 @@ async function apiFetchRaw<T>(path: string, options: FetchOptions = {}): Promise
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  if (!text.trim()) {
+    return undefined as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError('Invalid server response', response.status);
+  }
 }
 
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {

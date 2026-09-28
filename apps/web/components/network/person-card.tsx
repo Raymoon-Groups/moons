@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { resolveAvatarUrl } from '@/lib/assets';
+import { resolveAssetUrl, resolveAvatarUrl } from '@/lib/assets';
 import {
   OPEN_ON_MOONS_LABEL,
   showOpenOnMoonsToViewer,
@@ -54,6 +54,8 @@ const btnPrimary = `${btnBase} bg-moons-blue text-white hover:bg-moons-blue-dark
 const btnSecondary = `${btnBase} border border-border bg-surface-elevated text-heading hover:bg-surface`;
 const btnGhost = `${btnBase} text-moons-muted hover:bg-surface hover:text-foreground`;
 const btnOutline = `${btnBase} border border-foreground/40 bg-transparent text-heading hover:bg-surface disabled:opacity-60`;
+const btnDanger =
+  'inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/50 disabled:opacity-60 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/15';
 
 function SuggestionContext({ person }: { person: NetworkUserCard }) {
   const reason = formatRecommendationReason(person.recommendationReason);
@@ -179,7 +181,7 @@ function ConnectActions({
                 },
               )
             }
-            className={btnGhost}
+            className={btnDanger}
           >
             Remove connection
           </button>
@@ -329,10 +331,18 @@ function PersonAvatar({ person, size = 'md' }: { person: NetworkUserCard; size?:
   );
 }
 
-function CardBanner() {
+function CardBanner({ bannerUrl }: { bannerUrl?: string | null }) {
+  const cover = resolveAssetUrl(bannerUrl);
+  if (cover) {
+    return (
+      <div className="relative h-24 w-full overflow-hidden bg-[#EEF1F4]" aria-hidden>
+        <img src={cover} alt="" className="h-full w-full object-cover" />
+      </div>
+    );
+  }
   return (
     <div
-      className="h-12 w-full bg-gradient-to-r from-moons-blue/25 via-moons-blue/12 to-surface sm:h-14"
+      className="h-24 w-full bg-gradient-to-br from-[#EEF1F4] via-[#E8ECF0] to-[#E4E8ED]"
       aria-hidden
     />
   );
@@ -374,7 +384,7 @@ function CelebrationCardShell({
 }) {
   return (
     <article className={`${CARD_SHELL} ring-1 ring-emerald-300/50`}>
-      <CardBanner />
+      <CardBanner bannerUrl={person.bannerUrl} />
       <StatusBadges person={person} align="right" />
       <button
         type="button"
@@ -413,8 +423,8 @@ function ConnectedFooter({
         View profile
       </Link>
       {onRemove && (
-        <button type="button" disabled={removing} onClick={onRemove} className={btnGhost}>
-          Remove
+        <button type="button" disabled={removing} onClick={onRemove} className={btnDanger}>
+          Remove connection
         </button>
       )}
     </div>
@@ -684,7 +694,7 @@ export function PersonCard({
           <CloseIcon className="h-4 w-4" />
         </button>
       )}
-      <CardBanner />
+      <CardBanner bannerUrl={person.bannerUrl} />
       <StatusBadges person={person} align="right" />
       <div className="-mt-9 flex flex-1 flex-col px-4 pb-3 pt-0">
         <div className="mb-2 flex justify-center">

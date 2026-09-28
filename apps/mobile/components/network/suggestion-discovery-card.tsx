@@ -7,23 +7,55 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import type { NetworkUserCard } from '@moons/shared';
 import { ConnectInviteModal } from '@/components/network/connect-invite-modal';
 import type { ConnectionUpdate } from '@/components/network/person-card';
-import { resolveAvatarUrl } from '@/lib/assets';
+import { resolveAvatarUrl, resolveAssetUrl } from '@/lib/assets';
 import { notifyConnectionsRefresh } from '@/lib/connection-invites';
 import { cancelConnection } from '@/lib/network';
 import { fontStyle } from '@/lib/font-style';
 import { useTheme } from '@/lib/theme-context';
 import { theme } from '@/lib/theme';
 
+const COVER_FALLBACK_LIGHT: [string, string] = ['#EEF1F4', '#E4E8ED'];
+const COVER_FALLBACK_DARK: [string, string] = ['#2A3340', '#1F2732'];
+
+function CardCover({
+  bannerUrl,
+  isDark,
+}: {
+  bannerUrl?: string | null;
+  isDark: boolean;
+}) {
+  const cover = resolveAssetUrl(bannerUrl);
+  const fallback = isDark ? COVER_FALLBACK_DARK : COVER_FALLBACK_LIGHT;
+
+  return (
+    <View style={[styles.banner, { backgroundColor: fallback[0] }]}>
+      {cover ? (
+        <Image source={{ uri: cover }} style={styles.bannerImg} contentFit="cover" transition={200} />
+      ) : (
+        <LinearGradient
+          colors={fallback}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+    </View>
+  );
+}
+
 export function SuggestionDiscoveryCard({
   person,
   onConnectionChange,
   onDismiss,
   onUpdated,
+  layout = 'carousel',
 }: {
   person: NetworkUserCard;
   onConnectionChange?: (userId: string, update: ConnectionUpdate) => void;
   onDismiss?: () => void;
   onUpdated?: () => void;
+  /** `carousel` = fixed width for horizontal scrolls; `grid` = fills column */
+  layout?: 'carousel' | 'grid';
 }) {
   const { colors, isDark } = useTheme();
   const [loading, setLoading] = useState(false);
@@ -40,10 +72,9 @@ export function SuggestionDiscoveryCard({
   const company = local.currentCompany || local.location || '';
   const mutual = local.mutualConnections ?? 0;
   const status = local.connectionStatus || 'NONE';
-  const skills = local.sharedSkills?.slice(0, 2) ?? [];
   const reason =
     mutual > 0
-      ? `${mutual} mutual${mutual === 1 ? '' : 's'}`
+      ? `${mutual} mutual connection${mutual === 1 ? '' : 's'}`
       : local.recommendationReason || 'Suggested for you';
 
   function apply(update: ConnectionUpdate) {
@@ -75,10 +106,15 @@ export function SuggestionDiscoveryCard({
     router.push(`/network/${local.userId}` as never);
   }
 
+  const chipBg = isDark ? colors.surface : '#F2F4F6';
+  const chipFg = colors.muted;
+  const avatarFallbackBg = isDark ? colors.surface : '#F2F4F6';
+
   return (
     <View
       style={[
         styles.card,
+        layout === 'carousel' ? styles.cardCarousel : styles.cardGrid,
         {
           backgroundColor: colors.surfaceElevated,
           borderColor: colors.border,
@@ -86,38 +122,45 @@ export function SuggestionDiscoveryCard({
         theme.shadow.soft,
       ]}
     >
-      <View style={[styles.accent, { backgroundColor: colors.blue }]} />
-
       {onDismiss ? (
         <Pressable
           onPress={onDismiss}
           hitSlop={8}
-          style={[styles.dismiss, { backgroundColor: isDark ? colors.surface : `${colors.blue}12` }]}
+          style={[
+            styles.dismiss,
+            {
+              backgroundColor: isDark ? 'rgba(15,28,51,0.55)' : 'rgba(255,255,255,0.92)',
+            },
+          ]}
           accessibilityLabel="Dismiss suggestion"
         >
           <Ionicons name="close" size={14} color={colors.muted} />
         </Pressable>
       ) : null}
 
-      <Pressable style={styles.content} onPress={() => router.push(`/network/${local.userId}` as never)}>
+      <Pressable onPress={openProfile} style={styles.tapArea}>
+        <CardCover bannerUrl={local.bannerUrl} isDark={isDark} />
+
         <View style={styles.avatarWrap}>
-          <LinearGradient
-            colors={[colors.blue, '#6b9ae8', colors.blueDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.avatarRing}
+          <View
+            style={[
+              styles.avatarRing,
+              {
+                backgroundColor: colors.surfaceElevated,
+                borderColor: colors.surfaceElevated,
+              },
+            ]}
           >
-            <View style={[styles.avatarInner, { backgroundColor: colors.surfaceElevated }]}>
-              {avatar ? (
-                <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
-              ) : (
-                <Text style={[{ fontSize: 18, color: colors.heading }, fontStyle('bold')]}>
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.avatarImg} contentFit="cover" />
+            ) : (
+              <View style={[styles.avatarFallback, { backgroundColor: avatarFallbackBg }]}>
+                <Text style={[{ fontSize: 22, color: colors.muted }, fontStyle('bold')]}>
                   {name.charAt(0).toUpperCase()}
                 </Text>
-              )}
-            </View>
-          </LinearGradient>
-          <View style={[styles.moonDot, { backgroundColor: colors.blue, borderColor: colors.surfaceElevated }]} />
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={styles.copy}>
@@ -133,66 +176,57 @@ export function SuggestionDiscoveryCard({
             </Text>
           ) : null}
 
-          <View style={styles.metaRow}>
-            <View style={[styles.chip, { backgroundColor: isDark ? colors.surface : `${colors.blue}12` }]}>
-              <Ionicons name="sparkles" size={11} color={colors.blue} />
-              <Text style={[styles.chipText, { color: colors.blue }, fontStyle('semibold')]} numberOfLines={1}>
-                {reason}
-              </Text>
-            </View>
-            {skills.map((skill) => (
-              <View
-                key={skill}
-                style={[styles.skillChip, { backgroundColor: isDark ? colors.surface : colors.surfaceHover }]}
-              >
-                <Text style={[{ color: colors.muted, fontSize: 10 }, fontStyle('semibold')]} numberOfLines={1}>
-                  {skill}
-                </Text>
-              </View>
-            ))}
+          <View style={[styles.reasonChip, { backgroundColor: chipBg }]}>
+            <Ionicons name="people-outline" size={12} color={chipFg} />
+            <Text style={[styles.reasonText, { color: chipFg }, fontStyle('semibold')]} numberOfLines={1}>
+              {reason}
+            </Text>
           </View>
         </View>
       </Pressable>
 
       <View style={styles.footer}>
         {loading ? (
-          <ActivityIndicator color={colors.blue} />
+          <ActivityIndicator color={colors.heading} />
         ) : status === 'PENDING' && local.connectionDirection === 'sent' ? (
           <Pressable
             onPress={() => void cancelPending()}
             style={[
-              styles.connectBtn,
+              styles.btnOutline,
               {
                 borderColor: colors.border,
-                backgroundColor: isDark ? colors.surface : `${colors.blue}08`,
+                backgroundColor: isDark ? colors.surface : '#F7F8FA',
               },
             ]}
           >
-            <Text style={[styles.connectText, { color: colors.muted }, fontStyle('semibold')]}>Pending</Text>
+            <Text style={[styles.btnOutlineText, { color: colors.muted }, fontStyle('semibold')]}>Pending</Text>
           </Pressable>
         ) : status === 'ACCEPTED' ? (
           <Pressable
             onPress={openProfile}
             style={[
-              styles.connectBtn,
+              styles.btnOutline,
               {
                 borderColor: colors.border,
-                backgroundColor: isDark ? colors.surface : `${colors.blue}08`,
+                backgroundColor: isDark ? colors.surface : '#F7F8FA',
               },
             ]}
           >
-            <Text style={[styles.connectText, { color: colors.heading }, fontStyle('semibold')]}>Connected</Text>
+            <Ionicons name="checkmark-circle" size={15} color={colors.heading} />
+            <Text style={[styles.btnOutlineText, { color: colors.heading }, fontStyle('semibold')]}>
+              Connected
+            </Text>
           </Pressable>
         ) : (
-          <Pressable onPress={() => setShowInvite(true)} style={styles.connectBtnFilled}>
+          <Pressable onPress={() => setShowInvite(true)} style={styles.btnFilled}>
             <LinearGradient
-              colors={[colors.blue, '#6b9ae8', colors.blueDark]}
+              colors={[colors.blue, colors.blueDark]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.connectGradient}
+              style={styles.btnGradient}
             >
               <Ionicons name="person-add" size={14} color="#fff" />
-              <Text style={[styles.connectFilledText, fontStyle('bold')]}>Connect</Text>
+              <Text style={[styles.btnFilledText, fontStyle('bold')]}>Connect</Text>
             </LinearGradient>
           </Pressable>
         )}
@@ -219,85 +253,86 @@ export function SuggestionDiscoveryCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: 280,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    marginRight: 12,
-    minHeight: 118,
   },
-  accent: {
-    width: 4,
+  cardCarousel: {
+    width: 168,
+    marginRight: 12,
+  },
+  cardGrid: {
+    flex: 1,
   },
   dismiss: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
   },
-  content: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
+  tapArea: {
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-    paddingLeft: 12,
-    paddingRight: 8,
   },
-  avatarWrap: {
-    width: 54,
-    height: 54,
-    flexShrink: 0,
-  },
-  avatarRing: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    padding: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInner: {
+  banner: {
     width: '100%',
-    height: '100%',
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 96,
     overflow: 'hidden',
   },
-  avatarImg: { width: '100%', height: '100%' },
-  moonDot: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
+  bannerImg: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
-  copy: {
-    flex: 1,
-    minWidth: 0,
+  avatarWrap: {
+    marginTop: -30,
+    marginBottom: 8,
+  },
+  avatarRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 3,
+    overflow: 'hidden',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  name: { fontSize: 15, lineHeight: 20 },
-  title: { marginTop: 2, fontSize: 12, lineHeight: 16 },
-  company: { marginTop: 2, fontSize: 11, lineHeight: 14 },
-  metaRow: {
-    marginTop: 8,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+  avatarImg: { width: '100%', height: '100%' },
+  avatarFallback: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  chip: {
+  copy: {
+    width: '100%',
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    minHeight: 86,
+  },
+  name: {
+    fontSize: 14,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  title: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  company: {
+    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  reasonChip: {
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -306,50 +341,42 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: theme.radius.full,
   },
-  chipText: {
+  reasonText: {
     flexShrink: 1,
     fontSize: 10,
   },
-  skillChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: theme.radius.full,
-    maxWidth: 72,
-  },
   footer: {
-    justifyContent: 'center',
-    paddingRight: 12,
-    paddingVertical: 12,
-    flexShrink: 0,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
   },
-  connectBtn: {
-    minWidth: 88,
-    height: 36,
-    paddingHorizontal: 14,
-    borderRadius: theme.radius.full,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  connectBtnFilled: {
-    minWidth: 88,
+  btnFilled: {
     height: 36,
     borderRadius: theme.radius.full,
     overflow: 'hidden',
   },
-  connectGradient: {
+  btnGradient: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  btnFilledText: {
+    color: '#fff',
+    fontSize: 13,
+  },
+  btnOutline: {
+    height: 36,
+    borderRadius: theme.radius.full,
+    borderWidth: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
     paddingHorizontal: 12,
   },
-  connectText: {
-    fontSize: 12,
-  },
-  connectFilledText: {
-    color: '#fff',
-    fontSize: 12,
+  btnOutlineText: {
+    fontSize: 13,
   },
 });

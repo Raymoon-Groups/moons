@@ -10,7 +10,7 @@ export function useTabScreenPadding(extra: number = theme.spacing.md) {
 }
 
 /** Top inset so list content clears the absolute glass header. */
-export function useTabScreenTopPadding(extra: number = 10) {
+export function useTabScreenTopPadding(extra: number = theme.spacing.md) {
   const insets = useSafeAreaInsets();
   return Math.max(insets.top, 8) + GLASS_TAB_HEADER_BAR_HEIGHT + extra;
 }

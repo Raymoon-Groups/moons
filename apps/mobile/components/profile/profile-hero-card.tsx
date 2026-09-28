@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CoverPhotoBanner } from '@/components/network/cover-photo-banner';
@@ -58,12 +57,6 @@ export function ProfileHeroCard({
           editable={editable}
           onUpdated={onBannerUpdated}
         />
-        {!bannerUrl && !editable ? (
-          <LinearGradient
-            colors={isDark ? [colors.surface, colors.surfaceElevated] : ['#E8F0FE', '#D7EBDF']}
-            style={StyleSheet.absoluteFill}
-          />
-        ) : null}
       </View>
 
       <View style={styles.body}>

@@ -58,6 +58,13 @@ export function hasWordMatch(text: string, term: string): boolean {
   return pattern.test(text);
 }
 
+/** Prefix of a word/token — so "sa" matches "SAP" and "s" matches "Sales". */
+export function hasPrefixMatch(text: string, term: string): boolean {
+  if (!text || !term) return false;
+  const pattern = new RegExp(`(^|[^a-z0-9])${escapeRegExp(term)}`, 'i');
+  return pattern.test(text);
+}
+
 export function expandSearchTerms(raw: string): string[] {
   const q = raw.trim();
   if (!q) return [];
@@ -97,6 +104,7 @@ export function scoreJobMatch(
     score += 100;
   }
   if (hasWordMatch(title, q)) score += 90;
+  else if (q.length <= 3 && hasPrefixMatch(title, q)) score += 75;
   else if (q.length >= 4 && title.includes(q)) score += 55;
 
   for (const term of terms) {
@@ -147,7 +155,7 @@ export function rankJobsForQuery<T extends JobSearchable>(
       // description-only hits like "contact our recruiter" are too weak.
       const title = (row.job.title || '').toLowerCase();
       const key = q.toLowerCase();
-      if (hasWordMatch(title, key) || title.startsWith(`${key} `) || title.startsWith(key)) {
+      if (hasWordMatch(title, key) || title.startsWith(`${key} `) || title.startsWith(key) || hasPrefixMatch(title, key)) {
         return true;
       }
       return terms.some((term) => {

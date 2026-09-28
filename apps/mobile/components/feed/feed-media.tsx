@@ -14,8 +14,6 @@ import { InlineFeedVideo } from '@/components/feed/inline-feed-video';
 
 const MAX_HEIGHT = 560;
 const FALLBACK_MIN = 72;
-/** Placeholder while dimensions load — short so feed doesn’t jump to a tall empty frame. */
-const LOADING_HEIGHT = 180;
 
 export function clampMediaHeight(width: number, ratio: number, maxHeight = MAX_HEIGHT) {
   if (!(width > 0) || !(ratio > 0)) return Math.min(maxHeight, width * 0.56);
@@ -61,20 +59,26 @@ export function FeedMediaImage({
   borderRadius?: number;
   onHeightChange?: (height: number) => void;
 }) {
-  const [ratio, setRatio] = useState<number | null>(null);
+  // Default ~4:5 so the image is visible immediately; refine when dimensions arrive.
+  const [ratio, setRatio] = useState(0.8);
+  const [measured, setMeasured] = useState(false);
 
   useEffect(() => {
-    setRatio(null);
-    return readRatioFromUri(uri, setRatio);
+    setMeasured(false);
+    setRatio(0.8);
+    return readRatioFromUri(uri, (next) => {
+      setRatio(next);
+      setMeasured(true);
+    });
   }, [uri]);
 
-  const naturalHeight = ratio ? width / ratio : 0;
-  const capped = Boolean(ratio && naturalHeight > maxHeight);
-  const boxHeight = ratio ? clampMediaHeight(width, ratio, maxHeight) : LOADING_HEIGHT;
+  const naturalHeight = width / ratio;
+  const capped = measured && naturalHeight > maxHeight;
+  const boxHeight = clampMediaHeight(width, ratio, maxHeight);
 
   useEffect(() => {
-    if (ratio && boxHeight > 0) onHeightChange?.(boxHeight);
-  }, [boxHeight, onHeightChange, ratio]);
+    if (boxHeight > 0) onHeightChange?.(boxHeight);
+  }, [boxHeight, onHeightChange]);
 
   if (!uri) return null;
 
@@ -86,20 +90,22 @@ export function FeedMediaImage({
           width,
           height: boxHeight,
           borderRadius,
-          backgroundColor: capped || !ratio ? '#0f1726' : 'transparent',
+          backgroundColor: capped ? '#0f1726' : '#e8eef6',
         },
         style,
       ]}
     >
       <ExpoImage
         source={{ uri }}
-        style={{ width, height: boxHeight, opacity: ratio ? 1 : 0 }}
+        style={{ width, height: boxHeight }}
         contentFit={capped ? 'contain' : 'cover'}
         transition={120}
+        recyclingKey={uri}
         onLoad={(event) => {
           const source = event.source;
-          if (source?.width && source?.height) {
+          if (source?.width && source?.height && source.height > 0) {
             setRatio(source.width / source.height);
+            setMeasured(true);
           }
         }}
       />

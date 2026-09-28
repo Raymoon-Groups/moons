@@ -65,7 +65,7 @@ export function fetchProfileVisitors(page = 1) {
   return authFetch<Paginated<ProfileVisitorItem>>(`/network/visitors?page=${page}`);
 }
 
-export function fetchSuggestions(page = 1, limit = 12) {
+export function fetchSuggestions(page = 1, limit = 24) {
   return authFetch<Paginated<NetworkUserCard>>(
     `/network/suggestions?page=${page}&limit=${limit}`,
   );

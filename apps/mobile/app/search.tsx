@@ -71,7 +71,7 @@ export default function UniversalSearchScreen() {
     const trimmed = value.trim();
     const seq = ++loadSeq.current;
 
-    if (trimmed.length < 2) {
+    if (!trimmed) {
       if (seq !== loadSeq.current) return;
       setSuggestions(getPopularSuggestions(8));
       setLoading(false);
@@ -120,7 +120,7 @@ export default function UniversalSearchScreen() {
   }, [focusInput]);
 
   const trimmedQuery = query.trim();
-  const isPopular = trimmedQuery.length < 2;
+  const isPopular = trimmedQuery.length === 0;
 
   // Scope is applied in the API for typed searches; still filter for safety + popular mode.
   const visibleSuggestions = useMemo(

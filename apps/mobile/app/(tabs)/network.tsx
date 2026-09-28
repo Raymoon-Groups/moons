@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { type NetworkStats, type NetworkUserCard } from '@moons/shared';
+import { UserRole, type NetworkStats, type NetworkUserCard } from '@moons/shared';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -23,6 +23,7 @@ import { SuggestionDiscoveryCard } from '@/components/network/suggestion-discove
 import { EmptyState } from '@/components/portal-ui';
 import { SearchBar } from '@/components/search-bar';
 import { ApiError } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
 import {
   fetchConnections,
@@ -98,6 +99,8 @@ function SectionHeader({
 
 export default function NetworkScreen() {
   const { colors, isDark } = useTheme();
+  const { user } = useAuth();
+  const isRecruiter = user?.role === UserRole.RECRUITER;
   const bottomPadding = useTabScreenPadding();
   const topPadding = useTabScreenTopPadding();
   const navScroll = useNavChromeScrollProps();
@@ -151,25 +154,70 @@ export default function NetworkScreen() {
     else setLoading(true);
     setError('');
     try {
-      const [nextStats, connData, received, outgoing, suggestionData] = await Promise.all([
+      const settled = await Promise.allSettled([
         fetchNetworkStats(),
         fetchConnections(),
         fetchPendingReceived(),
         fetchPendingSent(),
-        fetchSuggestions(1, 12),
+        fetchSuggestions(1, 24),
+        // Recruiters browse the full (non-private) people pool — not only scored suggestions.
+        isRecruiter
+          ? searchProfessionals({ page: 1, limit: 50 })
+          : Promise.resolve({ items: [] as NetworkUserCard[], total: 0, page: 1, limit: 50, totalPages: 1 }),
       ]);
+
+      const nextStats = settled[0].status === 'fulfilled' ? settled[0].value : null;
+      const connData = settled[1].status === 'fulfilled' ? settled[1].value : { items: [] as ConnectionListItem[] };
+      const received = settled[2].status === 'fulfilled' ? settled[2].value : { items: [] as PendingRequestItem[] };
+      const outgoing = settled[3].status === 'fulfilled' ? settled[3].value : { items: [] as PendingRequestItem[] };
+      const suggestionData =
+        settled[4].status === 'fulfilled' ? settled[4].value : { items: [] as NetworkUserCard[] };
+      const discoverData =
+        settled[5].status === 'fulfilled' ? settled[5].value : { items: [] as NetworkUserCard[] };
+
       setStats(nextStats);
       setConnections(connData.items);
       setPending(received.items);
       setSent(outgoing.items);
-      setSuggestions(suggestionData.items);
+
+      const connectedIds = new Set(connData.items.map((c) => c.user.userId));
+      const pendingIds = new Set([
+        ...received.items.map((i) => i.fromUser?.userId).filter(Boolean),
+        ...outgoing.items.map((i) => i.toUser?.userId).filter(Boolean),
+      ] as string[]);
+
+      if (isRecruiter && discoverData.items.length > 0) {
+        const browsable = discoverData.items.filter(
+          (person) =>
+            person.userId !== user?.id &&
+            !connectedIds.has(person.userId) &&
+            !pendingIds.has(person.userId),
+        );
+        // Prefer the broad browse pool for recruiters so Network isn't empty.
+        setSuggestions(browsable.length > 0 ? browsable : suggestionData.items);
+      } else {
+        setSuggestions(suggestionData.items);
+      }
+
+      if (settled.some((r) => r.status === 'rejected')) {
+        const firstError = settled.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+        const message =
+          firstError.reason instanceof ApiError
+            ? firstError.reason.message
+            : firstError.reason instanceof Error
+              ? firstError.reason.message
+              : '';
+        if (message && !nextStats && connData.items.length === 0 && suggestionData.items.length === 0) {
+          setError(message || 'Failed to load network');
+        }
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load network');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [isRecruiter, user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -240,10 +288,23 @@ export default function NetworkScreen() {
     setView('search');
     setError('');
     try {
-      const data = await searchProfessionals({ q });
+      const data = await searchProfessionals({
+        q,
+        page: 1,
+        limit: 50,
+      });
       setSearchResults(data.items);
+      if (data.items.length === 0 && q.includes(' ')) {
+        // Fallback: try the longest token alone (helps typos like "ansh kaushik").
+        const tokens = q.split(/\s+/).filter(Boolean).sort((a, b) => b.length - a.length);
+        if (tokens[0] && tokens[0].length >= 3) {
+          const retry = await searchProfessionals({ q: tokens[0], page: 1, limit: 50 });
+          setSearchResults(retry.items);
+        }
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Search failed');
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -301,7 +362,7 @@ export default function NetworkScreen() {
   );
 
   const invitePreview = receivedInvites.slice(0, 3);
-  const suggestionPreview = suggestions.slice(0, 8);
+  const suggestionPreview = suggestions.slice(0, 12);
 
   const activeInvites = inviteSegment === 'received' ? receivedInvites : sentInvites;
 
@@ -358,9 +419,12 @@ export default function NetworkScreen() {
     <AppScreen>
       <AuthenticatedScreen padBottom={false}>
         <FlatList
+          key={view === 'suggestions' ? 'suggestions-grid' : `list-${view}`}
           style={{ backgroundColor: pageBg }}
           data={listData as { id: string; person?: NetworkUserCard }[]}
           keyExtractor={(item) => item.id}
+          numColumns={view === 'suggestions' ? 2 : 1}
+          columnWrapperStyle={view === 'suggestions' ? styles.suggestGridRow : undefined}
           contentContainerStyle={[styles.list, { paddingBottom: bottomPadding, paddingTop: topPadding }]}
           showsVerticalScrollIndicator={false}
           {...navScroll}
@@ -414,7 +478,17 @@ export default function NetworkScreen() {
                 </>
               ) : null}
 
-              {showBack && view !== 'invitations' && view !== 'connections' ? (
+              {view === 'suggestions' ? (
+                <NetworkDetailHeader
+                  title="People you may know"
+                  subtitle="Professionals matched to your profile, skills, and mutual connections."
+                  count={suggestions.length}
+                  icon="sparkles-outline"
+                  onBack={() => setView('home')}
+                />
+              ) : null}
+
+              {showBack && view === 'search' ? (
                 <Pressable onPress={() => setView('home')} style={styles.backRow} hitSlop={8}>
                   <View
                     style={[
@@ -425,7 +499,7 @@ export default function NetworkScreen() {
                     <Ionicons name="chevron-back" size={18} color={colors.heading} />
                   </View>
                   <Text style={[{ color: colors.heading, fontSize: 16 }, fontStyle('bold')]}>
-                    {view === 'suggestions' ? 'People you may know' : 'Search results'}
+                    Search results
                   </Text>
                 </Pressable>
               ) : null}
@@ -673,17 +747,29 @@ export default function NetworkScreen() {
 
             const person = item.person;
             if (!person) return null;
+
+            if (view === 'suggestions') {
+              return (
+                <View style={styles.suggestGridCell}>
+                  <SuggestionDiscoveryCard
+                    person={person}
+                    layout="grid"
+                    onConnectionChange={handleConnectionChange}
+                    onDismiss={() =>
+                      setSuggestions((prev) => prev.filter((p) => p.userId !== person.userId))
+                    }
+                    onUpdated={() => void loadAll(true)}
+                  />
+                </View>
+              );
+            }
+
             return (
               <View style={styles.personCardWrap}>
                 <PersonCard
                   person={person}
                   showConnect
                   onConnectionChange={handleConnectionChange}
-                  onDismiss={
-                    view === 'suggestions'
-                      ? () => setSuggestions((prev) => prev.filter((p) => p.userId !== person.userId))
-                      : undefined
-                  }
                   onUpdated={() => void loadAll(true)}
                 />
               </View>
@@ -810,6 +896,13 @@ const styles = StyleSheet.create({
   },
   personCardWrap: {
     marginBottom: 10,
+  },
+  suggestGridRow: {
+    gap: 10,
+    marginBottom: 10,
+  },
+  suggestGridCell: {
+    flex: 1,
   },
   error: {
     fontSize: 13,

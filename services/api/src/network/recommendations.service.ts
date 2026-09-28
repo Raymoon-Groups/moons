@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConnectionStatus, JobStatus, UserRole } from '@prisma/client';
+import { ConnectionStatus, JobStatus, ProfileVisibility, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConnectionsService } from './connections.service';
 import {
@@ -14,7 +14,6 @@ import {
   uniqueStrings,
   workCompanies,
 } from './network.utils';
-import { applicantIdsForRecruiter } from './recruiter-applicant-access';
 
 interface ScoredCandidate {
   profile: ProfileWithUser;
@@ -152,8 +151,18 @@ export class RecommendationsService {
       }
     }
 
+    // Everyone gets a base score so sparse profiles still appear in suggestions.
+    score += 5;
+
     if (candidate.openToWork && viewer.user.role === UserRole.RECRUITER) {
       score += 12;
+    }
+
+    // Recruiters should always see the broader candidate pool in suggestions.
+    if (viewer.user.role === UserRole.RECRUITER && candidate.user.role === UserRole.CANDIDATE) {
+      score += 8;
+      const jobSkillHits = candidateSkills.filter((s) => hiringSkillSet.has(normalizeToken(s))).length;
+      score += jobSkillHits * 10;
     }
 
     if (viewer.user.role === UserRole.CANDIDATE && candidate.user.role === UserRole.CANDIDATE) {
@@ -170,7 +179,8 @@ export class RecommendationsService {
       (Date.now() - new Date(candidate.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
     if (profileAgeDays < 30) score += 4;
 
-    if (score < 8) return null;
+    // Keep the discovery pool open — ranking still sorts by relevance.
+    if (score < 0) return null;
 
     return {
       profile: candidate,
@@ -212,9 +222,10 @@ export class RecommendationsService {
         where: {
           userId: { not: userId },
           user: { onboardingCompleted: true },
+          profileVisibility: { not: ProfileVisibility.PRIVATE },
         },
         include: { user: { select: { id: true, email: true, role: true, updatedAt: true } } },
-        take: 250,
+        take: 500,
         orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.job.findMany({
@@ -251,13 +262,22 @@ export class RecommendationsService {
     const hiringSkillSet = new Set<string>();
 
     for (const job of activeJobs) {
+      // Prefer the recruiter's own live jobs when scoring talent matches.
+      if (viewer.user.role === UserRole.RECRUITER && job.recruiterId !== userId) {
+        continue;
+      }
       for (const token of uniqueStrings([
         ...viewerSkills,
         ...job.title.split(/\s+/),
         ...job.description.split(/\s+/).slice(0, 40),
       ])) {
-        if (viewerSkills.includes(token)) hiringSkillSet.add(token);
+        const normalized = normalizeToken(token);
+        if (normalized) hiringSkillSet.add(normalized);
       }
+    }
+    for (const skill of viewerSkills) {
+      const normalized = normalizeToken(skill);
+      if (normalized) hiringSkillSet.add(normalized);
     }
 
     const myConnections = await this.prisma.connection.findMany({
@@ -271,17 +291,34 @@ export class RecommendationsService {
       myConnections.map((c) => (c.fromUserId === userId ? c.toUserId : c.fromUserId)),
     );
 
+    const formerConnectionRows = await this.prisma.connection.findMany({
+      where: {
+        status: { in: [ConnectionStatus.CANCELLED, ConnectionStatus.REJECTED] },
+        OR: [{ fromUserId: userId }, { toUserId: userId }],
+      },
+      select: { fromUserId: true, toUserId: true },
+      take: 100,
+    });
+    const formerConnectionIds = new Set(
+      formerConnectionRows.map((c) => (c.fromUserId === userId ? c.toUserId : c.fromUserId)),
+    );
+
     let eligibleCandidates = candidates.filter((c) => !excluded.has(c.userId));
 
-    // Recruiters only get suggested other recruiters + candidates who applied to them.
-    if (viewer.user.role === UserRole.RECRUITER) {
-      const applicantIds = new Set(
-        await applicantIdsForRecruiter(this.prisma, userId),
-      );
-      eligibleCandidates = eligibleCandidates.filter(
-        (c) =>
-          c.user.role === UserRole.RECRUITER || applicantIds.has(c.userId),
-      );
+    // Prefer recently removed connections so they don't "disappear" from discovery.
+    const missingFormerIds = [...formerConnectionIds].filter(
+      (id) => !excluded.has(id) && !eligibleCandidates.some((c) => c.userId === id),
+    );
+    if (missingFormerIds.length) {
+      const formerProfiles = await this.prisma.profile.findMany({
+        where: {
+          userId: { in: missingFormerIds },
+          user: { onboardingCompleted: true },
+          profileVisibility: { not: ProfileVisibility.PRIVATE },
+        },
+        include: { user: { select: { id: true, email: true, role: true, updatedAt: true } } },
+      });
+      eligibleCandidates = [...formerProfiles, ...eligibleCandidates];
     }
 
     const candidateIds = eligibleCandidates.map((c) => c.userId);
@@ -330,7 +367,21 @@ export class RecommendationsService {
         hiringSkillSet,
         mutualCount,
       );
-      if (result) scored.push(result);
+      if (result) {
+        if (formerConnectionIds.has(candidate.userId)) {
+          result.score += 40;
+          if (!result.reason) result.reason = 'Previously connected';
+        }
+        scored.push(result);
+      } else if (formerConnectionIds.has(candidate.userId)) {
+        scored.push({
+          profile: candidate,
+          score: 40,
+          reason: 'Previously connected',
+          sharedSkills: [],
+          mutualCount,
+        });
+      }
     }
 
     scored.sort((a, b) => b.score - a.score);
@@ -347,6 +398,7 @@ export class RecommendationsService {
           fullName: publicDisplayName(item.profile),
           headline: publicHeadline(item.profile),
           avatarUrl: item.profile.avatarUrl,
+          bannerUrl: item.profile.bannerUrl,
           role: item.profile.user.role,
           currentCompany: item.profile.currentCompany,
           location: item.profile.location,

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { ApplicationStatus } from '@moons/shared';
 import type { NetworkUserCard } from '@moons/shared';
-import { PersonCard } from '@/components/network/person-card';
+import { SuggestionDiscoveryCard } from '@/components/network/suggestion-discovery-card';
 import { SectionTitle } from '@/components/portal-ui';
 import { authFetch } from '@/lib/api';
 import { resolveAssetUrl } from '@/lib/assets';
@@ -93,9 +93,13 @@ export function DashboardPeopleYouMayKnow() {
         contentContainerStyle={styles.horizontalList}
       >
         {people.map((person) => (
-          <View key={person.userId} style={styles.personCardWrap}>
-            <PersonCard person={person} onUpdated={load} />
-          </View>
+          <SuggestionDiscoveryCard
+            key={person.userId}
+            person={person}
+            layout="carousel"
+            onUpdated={load}
+            onDismiss={() => setPeople((prev) => prev.filter((p) => p.userId !== person.userId))}
+          />
         ))}
       </ScrollView>
     </View>
@@ -199,8 +203,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   loadingWrap: { paddingVertical: theme.spacing.lg, alignItems: 'center' },
-  horizontalList: { gap: 12, paddingRight: theme.spacing.md },
-  personCardWrap: { width: 280 },
+  horizontalList: { gap: 0, paddingRight: theme.spacing.md },
   candidateRow: {
     flexDirection: 'row',
     alignItems: 'center',

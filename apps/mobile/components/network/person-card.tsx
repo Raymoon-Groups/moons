@@ -195,9 +195,17 @@ export function PersonCard({
                   ],
                 );
               }}
-              style={[styles.btnSecondary, { borderColor: colors.border, opacity: loading ? 0.6 : 1 }]}
+              style={[
+                styles.btnSecondary,
+                {
+                  borderColor: `${colors.error}55`,
+                  backgroundColor: `${colors.error}12`,
+                  opacity: loading ? 0.6 : 1,
+                },
+              ]}
             >
-              <Text style={[styles.btnSecondaryText, { color: colors.heading }, fontStyle('semibold')]}>
+              <Ionicons name="person-remove-outline" size={15} color={colors.error} />
+              <Text style={[styles.btnSecondaryText, { color: colors.error }, fontStyle('semibold')]}>
                 Remove connection
               </Text>
             </Pressable>
@@ -345,8 +353,10 @@ const styles = StyleSheet.create({
   },
   btnPrimaryText: { color: '#fff', fontSize: 13 },
   btnSecondary: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
     paddingVertical: 11,
     borderRadius: 999,
     borderWidth: 1,

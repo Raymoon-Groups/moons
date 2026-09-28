@@ -350,6 +350,7 @@ export interface NetworkUserCard {
   fullName: string | null;
   headline: string | null;
   avatarUrl: string | null;
+  bannerUrl?: string | null;
   role: UserRole | string | null;
   currentCompany?: string | null;
   location?: string | null;

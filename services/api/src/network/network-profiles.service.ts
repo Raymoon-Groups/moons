@@ -23,10 +23,6 @@ import {
   publicHeadline,
   ProfileWithUser,
 } from './network.utils';
-import {
-  applicantIdsForRecruiter,
-  recruiterCanViewCandidate,
-} from './recruiter-applicant-access';
 
 @Injectable()
 export class NetworkProfilesService {
@@ -205,24 +201,6 @@ export class NetworkProfilesService {
         })
       : null;
 
-    // Recruiters may only open candidate profiles for people who applied to their jobs.
-    if (
-      viewerId &&
-      viewerUser?.role === UserRole.RECRUITER &&
-      profile.user.role === UserRole.CANDIDATE
-    ) {
-      const allowed = await recruiterCanViewCandidate(
-        this.prisma,
-        viewerId,
-        targetUserId,
-      );
-      if (!allowed) {
-        throw new ForbiddenException(
-          'You can only view candidates who applied to your jobs',
-        );
-      }
-    }
-
     const connectionState = viewerId
       ? await this.getViewerConnectionState(viewerId, targetUserId)
       : {
@@ -339,42 +317,45 @@ export class NetworkProfilesService {
       if (skills.length) where.skills = { hasSome: skills };
     }
     if (dto.q) {
-      where.AND = [
-        {
-          OR: [
-            { fullName: { contains: dto.q, mode: 'insensitive' } },
-            { headline: { contains: dto.q, mode: 'insensitive' } },
-            { currentCompany: { contains: dto.q, mode: 'insensitive' } },
-            { summary: { contains: dto.q, mode: 'insensitive' } },
-            { skills: { has: dto.q } },
-          ],
-        },
-      ];
-    }
+      const raw = dto.q.trim();
+      const tokens = raw
+        .split(/\s+/)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
 
-    // Recruiters cannot browse the general candidate pool — only their applicants
-    // (plus other recruiters for professional networking).
-    if (viewerRole === UserRole.RECRUITER) {
-      const applicantIds = await applicantIdsForRecruiter(this.prisma, viewerId);
+      const matchTerm = (term: string): Prisma.ProfileWhereInput[] => [
+        { fullName: { contains: term, mode: 'insensitive' } },
+        { headline: { contains: term, mode: 'insensitive' } },
+        { designation: { contains: term, mode: 'insensitive' } },
+        { currentCompany: { contains: term, mode: 'insensitive' } },
+        { summary: { contains: term, mode: 'insensitive' } },
+        { location: { contains: term, mode: 'insensitive' } },
+        { skills: { hasSome: [term] } },
+      ];
+
       const andClauses: Prisma.ProfileWhereInput[] = Array.isArray(where.AND)
         ? [...where.AND]
         : where.AND
           ? [where.AND]
           : [];
+
+      // Phrase match OR every token matches somewhere (so "vansh kaushik" / "ansh kaushik" work).
+      const tokenClause: Prisma.ProfileWhereInput =
+        tokens.length > 1
+          ? {
+              AND: tokens.map((token) => ({ OR: matchTerm(token) })),
+            }
+          : { OR: matchTerm(tokens[0] ?? raw) };
+
       andClauses.push({
-        OR: [
-          { user: { role: UserRole.RECRUITER } },
-          {
-            userId: {
-              in: applicantIds.length
-                ? applicantIds
-                : ['00000000-0000-0000-0000-000000000000'],
-            },
-          },
-        ],
+        OR: [{ OR: matchTerm(raw) }, tokenClause],
       });
       where.AND = andClauses;
     }
+
+    // Private profiles stay out of discovery search; connections-only stay searchable
+    // so people can reconnect after removing a connection.
+    where.profileVisibility = { not: ProfileVisibility.PRIVATE };
 
     const [profiles, total] = await Promise.all([
       this.prisma.profile.findMany({
@@ -400,6 +381,7 @@ export class NetworkProfilesService {
           fullName: publicDisplayName(profile),
           headline: publicHeadline(profile),
           avatarUrl: profile.avatarUrl,
+          bannerUrl: profile.bannerUrl,
           role: profile.user.role,
           currentCompany: profile.currentCompany,
           location: profile.location,
@@ -459,6 +441,7 @@ export class NetworkProfilesService {
                 fullName: publicDisplayName(p),
                 headline: publicHeadline(p),
                 avatarUrl: p.avatarUrl,
+                bannerUrl: p.bannerUrl,
                 role: p.user.role,
                 connectionStatus: status?.status ?? 'NONE',
                 connectionId: status?.connectionId ?? null,

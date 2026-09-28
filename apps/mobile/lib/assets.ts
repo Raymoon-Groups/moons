@@ -65,13 +65,24 @@ export function resolveAssetUrl(url: string | null | undefined): string | null {
   return absolute;
 }
 
+/** Append a cache-buster without breaking `?access_token=` media URLs. */
+export function withAssetCacheBust(
+  url: string | null | undefined,
+  version?: string | number | null,
+): string | null {
+  const base = resolveAssetUrl(url);
+  if (!base) return null;
+  if (version == null || version === '') return base;
+  const stamp =
+    typeof version === 'number' ? version : new Date(version).getTime();
+  if (!Number.isFinite(stamp)) return base;
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}v=${stamp}`;
+}
+
 export function resolveAvatarUrl(
   url: string | null | undefined,
   version?: number,
 ): string | null {
-  const base = resolveAssetUrl(url);
-  if (!base) return null;
-  if (!version) return base;
-  const sep = base.includes('?') ? '&' : '?';
-  return `${base}${sep}v=${version}`;
+  return withAssetCacheBust(url, version);
 }

@@ -16,18 +16,20 @@ import { JobCard } from '@/components/job-card';
 import { JobsFilterRow, type JobsFilterSheet } from '@/components/jobs/jobs-filter-row';
 import { JobsSearchHero } from '@/components/jobs/jobs-search-hero';
 import { EmptyState } from '@/components/portal-ui';
-import { apiFetch } from '@/lib/api';
+import { authFetch } from '@/lib/api';
 import { EXPERIENCE_FILTER_OPTIONS } from '@/lib/experience-options';
 import { fontStyle } from '@/lib/font-style';
 import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { useSavedJobs } from '@/lib/saved-jobs-context';
-import { fetchPublishedJobsPool } from '@/lib/search-suggestions';
 import { useTheme } from '@/lib/theme-context';
 import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { theme } from '@/lib/theme';
 import type { JobListing, JobsPage } from '@/lib/types';
 
 const PAGE_SIZE = 20;
+/** When searching, pull larger pages and auto-fetch remaining matches (API max = 50). */
+const SEARCH_PAGE_SIZE = 50;
+const SEARCH_MAX_PAGES = 6;
 
 const JOB_TYPE_OPTIONS = [
   { label: 'All types', value: 'all' },
@@ -81,8 +83,6 @@ export default function JobsScreen() {
   const hasLoadedRef = useRef(false);
   const loadingMoreLock = useRef(false);
   const loadSeq = useRef(0);
-  /** Cached ranked results for short acronym searches (client-side pool). */
-  const shortRankedRef = useRef<JobListing[]>([]);
 
   useEffect(() => {
     if (paramQ?.trim()) setQuery(paramQ.trim());
@@ -101,43 +101,52 @@ export default function JobsScreen() {
       setError('');
       try {
         const trimmedQ = query.trim();
-        const shortQuery = trimmedQ.length > 0 && trimmedQ.length <= 3;
+        const isSearch = Boolean(trimmedQ);
 
-        if (shortQuery) {
-          if (!append || shortRankedRef.current.length === 0) {
-            const pool = await fetchPublishedJobsPool({
-              location: location.trim() || undefined,
-              experience: experience || undefined,
-              maxItems: 200,
+        if (isSearch && !append) {
+          // Search: load all matching pages so results aren't hidden behind "page 2".
+          const collected: JobListing[] = [];
+          let pageNum = 1;
+          let pages = 1;
+          let total = 0;
+          while (pageNum <= pages && pageNum <= SEARCH_MAX_PAGES) {
+            const searchParams = new URLSearchParams({
+              limit: String(SEARCH_PAGE_SIZE),
+              page: String(pageNum),
+              q: trimmedQ,
             });
+            if (location.trim()) searchParams.set('location', location.trim());
+            if (experience) searchParams.set('experience', experience);
+            const data = await authFetch<JobsPage>(`/jobs?${searchParams}`);
             if (seq !== loadSeq.current) return;
-            shortRankedRef.current = rankJobsForQuery(pool, trimmedQ);
+            collected.push(...data.items);
+            total = data.total;
+            pages = Math.max(1, data.totalPages || 1);
+            if (data.items.length === 0) break;
+            pageNum += 1;
           }
-          const ranked = shortRankedRef.current;
-          const total = ranked.length;
-          const start = (nextPage - 1) * PAGE_SIZE;
-          const pageItems = ranked.slice(start, start + PAGE_SIZE);
-          setJobs((prev) => dedupeJobs(append ? [...prev, ...pageItems] : pageItems));
-          setTotalJobs(total);
-          setPage(nextPage);
-          setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE) || 1));
-        } else {
-          shortRankedRef.current = [];
-          const searchParams = new URLSearchParams({
-            limit: String(PAGE_SIZE),
-            page: String(nextPage),
-          });
-          if (trimmedQ) searchParams.set('q', trimmedQ);
-          if (location.trim()) searchParams.set('location', location.trim());
-          if (experience) searchParams.set('experience', experience);
-          const data = await apiFetch<JobsPage>(`/jobs?${searchParams}`);
-          if (seq !== loadSeq.current) return;
-          const ranked = trimmedQ ? rankJobsForQuery(data.items, trimmedQ) : data.items;
-          setJobs((prev) => dedupeJobs(append ? [...prev, ...ranked] : ranked));
-          setTotalJobs(data.total);
-          setPage(data.page);
-          setTotalPages(Math.max(1, data.totalPages || 1));
+          const ranked = rankJobsForQuery(dedupeJobs(collected), trimmedQ);
+          setJobs(ranked);
+          setTotalJobs(total || ranked.length);
+          setPage(pages);
+          setTotalPages(pages);
+          hasLoadedRef.current = true;
+          return;
         }
+
+        // Browse (no keyword): page through the feed with infinite scroll.
+        const searchParams = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          page: String(nextPage),
+        });
+        if (location.trim()) searchParams.set('location', location.trim());
+        if (experience) searchParams.set('experience', experience);
+        const data = await authFetch<JobsPage>(`/jobs?${searchParams}`);
+        if (seq !== loadSeq.current) return;
+        setJobs((prev) => dedupeJobs(append ? [...prev, ...data.items] : data.items));
+        setTotalJobs(data.total);
+        setPage(data.page);
+        setTotalPages(Math.max(1, data.totalPages || 1));
         hasLoadedRef.current = true;
       } catch (err) {
         if (seq !== loadSeq.current) return;
@@ -159,26 +168,31 @@ export default function JobsScreen() {
     return () => clearTimeout(timer);
   }, [load, query, location, experience]);
 
-  const hasMore = page < totalPages;
+  const hasMore = !query.trim() && page < totalPages;
+  const isSearching = Boolean(query.trim());
 
   const filteredJobs = useMemo(() => {
     let list = filter === 'all' ? jobs : jobs.filter((j) => j.employmentType === filter);
-    list = [...list].sort((a, b) => {
-      const da = new Date(a.createdAt).getTime();
-      const db = new Date(b.createdAt).getTime();
-      return sort === 'oldest' ? da - db : db - da;
-    });
+    if (!isSearching) {
+      list = [...list].sort((a, b) => {
+        const da = new Date(a.createdAt).getTime();
+        const db = new Date(b.createdAt).getTime();
+        return sort === 'oldest' ? da - db : db - da;
+      });
+    }
     return list;
-  }, [jobs, filter, sort]);
+  }, [jobs, filter, sort, isSearching]);
 
   const vacancyLabel = useMemo(() => {
-    if (!totalJobs) return 'No job vacancies';
-    if (jobs.length < totalJobs && filter === 'all') {
-      return `Showing ${formatVacancyCount(jobs.length)} of ${formatVacancyCount(totalJobs)} jobs`;
+    if (isSearching) {
+      const count = filter === 'all' ? jobs.length : filteredJobs.length;
+      if (!count) return 'No matching jobs';
+      return `${formatVacancyCount(count)} matching job${count === 1 ? '' : 's'}`;
     }
+    if (!totalJobs) return 'No job vacancies';
     const count = filter === 'all' ? totalJobs : filteredJobs.length;
     return `${formatVacancyCount(count)} job vacanc${count === 1 ? 'y' : 'ies'}`;
-  }, [totalJobs, jobs.length, filteredJobs.length, filter]);
+  }, [isSearching, totalJobs, jobs.length, filteredJobs.length, filter]);
 
   const listHeader = useMemo(
     () => (
@@ -245,33 +259,7 @@ export default function JobsScreen() {
 
   const listFooter = (
     <View style={styles.footer}>
-      {loadingMore ? (
-        <ActivityIndicator color={colors.blue} style={{ marginVertical: 16 }} />
-      ) : hasMore ? (
-        <Pressable
-          onPress={() => void load(page + 1, true)}
-          style={[
-            styles.loadMoreBtn,
-            {
-              backgroundColor: isDark ? `${colors.blue}22` : `${colors.blue}12`,
-              borderColor: isDark ? `${colors.blue}40` : `${colors.blue}28`,
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Load more jobs"
-        >
-          <Text style={[styles.loadMoreText, { color: colors.blue }, fontStyle('bold')]}>
-            Load more jobs
-          </Text>
-          <Text style={[styles.loadMoreMeta, { color: colors.muted }, fontStyle('medium')]}>
-            Page {page} of {totalPages}
-          </Text>
-        </Pressable>
-      ) : jobs.length > 0 ? (
-        <Text style={[styles.endLabel, { color: colors.silver }, fontStyle('medium')]}>
-          You’re all caught up
-        </Text>
-      ) : null}
+      {loadingMore ? <ActivityIndicator color={colors.blue} style={{ marginVertical: 16 }} /> : null}
     </View>
   );
 
@@ -396,27 +384,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingTop: 8,
-    paddingBottom: 20,
+    paddingBottom: 12,
     alignItems: 'center',
-  },
-  loadMoreBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    minWidth: 200,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  loadMoreText: {
-    fontSize: 14,
-  },
-  loadMoreMeta: {
-    fontSize: 11,
-  },
-  endLabel: {
-    fontSize: 12,
-    marginTop: 4,
+    minHeight: 24,
   },
 });

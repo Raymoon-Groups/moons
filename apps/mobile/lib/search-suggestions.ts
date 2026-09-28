@@ -1,5 +1,5 @@
 import { rankJobsForQuery } from '@moons/shared';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, authFetch } from '@/lib/api';
 import { searchProfessionals } from '@/lib/network';
 import type { CompaniesPage, JobListing, JobsPage } from '@/lib/types';
 
@@ -40,8 +40,10 @@ const SKILL_TERMS = [
   'UI/UX',
 ];
 
-/** API DTO max is 50 — never request more. */
+/** API DTO max is 50 — never request more per page. */
 const API_MAX_LIMIT = 50;
+/** Safety cap so a huge catalog can't hang the suggestion UI. */
+const JOB_SUGGESTION_MAX_PAGES = 20;
 
 export function getPopularSuggestions(limit = 6): SearchSuggestion[] {
   return POPULAR_SEARCHES.slice(0, limit).map((term) => ({
@@ -72,52 +74,28 @@ function dedupe(items: SearchSuggestion[]): SearchSuggestion[] {
   });
 }
 
-/** Fetch up to `maxItems` published jobs (paged at API_MAX_LIMIT). */
-export async function fetchPublishedJobsPool(
-  opts: { q?: string; location?: string; experience?: string; maxItems?: number } = {},
-): Promise<JobListing[]> {
-  const maxItems = opts.maxItems ?? 200;
-  const items: JobListing[] = [];
+async function fetchJobSuggestions(q: string): Promise<SearchSuggestion[]> {
+  const trimmed = q.trim();
+  const allJobs: JobListing[] = [];
   let page = 1;
   let totalPages = 1;
 
-  while (items.length < maxItems && page <= totalPages && page <= 10) {
+  while (page <= totalPages && page <= JOB_SUGGESTION_MAX_PAGES) {
     const params = new URLSearchParams({
+      q: trimmed,
       limit: String(API_MAX_LIMIT),
       page: String(page),
     });
-    if (opts.q?.trim()) params.set('q', opts.q.trim());
-    if (opts.location?.trim()) params.set('location', opts.location.trim());
-    if (opts.experience) params.set('experience', opts.experience);
-
-    const data = await apiFetch<JobsPage>(`/jobs?${params}`);
-    items.push(...data.items);
-    totalPages = Math.max(1, data.totalPages || 1);
-    if (data.items.length === 0) break;
+    const jobsResult = await authFetch<JobsPage>(`/jobs?${params}`).catch(() => null);
+    if (!jobsResult) break;
+    allJobs.push(...((jobsResult.items ?? []) as JobListing[]));
+    totalPages = Math.max(1, jobsResult.totalPages || 1);
+    if ((jobsResult.items?.length ?? 0) === 0) break;
     page += 1;
   }
 
-  return items.slice(0, maxItems);
-}
-
-async function fetchJobSuggestions(q: string, limit: number): Promise<SearchSuggestion[]> {
-  const trimmed = q.trim();
-  // Short acronyms: load a pool without relying on broken substring search,
-  // then rank locally so "HR Recruiter" beats unrelated roles.
-  let items: JobListing[];
-  if (trimmed.length <= 3) {
-    items = await fetchPublishedJobsPool({ maxItems: 150 }).catch(() => []);
-  } else {
-    const params = new URLSearchParams({
-      q: trimmed,
-      limit: String(Math.min(API_MAX_LIMIT, Math.max(limit, 20))),
-    });
-    const jobsResult = await apiFetch<JobsPage>(`/jobs?${params}`).catch(() => null);
-    items = (jobsResult?.items ?? []) as JobListing[];
-  }
-
-  const ranked = rankJobsForQuery(items, trimmed);
-  return ranked.slice(0, limit).map((job) => ({
+  const ranked = rankJobsForQuery(allJobs, trimmed);
+  return ranked.map((job) => ({
     type: 'job' as const,
     label: job.title,
     meta: [job.companyName, job.location].filter(Boolean).join(' · '),
@@ -160,11 +138,12 @@ export async function fetchSearchSuggestions(
   scope: SearchScope = 'all',
 ): Promise<SearchSuggestion[]> {
   const q = query.trim();
-  if (q.length < 2) return getPopularSuggestions();
+  if (!q) return getPopularSuggestions();
 
   if (scope === 'job') {
+    // Return every matching job — the dropdown scrolls.
     const [jobs, skills] = await Promise.all([
-      fetchJobSuggestions(q, 20),
+      fetchJobSuggestions(q),
       Promise.resolve(matchSkillTerms(q, 4)),
     ]);
     const exactSkills = skills.filter((s) => s.label.toLowerCase() === q.toLowerCase());
@@ -184,13 +163,13 @@ export async function fetchSearchSuggestions(
   }
 
   const [jobs, companies, people] = await Promise.all([
-    fetchJobSuggestions(q, 8),
+    fetchJobSuggestions(q).then((items) => items.slice(0, 12)),
     fetchCompanySuggestions(q, 6),
     fetchPeopleSuggestions(q, 8),
   ]);
   const skills = matchSkillTerms(q, 3);
 
-  return dedupe([...jobs, ...people, ...companies, ...skills]).slice(0, 24);
+  return dedupe([...jobs, ...people, ...companies, ...skills]).slice(0, 30);
 }
 
 /** Client-side filter when a full “all” payload is already loaded. */
