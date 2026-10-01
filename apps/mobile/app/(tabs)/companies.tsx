@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -15,6 +14,7 @@ import { AppScreen } from '@/components/app-screen';
 import { CompaniesFilterRow } from '@/components/companies/companies-filter-row';
 import { CompanyListingCard } from '@/components/companies/company-listing-card';
 import { EmptyState } from '@/components/portal-ui';
+import { TabRefreshControl } from '@/components/tab-refresh-control';
 import { apiFetch } from '@/lib/api';
 import { COMPANY_CATEGORIES, filterCompanies, type CompanySortKey } from '@/lib/companies-filters';
 import { fontStyle } from '@/lib/font-style';
@@ -322,7 +322,7 @@ export default function CompaniesScreen() {
         contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding, paddingTop: topPadding }]}
         {...navScroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />
+          <TabRefreshControl refreshing={refreshing} onRefresh={() => load(true)} />
         }
         ListHeaderComponent={header}
         ListEmptyComponent={

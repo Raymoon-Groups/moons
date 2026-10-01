@@ -18,7 +18,7 @@ const TITLE_BY_KIND: Record<ImageCropAspect, string> = {
   avatar: 'Adjust profile photo',
   logo: 'Adjust company logo',
   cover: 'Adjust cover photo',
-  blog: 'Adjust cover image (16:9)',
+  blog: 'Adjust cover image',
 };
 
 export function ImageCropModal({
@@ -52,11 +52,11 @@ export function ImageCropModal({
   useEffect(() => {
     if (!open) return;
     setCrop({ x: 0, y: 0 });
-    setZoom(1);
+    setZoom(aspect === 'blog' ? 0.85 : 1);
     setCroppedAreaPixels(null);
     setError('');
     setBusy(false);
-  }, [open, imageSrc]);
+  }, [open, imageSrc, aspect]);
 
   const onCropComplete = useCallback((_: Area, pixels: Area) => {
     setCroppedAreaPixels(pixels);
@@ -94,10 +94,13 @@ export function ImageCropModal({
   }
 
   const cropShape = aspect === 'avatar' ? 'round' : 'rect';
-  const frameStyle =
-    aspect === 'cover'
-      ? { height: 240 }
-      : { height: 360, width: 360, maxWidth: '100%' as const, marginLeft: 'auto', marginRight: 'auto' };
+  const isWide = aspect === 'cover' || aspect === 'blog';
+  const frameClassName = isWide
+    ? 'relative mt-4 aspect-video w-full overflow-hidden rounded-xl bg-black'
+    : 'relative mt-4 mx-auto h-[360px] w-[360px] max-w-full overflow-hidden rounded-xl bg-black';
+  const objectFit =
+    aspect === 'cover' ? 'horizontal-cover' : aspect === 'blog' ? 'contain' : 'cover';
+  const minZoom = aspect === 'blog' ? 0.5 : 1;
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -115,17 +118,23 @@ export function ImageCropModal({
         className="relative z-10 w-full max-w-xl rounded-2xl border border-border bg-surface-elevated p-5 shadow-2xl sm:p-6"
       >
         <h2 className="text-lg font-bold text-heading">{TITLE_BY_KIND[aspect]}</h2>
-        <p className="mt-1 text-sm text-moons-muted">Drag to reposition · use the slider to zoom</p>
+        <p className="mt-1 text-sm text-moons-muted">
+          {aspect === 'blog'
+            ? 'Full image is shown · drag to reposition · zoom if needed'
+            : 'Drag to reposition · use the slider to zoom'}
+        </p>
 
-        <div className="relative mt-4 overflow-hidden rounded-xl bg-black" style={frameStyle}>
+        <div className={frameClassName}>
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
+            minZoom={minZoom}
+            maxZoom={3}
             aspect={ASPECT_BY_KIND[aspect]}
             cropShape={cropShape}
             showGrid={aspect === 'cover'}
-            objectFit={aspect === 'cover' ? 'horizontal-cover' : 'cover'}
+            objectFit={objectFit}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
@@ -136,7 +145,7 @@ export function ImageCropModal({
           <span className="shrink-0 text-xs font-medium text-moons-muted">Zoom</span>
           <input
             type="range"
-            min={1}
+            min={minZoom}
             max={3}
             step={0.01}
             value={zoom}

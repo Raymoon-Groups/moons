@@ -202,7 +202,7 @@ export function RichTextField({
 
   return (
     <View>
-      <FieldLabel>{label} (min {minLength} chars)</FieldLabel>
+      <FieldLabel>{`${label} (min ${minLength} chars)`}</FieldLabel>
       <View style={styles.toolbar}>
         {tools.map((tool) => (
           <Pressable

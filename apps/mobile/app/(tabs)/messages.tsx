@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   AppState,
   FlatList,
-  RefreshControl,
   StyleSheet,
   View,
 } from 'react-native';
@@ -13,6 +12,7 @@ import { AuthenticatedScreen } from '@/components/authenticated-screen';
 import { ConversationRow } from '@/components/messages/conversation-row';
 import { InboxFavoritesRow } from '@/components/messages/inbox-favorites-row';
 import { EmptyState } from '@/components/portal-ui';
+import { TabRefreshControl } from '@/components/tab-refresh-control';
 import { useAuth } from '@/lib/auth-context';
 import {
   conversationsChanged,
@@ -172,10 +172,9 @@ export default function MessagesScreen() {
             />
           )}
           refreshControl={
-            <RefreshControl
+            <TabRefreshControl
               refreshing={refreshing}
               onRefresh={() => void loadConversations({ pull: true })}
-              tintColor={colors.blue}
             />
           }
           ListHeaderComponent={
@@ -225,7 +224,7 @@ const styles = StyleSheet.create({
     marginLeft: 84,
   },
   openingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,

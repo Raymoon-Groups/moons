@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   play: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.28)',

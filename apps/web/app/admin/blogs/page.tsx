@@ -349,9 +349,9 @@ export default function AdminBlogsPage() {
           </div>
 
           <div>
-            <FieldLabel>Cover image 16:9</FieldLabel>
+            <FieldLabel>Cover image</FieldLabel>
             <HelpText>
-              Click to upload (cropped to 16:9) or paste a URL below.
+              Click to upload — the full image is shown so you can adjust before saving.
             </HelpText>
             <input
               ref={fileInputRef}
@@ -367,7 +367,7 @@ export default function AdminBlogsPage() {
                 <img
                   src={previewSrc}
                   alt=""
-                  className="aspect-video w-full object-cover"
+                  className="aspect-video w-full object-contain bg-black/5"
                 />
                 <div className="absolute right-2 top-2 flex gap-2">
                   <button
@@ -400,7 +400,7 @@ export default function AdminBlogsPage() {
                   </svg>
                 </span>
                 <span className="text-sm font-semibold text-foreground">Upload image</span>
-                <span className="text-xs text-moons-muted">16:9</span>
+                <span className="text-xs text-moons-muted">JPG, PNG, or WebP</span>
               </button>
             )}
             {uploading ? (

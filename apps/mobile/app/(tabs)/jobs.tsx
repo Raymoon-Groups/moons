@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -16,6 +15,7 @@ import { JobCard } from '@/components/job-card';
 import { JobsFilterRow, type JobsFilterSheet } from '@/components/jobs/jobs-filter-row';
 import { JobsSearchHero } from '@/components/jobs/jobs-search-hero';
 import { EmptyState } from '@/components/portal-ui';
+import { TabRefreshControl } from '@/components/tab-refresh-control';
 import { authFetch } from '@/lib/api';
 import { EXPERIENCE_FILTER_OPTIONS } from '@/lib/experience-options';
 import { fontStyle } from '@/lib/font-style';
@@ -312,13 +312,12 @@ export default function JobsScreen() {
         contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding }]}
         {...navScroll}
         refreshControl={
-          <RefreshControl
+          <TabRefreshControl
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
               void load(1, false);
             }}
-            tintColor={colors.blue}
           />
         }
         ListHeaderComponent={listHeader}

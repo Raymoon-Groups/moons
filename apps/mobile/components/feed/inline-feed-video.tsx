@@ -135,7 +135,6 @@ export function InlineFeedVideo({
         style={{ width, height: frameHeight }}
         contentFit="contain"
         nativeControls={false}
-        allowsFullscreen={false}
         pointerEvents="none"
       />
       <View style={styles.badge} pointerEvents="none">

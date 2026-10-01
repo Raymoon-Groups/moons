@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +21,7 @@ import { PersonCard, type ConnectionUpdate } from '@/components/network/person-c
 import { SuggestionDiscoveryCard } from '@/components/network/suggestion-discovery-card';
 import { EmptyState } from '@/components/portal-ui';
 import { SearchBar } from '@/components/search-bar';
+import { TabRefreshControl } from '@/components/tab-refresh-control';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
@@ -429,10 +429,9 @@ export default function NetworkScreen() {
           showsVerticalScrollIndicator={false}
           {...navScroll}
           refreshControl={
-            <RefreshControl
+            <TabRefreshControl
               refreshing={refreshing}
               onRefresh={() => (view === 'search' ? void runSearch() : void loadAll(true))}
-              tintColor={colors.blue}
             />
           }
           ListHeaderComponent={

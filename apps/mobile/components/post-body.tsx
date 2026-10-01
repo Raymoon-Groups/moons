@@ -234,7 +234,12 @@ export function PostBody({ value, numberOfLines, style, onDark }: Props) {
         return (
           <Text key={`b-${bi}`}>
             {bi > 0 ? '\n\n' : ''}
-            {renderInlines(block.children, `b-${bi}`, colors.blue, onDark)}
+            {renderInlines(
+              'children' in block ? block.children : [],
+              `b-${bi}`,
+              colors.blue,
+              onDark,
+            )}
           </Text>
         );
       })}

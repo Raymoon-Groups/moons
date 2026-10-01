@@ -61,7 +61,7 @@ export function CoverPhotoBanner({
         },
         image: { width: '100%', height: '100%' },
         placeholder: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
         },
         actions: {
           position: 'absolute',
@@ -95,7 +95,7 @@ export function CoverPhotoBanner({
         },
         btnText: { fontSize: 12, color: colors.heading, ...fontStyle('semibold') },
         overlay: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: 'rgba(0,0,0,0.25)',

@@ -135,7 +135,7 @@ export function EditableProfilePhoto({
           ...fontStyle('semibold'),
         },
         busyOverlay: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: 'rgba(15,23,38,0.35)',

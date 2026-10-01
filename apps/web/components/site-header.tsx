@@ -253,7 +253,9 @@ function LandingPublicHeader() {
         <NavUniversalSearch stretched className="hidden min-w-0 flex-1 md:block" />
 
         <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
-          <ThemeToggle className="!h-10 !w-10 !border-border !bg-surface !shadow-none !backdrop-blur-none" />
+          <span className="hidden md:inline-flex">
+            <ThemeToggle className="!h-10 !w-10 !border-border !bg-surface !shadow-none !backdrop-blur-none" />
+          </span>
           <Link
             href="/login"
             className="text-sm font-medium text-foreground transition hover:text-moons-blue"
@@ -296,7 +298,6 @@ function AuthenticatedHeader({
         </div>
         <NavUniversalSearch embedded stretched className="min-w-0 flex-1" />
         <div className="flex shrink-0 items-center gap-0.5">
-          <ThemeToggle bare />
           <NotificationBell bare hasUnread={hasUnreadBell} />
           <ProfileMenuButton bare onLogout={onLogout} pathname={pathname} />
         </div>
@@ -395,7 +396,6 @@ export function SiteHeader() {
             </div>
             <NavUniversalSearch embedded stretched className="min-w-0 flex-1" />
             <div className="flex shrink-0 items-center gap-0.5">
-              <ThemeToggle bare />
               {ready && user ? (
                 <>
                   <NotificationBell bare hasUnread={indicators.bell} />

@@ -40,7 +40,7 @@ export function CareerServicesSection() {
     <div>
       <WaveTop />
 
-      <section className="relative overflow-hidden bg-[#12151c] px-4 pb-20 pt-6 md:pb-28 md:pt-10">
+      <section className="relative overflow-hidden bg-[#12151c] px-4 pb-14 pt-6 sm:pb-20 md:pb-28 md:pt-10">
         <div
           aria-hidden
           className="absolute -left-16 top-8 h-40 w-40 rounded-[40%] bg-moons-orange/90 blur-sm md:h-52 md:w-52"

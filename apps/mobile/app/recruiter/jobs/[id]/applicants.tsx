@@ -418,7 +418,7 @@ export default function ApplicantsScreen() {
       >
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.surfaceElevated }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
+            <Text style={[styles.modalTitle, { color: colors.heading }]}>
               Reject {rejectTarget?.candidate.profile?.fullName ?? rejectTarget?.candidate.email ?? 'candidate'}?
             </Text>
             <Text style={[styles.modalHint, { color: colors.muted }]}>
@@ -433,7 +433,7 @@ export default function ApplicantsScreen() {
               style={[
                 styles.modalInput,
                 {
-                  color: colors.text,
+                  color: colors.heading,
                   borderColor: colors.border,
                   backgroundColor: colors.surface,
                 },
@@ -445,7 +445,7 @@ export default function ApplicantsScreen() {
                 onPress={() => setRejectTarget(null)}
                 style={styles.modalCancel}
               >
-                <Text style={{ color: colors.text, fontWeight: '600' }}>Keep reviewing</Text>
+                <Text style={{ color: colors.heading, fontWeight: '600' }}>Keep reviewing</Text>
               </Pressable>
               <Pressable
                 disabled={!!updatingId}

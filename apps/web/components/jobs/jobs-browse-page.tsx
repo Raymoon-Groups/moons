@@ -361,12 +361,21 @@ export function JobsBrowsePage() {
   useEffect(() => {
     if (loading || filteredJobs.length === 0) return;
     if (selectedJobId) return;
+    // Keep the job list visible on mobile — only auto-select for desktop split pane.
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+      return;
+    }
 
     const params = new URLSearchParams(searchParams.toString());
     params.set('job', filteredJobs[0].id);
     router.replace(`/jobs?${params.toString()}`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only auto-pick when no job in URL
   }, [loading, filteredJobs, selectedJobId]);
+
+  function clearMobileDetail() {
+    setMobileShowDetail(false);
+    router.push(buildUrl({ job: null }), { scroll: false });
+  }
 
   function pageHref(nextPage: number) {
     return buildUrl({ page: String(nextPage) });
@@ -547,6 +556,17 @@ export function JobsBrowsePage() {
                 mobileShowDetail ? 'block h-full' : 'hidden h-full lg:block'
               }`}
             >
+              {mobileShowDetail ? (
+                <div className="border-b border-border px-3 py-2 lg:hidden">
+                  <button
+                    type="button"
+                    onClick={clearMobileDetail}
+                    className="text-sm font-semibold text-moons-blue hover:underline"
+                  >
+                    ← Back to jobs
+                  </button>
+                </div>
+              ) : null}
               <JobDetailPanel
                 jobId={selectedJobId || null}
                 initialJob={selectedJob}

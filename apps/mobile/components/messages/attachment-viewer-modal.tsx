@@ -118,7 +118,7 @@ export function AttachmentViewerModal({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: 'rgba(10, 15, 28, 0.92)' },
-  backdrop: { ...StyleSheet.absoluteFillObject },
+  backdrop: { ...StyleSheet.absoluteFill },
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',

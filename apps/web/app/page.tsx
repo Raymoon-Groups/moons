@@ -38,6 +38,12 @@ const EmployerBanner = dynamic(
   { loading: () => <SectionSkeleton /> },
 );
 
+const BotBridgeSection = dynamic(
+  () =>
+    import('@/components/landing/bot-bridge-section').then((m) => m.BotBridgeSection),
+  { loading: () => <SectionSkeleton /> },
+);
+
 function SectionSkeleton() {
   return <div className="mx-auto h-48 max-w-7xl animate-pulse rounded-xl bg-surface px-4" />;
 }
@@ -48,6 +54,7 @@ export default function Home() {
       <LandingAnnouncementPopup />
       <JobPortalHero />
       <StatsBar />
+      <BotBridgeSection />
       <BrowseCategories />
       <TrendingJobsSection />
       <TopCompaniesSection />

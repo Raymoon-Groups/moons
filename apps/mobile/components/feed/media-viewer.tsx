@@ -52,7 +52,6 @@ function FullscreenVideo({
         style={{ width, height }}
         contentFit="contain"
         nativeControls
-        allowsFullscreen
         allowsPictureInPicture
       />
     </View>

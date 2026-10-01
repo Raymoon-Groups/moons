@@ -9,8 +9,9 @@ import { getIntroSeen, setIntroSeen } from '@/lib/app-preferences';
 type StartPhase = 'splash' | 'intro' | 'gate';
 
 /**
- * Start flow with intentional handoffs (no mid-animation auto-cut):
+ * Start flow:
  * splash (swipe) → intro (first time) → login/feed
+ * Logged-in users go straight to destination via replace (no Redirect blank frame).
  */
 export default function Index() {
   const { user, ready } = useAuth();
@@ -35,32 +36,46 @@ export default function Index() {
     };
   }, []);
 
-  const finishIntro = useCallback(async (dest?: 'login' | 'register') => {
-    try {
-      await setIntroSeen();
-    } catch {
-      // ignore
-    }
-    setIntroSeenState(true);
-    if (dest === 'register') {
-      router.replace('/register');
-      return;
-    }
-    if (dest === 'login') {
+  const goPostAuth = useCallback(() => {
+    if (!user) {
       router.replace('/login');
       return;
     }
-    setPhase('gate');
-  }, []);
+    if (!user.onboardingCompleted) {
+      router.replace('/onboarding');
+      return;
+    }
+    router.replace(getPostAuthPath(user) as never);
+  }, [user]);
+
+  const finishIntro = useCallback(
+    async (dest?: 'login' | 'register') => {
+      try {
+        await setIntroSeen();
+      } catch {
+        // ignore
+      }
+      setIntroSeenState(true);
+      if (dest === 'register') {
+        router.replace('/register');
+        return;
+      }
+      if (dest === 'login') {
+        router.replace('/login');
+        return;
+      }
+      goPostAuth();
+    },
+    [goPostAuth],
+  );
 
   const onSplashDone = useCallback(() => {
-    // Prefs are ready whenever swipe unlocks (continueReady), so introSeen is known.
     if (!user && introSeen === false) {
       setPhase('intro');
       return;
     }
-    setPhase('gate');
-  }, [introSeen, user]);
+    goPostAuth();
+  }, [goPostAuth, introSeen, user]);
 
   const continueReady = ready && prefsLoaded && introSeen !== null;
 

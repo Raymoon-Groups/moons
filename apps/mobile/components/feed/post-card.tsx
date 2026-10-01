@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -129,6 +129,28 @@ export function PostCard({
       post.connectionStatus === 'CANCELLED');
   const showAuthorActions = !isMine && !isConnected;
   const avatar = resolveAssetUrl(post.author.avatarUrl);
+
+  // FlatList can reuse this component instance for a different post — reset local UI state.
+  useEffect(() => {
+    setComments(post.recentComments ?? []);
+    setCommentText('');
+    setCommentFile(null);
+    setShowComments(false);
+    setCommentsAutoOpened(false);
+    setReportedCommentIds(new Set());
+    setShowForward(false);
+    setShowOptions(false);
+    setViewerIndex(null);
+    setSharedViewerIndex(null);
+    setEditOpen(false);
+    setEditText(post.body);
+    setSuccess(null);
+    setCommentMenuTarget(null);
+    setConfirm(null);
+    setBusy(false);
+    // Only when the row binds to a different post (list recycling).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional post.id gate
+  }, [post.id]);
 
   function openAuthorProfile(authorUserId: string) {
     if (user?.id && authorUserId === user.id) {
@@ -593,7 +615,13 @@ export function PostCard({
         <ViewableAvatar uri={avatar} name={post.author.fullName}>
           <View style={styles.avatar}>
             {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatarImg} />
+              <ExpoImage
+                source={{ uri: avatar }}
+                style={styles.avatarImg}
+                contentFit="cover"
+                transition={0}
+                recyclingKey={`avatar-${post.id}`}
+              />
             ) : (
               <Text style={{ color: colors.blue, ...fontStyle('bold'), fontSize: 16 }}>
                 {(post.author.fullName?.[0] || '?').toUpperCase()}
@@ -667,6 +695,7 @@ export function PostCard({
             {post.media[0].type === 'VIDEO' ? (
               resolveAssetUrl(post.media[0].url) ? (
                 <InlineFeedVideo
+                  key={resolveAssetUrl(post.media[0].url)!}
                   uri={resolveAssetUrl(post.media[0].url)!}
                   width={mediaWidth}
                   playing={isVisible && viewerIndex === null}
@@ -675,6 +704,7 @@ export function PostCard({
               ) : null
             ) : (
               <FeedMediaImage
+                key={resolveAssetUrl(post.media[0].url) ?? post.media[0].id}
                 uri={resolveAssetUrl(post.media[0].url)}
                 width={mediaWidth}
                 onPress={() => setViewerIndex(0)}
@@ -703,9 +733,12 @@ export function PostCard({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={styles.sharedAvatar}>
               {resolveAssetUrl(original.author.avatarUrl) ? (
-                <Image
+                <ExpoImage
                   source={{ uri: resolveAssetUrl(original.author.avatarUrl) ?? undefined }}
                   style={styles.sharedAvatarImg}
+                  contentFit="cover"
+                  transition={0}
+                  recyclingKey={`shared-avatar-${original.id}`}
                 />
               ) : (
                 <Text style={{ color: colors.blue, fontSize: 11, ...fontStyle('bold') }}>

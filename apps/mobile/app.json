@@ -6,13 +6,7 @@
     "orientation": "portrait",
     "scheme": "moonsjob",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.moonsjob.app",
@@ -65,7 +59,16 @@
         }
       ],
       "expo-asset",
-      "expo-system-ui"
+      "expo-system-ui",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
     ],
     "web": {
       "bundler": "metro",

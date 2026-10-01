@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -15,6 +14,7 @@ import { AppScreen } from '@/components/app-screen';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { EmptyState } from '@/components/portal-ui';
 import { RecruiterJobCard } from '@/components/recruiter/recruiter-job-card';
+import { TabRefreshControl } from '@/components/tab-refresh-control';
 import { ApiError, authDelete, authFetch } from '@/lib/api';
 import { fontStyle } from '@/lib/font-style';
 import { useNavChromeScrollProps } from '@/lib/nav-chrome';
@@ -294,7 +294,7 @@ export default function MyJobsScreen() {
         contentContainerStyle={styles.listContent}
         {...navScroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={colors.blue} />
+          <TabRefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />
         }
         ListHeaderComponent={
           <View>

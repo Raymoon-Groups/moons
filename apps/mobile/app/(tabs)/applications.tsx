@@ -5,7 +5,6 @@ import {
   Alert,
   FlatList,
   Pressable,
-  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -16,6 +15,7 @@ import { CompanyAvatar } from '@/components/company-avatar';
 import { CoverNoteBlock, ScreeningAnswersList } from '@/components/jobs/screening-answers-list';
 import { EmptyState, ScreenHeader } from '@/components/portal-ui';
 import { StatusBadge } from '@/components/status-badge';
+import { TabRefreshControl } from '@/components/tab-refresh-control';
 import { authFetch } from '@/lib/api';
 import { formatEmploymentType } from '@/lib/format';
 import { useNavChromeScrollProps } from '@/lib/nav-chrome';
@@ -150,7 +150,7 @@ export default function ApplicationsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         {...navScroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />}
+        refreshControl={<TabRefreshControl refreshing={refreshing} onRefresh={() => load(true)} />}
         ListHeaderComponent={
           <>
             <ScreenHeader

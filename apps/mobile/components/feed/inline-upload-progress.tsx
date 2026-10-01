@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   gradientFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   shimmer: {
     position: 'absolute',

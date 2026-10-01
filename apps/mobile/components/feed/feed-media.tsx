@@ -64,8 +64,8 @@ export function FeedMediaImage({
   const [measured, setMeasured] = useState(false);
 
   useEffect(() => {
+    // Keep prior ratio while the new URI measures — resetting to 0.8 made cards jump/glitch.
     setMeasured(false);
-    setRatio(0.8);
     return readRatioFromUri(uri, (next) => {
       setRatio(next);
       setMeasured(true);
@@ -96,11 +96,13 @@ export function FeedMediaImage({
       ]}
     >
       <ExpoImage
+        key={uri}
         source={{ uri }}
-        style={{ width, height: boxHeight }}
+        style={{ width, height: boxHeight, opacity: measured ? 1 : 0 }}
         contentFit={capped ? 'contain' : 'cover'}
-        transition={120}
+        transition={0}
         recyclingKey={uri}
+        cachePolicy="memory-disk"
         onLoad={(event) => {
           const source = event.source;
           if (source?.width && source?.height && source.height > 0) {

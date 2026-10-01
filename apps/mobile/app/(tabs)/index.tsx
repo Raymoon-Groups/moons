@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  RefreshControl,
   Text,
   View,
   type ViewToken,
@@ -17,8 +16,13 @@ import { MoonsPlusPromoCard } from '@/components/feed/moons-plus-promo';
 import { PostCard } from '@/components/feed/post-card';
 import { PostSkeleton } from '@/components/feed/post-skeleton';
 import { EmptyState } from '@/components/portal-ui';
+import {
+  TabRefreshControl,
+  TabRefreshIndicator,
+  useTabRefreshScroll,
+} from '@/components/tab-refresh-control';
+import { useAuth } from '@/lib/auth-context';
 import { fontStyle } from '@/lib/font-style';
-import { useNavChromeScrollProps } from '@/lib/nav-chrome';
 import { fetchFeed } from '@/lib/posts';
 import { useTabScreenPadding, useTabScreenTopPadding } from '@/lib/tab-screen-padding';
 import { useTheme } from '@/lib/theme-context';
@@ -41,33 +45,33 @@ type FeedRow =
   | { type: 'post'; post: FeedPost; key: string }
   | { type: 'moons-plus'; key: string };
 
-/** Moons Plus “Coming soon” teaser — same as web (non-interactive promo only). */
+/** Moons Plus teaser — only after real posts exist (never alone as a fake first card). */
 function buildFeedRows(posts: FeedPost[]): FeedRow[] {
   const rows: FeedRow[] = posts.map((post) => ({ type: 'post', post, key: post.id }));
-  // Keep mid-feed placement so the teaser appears while scrolling (matches web feed).
-  if (rows.length === 0) {
-    rows.push({ type: 'moons-plus', key: 'moons-plus' });
-    return rows;
-  }
+  if (rows.length === 0) return rows;
   const insertAt = posts.length >= 2 ? 2 : rows.length;
   rows.splice(insertAt, 0, { type: 'moons-plus', key: 'moons-plus' });
   return rows;
 }
 
 export default function FeedScreen() {
+  const { user } = useAuth();
   const { colors } = useTheme();
   const bottomPadding = useTabScreenPadding();
   const topPadding = useTabScreenTopPadding();
-  const navScroll = useNavChromeScrollProps();
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [bootstrapping, setBootstrapping] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [visiblePostIds, setVisiblePostIds] = useState<Set<string>>(() => new Set());
   const [upload, setUpload] = useState<FeedUploadState>(null);
   const uploadHoldRef = useRef<(() => void) | null>(null);
+  const userId = user?.id ?? null;
+  const feedEpochRef = useRef(0);
+  const { pullDistance, scrollProps } = useTabRefreshScroll(refreshing);
 
   function waitForUploadHold() {
     return new Promise<void>((resolve) => {
@@ -79,7 +83,6 @@ export default function FeedScreen() {
         resolve();
       };
       uploadHoldRef.current = finish;
-      // Fallback if the progress banner remounts or never reaches success.
       setTimeout(finish, 4500);
     });
   }
@@ -100,51 +103,68 @@ export default function FeedScreen() {
     },
   ).current;
 
-  const load = useCallback(async (nextPage = 1, append = false) => {
+  const load = useCallback(async (nextPage = 1, append = false, opts?: { pull?: boolean }) => {
+    const epoch = feedEpochRef.current;
     if (append) setLoadingMore(true);
-    else if (nextPage === 1) setLoading(true);
+    else if (nextPage === 1 && !opts?.pull) setLoading(true);
     try {
       const data = await fetchFeed(nextPage, 20);
+      if (epoch !== feedEpochRef.current) return;
       setPosts((prev) => dedupePosts(append ? [...prev, ...data.items] : data.items));
       setPage(data.page);
       setHasMore(data.hasMore);
+      if (!append) setBootstrapping(false);
     } catch (err) {
+      if (epoch !== feedEpochRef.current) return;
       Alert.alert('Feed', err instanceof Error ? err.message : 'Could not load feed');
+      if (!append) setBootstrapping(false);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      setRefreshing(false);
+      if (epoch === feedEpochRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
+    feedEpochRef.current += 1;
+    setPosts([]);
+    setPage(1);
+    setHasMore(false);
+    setVisiblePostIds(new Set());
+    setBootstrapping(true);
+    setLoading(true);
     void load(1, false);
-  }, [load]);
+  }, [userId, load]);
 
   const rows = useMemo(() => {
-    // Keep list empty while first load so skeletons (ListEmptyComponent) can show.
-    if (loading && posts.length === 0) return [];
+    if (bootstrapping) return [];
     return buildFeedRows(posts);
-  }, [loading, posts]);
+  }, [bootstrapping, posts]);
 
-  const listHeader = (
-    <View style={{ paddingBottom: 4 }}>
-      <FeedComposer
-        uploading={!!upload}
-        onUploadChange={setUpload}
-        waitForUploadHold={waitForUploadHold}
-        onPosted={async (created) => {
-          setPosts((prev) => dedupePosts([created, ...prev]));
-          await load(1, false);
-        }}
-      />
-    </View>
+  const listHeader = useCallback(
+    () => (
+      <View style={{ paddingBottom: 4 }}>
+        <FeedComposer
+          uploading={!!upload}
+          onUploadChange={setUpload}
+          waitForUploadHold={waitForUploadHold}
+          onPosted={(created) => {
+            setPosts((prev) => dedupePosts([created, ...prev]));
+            setBootstrapping(false);
+          }}
+        />
+      </View>
+    ),
+    [upload],
   );
+
+  const showSkeleton = bootstrapping;
 
   return (
     <AppScreen>
       <AuthenticatedScreen padBottom={false}>
-        {/* Keep progress outside FlatList so it always paints when upload state changes. */}
         {upload ? (
           <View style={{ paddingTop: topPadding, zIndex: 20 }}>
             <InlineUploadProgress
@@ -157,84 +177,93 @@ export default function FeedScreen() {
           </View>
         ) : null}
 
-        <FlatList
-          data={rows}
-          extraData={upload}
-          keyExtractor={(item) => item.key}
-          style={{ backgroundColor: colors.background, flex: 1 }}
-          contentContainerStyle={{
-            paddingTop: upload ? 8 : topPadding,
-            paddingBottom: bottomPadding,
-            flexGrow: 1,
-          }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          {...navScroll}
-          viewabilityConfig={viewabilityConfig}
-          onViewableItemsChanged={onViewableItemsChanged}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                void load(1, false);
-              }}
-              tintColor={colors.blue}
-            />
-          }
-          ListHeaderComponent={listHeader}
-          renderItem={({ item }) =>
-            item.type === 'moons-plus' ? (
-              <MoonsPlusPromoCard />
-            ) : (
-              <PostCard
-                post={item.post}
-                isVisible={visiblePostIds.has(item.post.id)}
-                onChange={(next) =>
-                  setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))
-                }
-                onRemove={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
-              />
-            )
-          }
-          ListEmptyComponent={
-            loading ? (
-              <View style={{ paddingTop: 8 }}>
-                <PostSkeleton />
-                <PostSkeleton />
-              </View>
-            ) : null
-          }
-          ListFooterComponent={
-            loadingMore ? (
-              <ActivityIndicator color={colors.blue} style={{ marginVertical: 22 }} />
-            ) : posts.length === 0 && !loading ? (
-              <EmptyState
-                icon="newspaper-outline"
-                title="Nothing in your feed yet"
-                message="Create a post or connect with more people to start seeing updates here."
-              />
-            ) : posts.length > 0 && !hasMore ? (
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: 12,
-                  textAlign: 'center',
-                  marginTop: 14,
-                  marginBottom: 10,
-                  ...fontStyle('semibold'),
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={rows}
+            extraData={`${upload ? 1 : 0}:${bootstrapping ? 1 : 0}:${userId ?? ''}`}
+            keyExtractor={(item) => item.key}
+            style={{ backgroundColor: colors.background, flex: 1 }}
+            contentContainerStyle={{
+              paddingTop: upload ? 8 : topPadding,
+              paddingBottom: bottomPadding,
+              flexGrow: 1,
+            }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            removeClippedSubviews={false}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={7}
+            {...scrollProps}
+            viewabilityConfig={viewabilityConfig}
+            onViewableItemsChanged={onViewableItemsChanged}
+            refreshControl={
+              <TabRefreshControl
+                hideSystemTint
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  void load(1, false, { pull: true });
                 }}
-              >
-                You're all caught up
-              </Text>
-            ) : null
-          }
-          onEndReachedThreshold={0.4}
-          onEndReached={() => {
-            if (hasMore && !loading && !loadingMore) void load(page + 1, true);
-          }}
-        />
+              />
+            }
+            ListHeaderComponent={listHeader}
+            renderItem={({ item }) =>
+              item.type === 'moons-plus' ? (
+                <MoonsPlusPromoCard />
+              ) : (
+                <PostCard
+                  key={item.post.id}
+                  post={item.post}
+                  isVisible={!bootstrapping && visiblePostIds.has(item.post.id)}
+                  onChange={(next) =>
+                    setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))
+                  }
+                  onRemove={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
+                />
+              )
+            }
+            ListEmptyComponent={
+              showSkeleton ? (
+                <View style={{ paddingTop: 8 }}>
+                  <PostSkeleton />
+                  <PostSkeleton />
+                </View>
+              ) : !loading ? (
+                <EmptyState
+                  icon="newspaper-outline"
+                  title="Nothing in your feed yet"
+                  message="Create a post or connect with more people to start seeing updates here."
+                />
+              ) : null
+            }
+            ListFooterComponent={
+              showSkeleton ? null : loadingMore ? (
+                <ActivityIndicator color={colors.blue} style={{ marginVertical: 22 }} />
+              ) : posts.length > 0 && !hasMore ? (
+                <Text
+                  style={{
+                    color: colors.muted,
+                    fontSize: 12,
+                    textAlign: 'center',
+                    marginTop: 14,
+                    marginBottom: 10,
+                    ...fontStyle('semibold'),
+                  }}
+                >
+                  You're all caught up
+                </Text>
+              ) : null
+            }
+            onEndReachedThreshold={0.4}
+            onEndReached={() => {
+              if (hasMore && !loading && !loadingMore && !bootstrapping) void load(page + 1, true);
+            }}
+          />
+
+          <TabRefreshIndicator refreshing={refreshing} pullDistance={pullDistance} />
+        </View>
       </AuthenticatedScreen>
     </AppScreen>
   );

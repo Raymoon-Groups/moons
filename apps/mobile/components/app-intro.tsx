@@ -686,7 +686,8 @@ export function AppIntro({ onComplete }: AppIntroProps) {
 
   const panelOpacity = useRef(new Animated.Value(1)).current;
   const panelTranslate = useRef(new Animated.Value(0)).current;
-  const rootOpacity = useRef(new Animated.Value(0)).current;
+  // Content fade only — root shell stays opaque so splash→intro never blanks.
+  const contentOpacity = useRef(new Animated.Value(0)).current;
   const sheetY = useRef(new Animated.Value(40)).current;
   const sheetOpacity = useRef(new Animated.Value(0)).current;
 
@@ -703,13 +704,13 @@ export function AppIntro({ onComplete }: AppIntroProps) {
   const copySlide = SLIDES[copyIndex] ?? SLIDES[0];
 
   useEffect(() => {
-    Animated.timing(rootOpacity, {
+    Animated.timing(contentOpacity, {
       toValue: 1,
-      duration: 380,
+      duration: 280,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [rootOpacity]);
+  }, [contentOpacity]);
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -776,14 +777,14 @@ export function AppIntro({ onComplete }: AppIntroProps) {
       if (completingRef.current) return;
       completingRef.current = true;
       clearTimer();
-      Animated.timing(rootOpacity, {
+      Animated.timing(contentOpacity, {
         toValue: 0,
-        duration: 260,
+        duration: 180,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start(() => onComplete(dest));
     },
-    [clearTimer, onComplete, rootOpacity],
+    [clearTimer, contentOpacity, onComplete],
   );
 
   const scrollTo = useCallback(
@@ -976,7 +977,8 @@ export function AppIntro({ onComplete }: AppIntroProps) {
         : `Log in or sign up to open ${authGate?.label ?? 'this profile'} and connect.`;
 
   return (
-    <Animated.View style={[styles.root, { opacity: rootOpacity }]}>
+    <View style={styles.root}>
+      <Animated.View style={{ flex: 1, opacity: contentOpacity }}>
       <Pressable
         onPress={() => finish()}
         style={[styles.skip, { top: insets.top + 10, backgroundColor: skipBg }]}
@@ -1124,7 +1126,8 @@ export function AppIntro({ onComplete }: AppIntroProps) {
           </Animated.View>
         </View>
       </Modal>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -1178,7 +1181,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cardGlow: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: 'rgba(63,116,204,0.45)',
@@ -1201,7 +1204,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   gateBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(10, 16, 28, 0.45)',
   },
   gateSheet: {

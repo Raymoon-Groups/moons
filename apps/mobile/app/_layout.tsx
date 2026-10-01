@@ -110,12 +110,12 @@ function RootStack() {
           contentStyle: { backgroundColor: colors.background },
         }}
       >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="register" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="search" options={{ headerShown: false }} />
         <Stack.Screen name="network/[userId]" options={{ title: 'Profile' }} />
         <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />

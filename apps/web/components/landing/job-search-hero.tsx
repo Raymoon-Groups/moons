@@ -12,7 +12,7 @@ export function JobPortalHero() {
   const router = useRouter();
 
   return (
-    <section className="relative min-h-[420px] overflow-x-clip overflow-y-visible px-4 pb-12 pt-12 sm:min-h-[520px] sm:px-6 sm:pb-16 sm:pt-16 md:min-h-[600px] md:pb-28 md:pt-28 lg:px-8">
+    <section className="relative min-h-[380px] overflow-x-clip overflow-y-visible px-4 pb-10 pt-10 sm:min-h-[480px] sm:px-6 sm:pb-14 sm:pt-14 md:min-h-[600px] md:pb-28 md:pt-28 lg:px-8">
       <Image
         src={HOME_BANNER}
         alt=""
@@ -28,7 +28,7 @@ export function JobPortalHero() {
       />
 
       <div className="relative z-10 mx-auto max-w-6xl text-center">
-        <h1 className="text-4xl font-bold leading-[1.12] tracking-tight md:text-5xl lg:text-6xl">
+        <h1 className="text-[1.75rem] font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
           <span className="bg-gradient-to-b from-white via-white to-white/75 bg-clip-text text-transparent">
             Discover your next role,
           </span>
@@ -37,35 +37,35 @@ export function JobPortalHero() {
             across India
           </span>
         </h1>
-        <p className="mt-6 text-base font-medium text-white/80 md:text-lg">
+        <p className="mt-4 text-sm font-medium text-white/80 sm:mt-6 sm:text-base md:text-lg">
           5 lakh+ openings · Top companies hiring · Apply in minutes
         </p>
 
-        <div className="relative z-20 mx-auto mt-14 w-full max-w-5xl overflow-visible lg:max-w-6xl">
+        <div className="relative z-20 mx-auto mt-8 w-full max-w-5xl overflow-visible sm:mt-12 md:mt-14 lg:max-w-6xl">
           <HeroJobSearchForm variant="landing" />
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-sm font-semibold text-white/60">Trending:</span>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:mt-10">
+          <span className="text-xs font-semibold text-white/60 sm:text-sm">Trending:</span>
           {popularSearches.slice(0, 5).map((term) => (
             <button
               key={term}
               type="button"
               onClick={() => router.push(buildJobsSearchUrl({ q: term }))}
-              className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm text-white/90 backdrop-blur-sm transition hover:border-white/50 hover:bg-white/20"
+              className="rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-xs text-white/90 backdrop-blur-sm transition hover:border-white/50 hover:bg-white/20 sm:px-3 sm:py-1.5 sm:text-sm"
             >
               {term}
             </button>
           ))}
         </div>
 
-        <div className="mx-auto mt-4 flex max-w-5xl flex-wrap justify-center gap-2">
+        <div className="mx-auto mt-3 flex max-w-5xl flex-wrap justify-center gap-2 sm:mt-4">
           {quickFilters.map((filter) => (
             <button
               key={filter}
               type="button"
               onClick={() => router.push(buildJobsSearchUrl({ q: filter }))}
-              className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-medium text-white/85 backdrop-blur-sm transition hover:border-white/40 hover:bg-white/20"
+              className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-medium text-white/85 backdrop-blur-sm transition hover:border-white/40 hover:bg-white/20 sm:px-3 sm:py-1.5 sm:text-sm"
             >
               {filter}
             </button>

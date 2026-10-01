@@ -2,8 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { UserRole } from '@moons/shared';
 import { router, usePathname, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -163,6 +170,7 @@ function TabPillItem({
 }) {
   const progress = useSharedValue(active ? 1 : 0);
   const widthSv = useSharedValue(Math.max(targetWidth, 1));
+  const didSnapWidth = useRef(false);
 
   useEffect(() => {
     progress.value = withTiming(active ? 1 : 0, TIMING);
@@ -170,6 +178,12 @@ function TabPillItem({
 
   useEffect(() => {
     if (targetWidth <= 0) return;
+    // First real width: snap (no animation) so cold start doesn't bunch icons left.
+    if (!didSnapWidth.current) {
+      widthSv.value = targetWidth;
+      didSnapWidth.current = true;
+      return;
+    }
     widthSv.value = withTiming(targetWidth, TIMING);
   }, [targetWidth, widthSv]);
 
@@ -241,11 +255,18 @@ function PillNavigation({
 }) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: windowW } = useWindowDimensions();
   const { user } = useAuth();
   const { indicators, showNetworkDot, acknowledgeNetworkBadge } = useNavIndicators();
   const isRecruiter = user?.role === UserRole.RECRUITER;
   const items = getPillItems(isRecruiter, showNetworkDot, indicators.messages);
-  const [rowWidth, setRowWidth] = useState(0);
+  // Seed from screen width so first paint isn't width=0 (icons piled on the left).
+  const [rowWidth, setRowWidth] = useState(() => Math.max(windowW - 16, 1));
+
+  useEffect(() => {
+    const next = Math.max(windowW - 16, 1);
+    setRowWidth((prev) => (Math.abs(prev - next) > 0.5 ? next : prev));
+  }, [windowW]);
 
   const barBg = isDark ? colors.surfaceElevated : '#ffffff';
   const activeChipBg = isDark ? colors.surfaceHover : colors.blue;
@@ -253,8 +274,8 @@ function PillNavigation({
   const activeIconColor = '#fff';
   const activeLabelColor = '#fff';
   const hasActive = items.some((item) => item.routeName === activeRoute);
-  const activeW = rowWidth > 0 ? rowWidth * (hasActive ? ACTIVE_SHARE : 1 / ITEM_COUNT) : 0;
-  const inactiveW = rowWidth > 0 ? rowWidth * (hasActive ? INACTIVE_SHARE : 1 / ITEM_COUNT) : 0;
+  const activeW = rowWidth * (hasActive ? ACTIVE_SHARE : 1 / ITEM_COUNT);
+  const inactiveW = rowWidth * (hasActive ? INACTIVE_SHARE : 1 / ITEM_COUNT);
 
   function onRowLayout(e: LayoutChangeEvent) {
     const w = e.nativeEvent.layout.width;
@@ -413,7 +434,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   chipBg: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 999,
   },
   chipContent: {

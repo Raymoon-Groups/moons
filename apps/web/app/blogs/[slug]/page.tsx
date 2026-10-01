@@ -89,12 +89,12 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
         </p>
 
         {post.coverImageUrl ? (
-          <div className="relative mt-8 aspect-[16/9] overflow-hidden rounded-[24px] bg-surface">
+          <div className="mt-8 overflow-hidden rounded-[24px] border border-border/60 bg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={resolveAssetUrl(post.coverImageUrl) ?? post.coverImageUrl}
               alt=""
-              className="h-full w-full object-cover"
+              className="mx-auto block h-auto w-full max-h-[28rem] object-contain"
             />
           </div>
         ) : null}

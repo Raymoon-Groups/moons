@@ -14,28 +14,30 @@ import {
 
 export function StatsBar() {
   return (
-    <section className="border-y border-border bg-surface px-4 py-16 md:py-20">
+    <section className="border-y border-border bg-surface px-4 py-10 sm:py-14 md:py-20">
       <div className="mx-auto max-w-6xl text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-heading md:text-4xl">
+        <h2 className="text-2xl font-bold tracking-tight text-heading sm:text-3xl md:text-4xl">
           Trusted by jobseekers nationwide
         </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-base text-moons-muted md:text-lg">
+        <p className="mx-auto mt-2 max-w-2xl text-sm text-moons-muted sm:mt-3 sm:text-base md:text-lg">
           Join lakhs of professionals and thousands of recruiters on Moons
         </p>
 
-        <div className="mt-14 grid grid-cols-2 gap-10 md:grid-cols-4 md:gap-8">
+        <div className="mt-8 grid grid-cols-2 gap-6 sm:mt-10 sm:gap-8 md:mt-14 md:grid-cols-4 md:gap-8">
           {stats.map((stat) => (
             <div key={stat.label} className="flex flex-col items-center">
               <div className="inline-flex flex-col items-center">
-                <p className="text-3xl font-bold text-moons-blue md:text-4xl lg:text-[2.75rem]">
+                <p className="text-2xl font-bold text-moons-blue sm:text-3xl md:text-4xl lg:text-[2.75rem]">
                   {stat.value}
                 </p>
-                <span className="mt-2 h-1 w-full min-w-[3.5rem] rounded-full bg-moons-blue/40 md:min-w-[4.5rem]" />
+                <span className="mt-2 h-1 w-full min-w-[3rem] rounded-full bg-moons-blue/40 md:min-w-[4.5rem]" />
               </div>
-              <p className="mt-5 text-sm font-bold text-heading md:text-base">
+              <p className="mt-3 text-xs font-bold text-heading sm:mt-5 sm:text-sm md:text-base">
                 {stat.label}
               </p>
-              <p className="mt-1 text-xs text-moons-muted md:text-sm">{stat.sublabel}</p>
+              <p className="mt-1 text-[11px] leading-snug text-moons-muted sm:text-xs md:text-sm">
+                {stat.sublabel}
+              </p>
             </div>
           ))}
         </div>
@@ -46,12 +48,12 @@ export function StatsBar() {
 
 export function BrowseCategories() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-heading md:text-xl">
+    <section className="mx-auto max-w-7xl px-4 py-8 sm:py-12">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-bold text-heading sm:text-lg md:text-xl">
           Browse jobs by category
         </h2>
-        <Link href="/jobs" className="text-sm font-semibold text-moons-blue hover:underline">
+        <Link href="/jobs" className="shrink-0 text-sm font-semibold text-moons-blue hover:underline">
           View all →
         </Link>
       </div>
@@ -190,10 +192,10 @@ export function PopularSearchTags() {
 
 export function EmployerBanner() {
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-12">
-      <div className="promo-banner">
+    <section className="mx-auto max-w-7xl px-4 pb-10 sm:pb-12">
+      <div className="promo-banner overflow-hidden">
         <div className="grid md:grid-cols-5">
-          <div className="relative min-h-[180px] md:col-span-2">
+          <div className="relative min-h-[140px] sm:min-h-[180px] md:col-span-2">
             <Image
               src={landingImages.employer}
               alt="Employers hiring"
@@ -203,26 +205,26 @@ export function EmployerBanner() {
             />
             <div className="absolute inset-0 bg-moons-navy/20 md:hidden" />
           </div>
-          <div className="flex flex-col justify-center p-8 md:col-span-3">
+          <div className="flex flex-col justify-center p-5 sm:p-8 md:col-span-3">
             <p className="text-xs font-bold uppercase tracking-wider text-moons-blue">
               For employers
             </p>
-            <h2 className="mt-2 text-xl font-bold text-heading md:text-2xl">
+            <h2 className="mt-2 text-lg font-bold text-heading sm:text-xl md:text-2xl">
               Hire talent on Moons — post jobs for free
             </h2>
             <p className="mt-2 text-sm text-moons-muted">
               Reach lakhs of active jobseekers. Manage applicants from one dashboard.
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:flex-wrap sm:gap-3">
               <Link
                 href="/register?role=recruiter"
-                className="rounded bg-moons-blue px-6 py-2.5 text-sm font-bold text-white hover:bg-moons-blue-dark"
+                className="rounded bg-moons-blue px-6 py-2.5 text-center text-sm font-bold text-white hover:bg-moons-blue-dark"
               >
                 Post a free job
               </Link>
               <Link
                 href="/login?role=recruiter"
-                className="rounded border border-moons-blue/40 bg-surface-elevated/80 px-6 py-2.5 text-sm font-semibold text-heading hover:bg-surface-elevated"
+                className="rounded border border-moons-blue/40 bg-surface-elevated/80 px-6 py-2.5 text-center text-sm font-semibold text-heading hover:bg-surface-elevated"
               >
                 Employer login
               </Link>

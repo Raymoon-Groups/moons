@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -21,25 +22,12 @@ type AppSplashProps = {
   continueReady?: boolean;
 };
 
-type OrbitItem = {
-  name: keyof typeof Ionicons.glyphMap;
-  colors: [string, string];
-};
-
-const CHIP = 56;
-
 const SWIPE_H = 64;
 const THUMB = 52;
 const TRACK_PAD = 6;
 
-const ORBIT_ITEMS: OrbitItem[] = [
-  { name: 'briefcase', colors: ['#5B8DEF', '#3F74CC'] },
-  { name: 'people', colors: ['#2EC4A8', '#1A9A84'] },
-  { name: 'business', colors: ['#6B7FD7', '#4E5FC0'] },
-  { name: 'document-text', colors: ['#F08A4B', '#D96B2A'] },
-  { name: 'chatbubbles', colors: ['#4AA8F0', '#2F86D4'] },
-  { name: 'rocket', colors: ['#EF6F8A', '#D24D6B'] },
-];
+const CANDIDATE_IMG = require('@/assets/landing/candidtae-1.png');
+const RECRUITER_IMG = require('@/assets/landing/recruiter-2.png');
 
 function useLoop(
   value: Animated.Value,
@@ -234,7 +222,11 @@ const swipeStyles = StyleSheet.create({
     opacity: 0.18,
   },
   labelWrap: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -266,29 +258,16 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
-  const stage = Math.min(320, screenW * 0.82);
-  const orbitRadius = stage * 0.4;
   const autoStarted = useRef(false);
   const onGetStartedRef = useRef(onGetStarted);
   onGetStartedRef.current = onGetStarted;
 
-  const exitOpacity = useRef(new Animated.Value(1)).current;
-
   const finish = useCallback(() => {
     if (autoStarted.current) return;
     autoStarted.current = true;
-    Animated.timing(exitOpacity, {
-      toValue: 0,
-      duration: 340,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) onGetStartedRef.current();
-      else onGetStartedRef.current();
-    });
-  }, [exitOpacity]);
+    onGetStartedRef.current();
+  }, []);
 
-  // Only a long safety net — do not auto-advance while entrance/CTA animations run.
   useEffect(() => {
     const hard = setTimeout(finish, 20000);
     return () => clearTimeout(hard);
@@ -296,129 +275,192 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
 
   const bgFade = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.86)).current;
-  const orbitOpacity = useRef(new Animated.Value(0)).current;
+  const logoX = useRef(new Animated.Value(-16)).current;
+  const candidateOpacity = useRef(new Animated.Value(0)).current;
+  const candidateY = useRef(new Animated.Value(28)).current;
+  const recruiterOpacity = useRef(new Animated.Value(0)).current;
+  const recruiterY = useRef(new Animated.Value(28)).current;
   const copyOpacity = useRef(new Animated.Value(0)).current;
-  const copyY = useRef(new Animated.Value(20)).current;
+  const copyY = useRef(new Animated.Value(18)).current;
   const ctaOpacity = useRef(new Animated.Value(0)).current;
-  const ctaY = useRef(new Animated.Value(24)).current;
-  const orbitSpin = useRef(new Animated.Value(0)).current;
-  const reverseSpin = useRef(new Animated.Value(0)).current;
-  const glowPulse = useRef(new Animated.Value(0)).current;
+  const ctaY = useRef(new Animated.Value(22)).current;
   const meshDrift = useRef(new Animated.Value(0)).current;
-  const iconBobs = useRef(ORBIT_ITEMS.map(() => new Animated.Value(0))).current;
 
-  useLoop(orbitSpin, 1, 15000, false);
-  useLoop(reverseSpin, 1, 20000, false);
-  useLoop(glowPulse, 1, 2000, true);
+  const heroW = Math.min(screenW - theme.spacing.lg * 2, 420);
+  // Near-square assets, full image visible (no crop / no frame).
+  const heroH = Math.min(heroW * 0.88, Math.max(220, screenW * 0.52));
+
   useLoop(meshDrift, 1, 7000, true);
 
   useEffect(() => {
-    const loops = iconBobs.map((bob, i) => {
-      const anim = Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 120),
-          Animated.timing(bob, {
-            toValue: 1,
-            duration: 980 + i * 70,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-          Animated.timing(bob, {
-            toValue: 0,
-            duration: 980 + i * 70,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-      anim.start();
-      return anim;
-    });
-    return () => loops.forEach((a) => a.stop());
-  }, [iconBobs]);
+    const hold = 2600;
+    const slide = 720;
 
-  useEffect(() => {
-    Animated.sequence([
-      Animated.timing(bgFade, { toValue: 1, duration: 380, useNativeDriver: true }),
+    const intro = Animated.sequence([
+      Animated.timing(bgFade, { toValue: 1, duration: 320, useNativeDriver: true }),
       Animated.parallel([
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 480,
+          duration: 420,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.spring(logoScale, {
-          toValue: 1,
-          friction: 7,
-          tension: 50,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(orbitOpacity, {
-        toValue: 1,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.parallel([
-        Animated.timing(copyOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
-        Animated.timing(copyY, {
+        Animated.timing(logoX, {
           toValue: 0,
           duration: 420,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
+      // Candidate first
       Animated.parallel([
-        Animated.timing(ctaOpacity, { toValue: 1, duration: 360, useNativeDriver: true }),
-        Animated.timing(ctaY, {
+        Animated.timing(candidateOpacity, {
+          toValue: 1,
+          duration: slide,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(candidateY, {
+          toValue: 0,
+          duration: slide,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(copyOpacity, { toValue: 1, duration: 360, useNativeDriver: true }),
+        Animated.timing(copyY, {
           toValue: 0,
           duration: 360,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
-    ]).start();
+      Animated.parallel([
+        Animated.timing(ctaOpacity, { toValue: 1, duration: 340, useNativeDriver: true }),
+        Animated.timing(ctaY, {
+          toValue: 0,
+          duration: 340,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]);
+
+    let cancelled = false;
+    let active: Animated.CompositeAnimation | null = null;
+
+    const toRecruiter = () =>
+      Animated.parallel([
+        Animated.timing(candidateOpacity, {
+          toValue: 0,
+          duration: slide,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(candidateY, {
+          toValue: -18,
+          duration: slide,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(recruiterOpacity, {
+          toValue: 1,
+          duration: slide,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(recruiterY, {
+          toValue: 0,
+          duration: slide,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]);
+
+    const toCandidate = () =>
+      Animated.parallel([
+        Animated.timing(recruiterOpacity, {
+          toValue: 0,
+          duration: slide,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(recruiterY, {
+          toValue: -18,
+          duration: slide,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(candidateOpacity, {
+          toValue: 1,
+          duration: slide,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(candidateY, {
+          toValue: 0,
+          duration: slide,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]);
+
+    const runCycle = (showRecruiterNext: boolean) => {
+      if (cancelled) return;
+      if (showRecruiterNext) {
+        recruiterY.setValue(28);
+        recruiterOpacity.setValue(0);
+      } else {
+        candidateY.setValue(28);
+        candidateOpacity.setValue(0);
+      }
+
+      const holdAnim = Animated.delay(hold);
+      active = holdAnim;
+      holdAnim.start(({ finished }) => {
+        if (!finished || cancelled) return;
+        const swap = showRecruiterNext ? toRecruiter() : toCandidate();
+        active = swap;
+        swap.start(({ finished: ok }) => {
+          if (!ok || cancelled) return;
+          runCycle(!showRecruiterNext);
+        });
+      });
+    };
+
+    active = intro;
+    intro.start(({ finished }) => {
+      if (!finished || cancelled) return;
+      runCycle(true);
+    });
+
+    return () => {
+      cancelled = true;
+      active?.stop();
+    };
   }, [
     bgFade,
+    candidateOpacity,
+    candidateY,
     copyOpacity,
     copyY,
     ctaOpacity,
     ctaY,
     logoOpacity,
-    logoScale,
-    orbitOpacity,
+    logoX,
+    recruiterOpacity,
+    recruiterY,
   ]);
 
-  const orbitRotate = orbitSpin.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-  const orbitCounter = orbitSpin.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '-360deg'],
-  });
-  const reverseRotate = reverseSpin.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '-360deg'],
-  });
-  const glowScale = glowPulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.12],
-  });
-  const glowAlpha = glowPulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.35, 0.7],
-  });
-  const meshA = meshDrift.interpolate({ inputRange: [0, 1], outputRange: [0, 22] });
-  const meshB = meshDrift.interpolate({ inputRange: [0, 1], outputRange: [0, -18] });
+  const meshA = meshDrift.interpolate({ inputRange: [0, 1], outputRange: [0, 18] });
+  const meshB = meshDrift.interpolate({ inputRange: [0, 1], outputRange: [0, -14] });
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         root: { flex: 1, backgroundColor: '#F3F7FC' },
-        layer: { ...StyleSheet.absoluteFillObject },
+        layer: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
         blob: { position: 'absolute', borderRadius: 999 },
         column: {
           flex: 1,
@@ -428,91 +470,55 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           justifyContent: 'space-between',
         },
         topBlock: {
-          alignItems: 'center',
+          alignItems: 'flex-start',
           flexGrow: 1,
-          justifyContent: 'center',
-          gap: 18,
+          justifyContent: 'flex-start',
+          gap: 10,
+          paddingTop: 2,
         },
-        stage: {
-          width: stage,
-          height: stage,
+        logoRow: {
+          alignSelf: 'flex-start',
+          marginBottom: 2,
+        },
+        heroStage: {
+          width: heroW,
+          height: heroH,
+          alignSelf: 'stretch',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: 4,
+          marginBottom: 4,
+        },
+        heroLayer: {
+          ...StyleSheet.absoluteFillObject,
           alignItems: 'center',
           justifyContent: 'center',
         },
-        softGlow: {
-          position: 'absolute',
-          width: stage * 0.58,
-          height: stage * 0.58,
-          borderRadius: stage * 0.29,
-          backgroundColor: '#FFFFFF',
-          borderWidth: 1,
-          borderColor: 'rgba(207, 217, 232, 0.9)',
-          shadowColor: '#14233f',
-          shadowOpacity: 0.1,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 4,
-          zIndex: 5,
-        },
-        ring: {
-          position: 'absolute',
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: 'rgba(63, 116, 204, 0.18)',
-        },
-        ringDashed: {
-          position: 'absolute',
-          borderRadius: 999,
-          borderWidth: 1.25,
-          borderStyle: 'dashed',
-          borderColor: 'rgba(63, 116, 204, 0.28)',
-        },
-        logoMark: {
-          zIndex: 6,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        orbitItem: {
-          position: 'absolute',
-          width: CHIP,
-          height: CHIP,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        iconShell: {
-          width: CHIP,
-          height: CHIP,
-          borderRadius: 18,
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.6)',
-          shadowColor: '#14233f',
-          shadowOpacity: 0.16,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 5 },
-          elevation: 5,
+        heroImage: {
+          width: '100%',
+          height: '100%',
         },
         copyBlock: {
           alignItems: 'center',
-          maxWidth: 340,
-          paddingHorizontal: 6,
+          alignSelf: 'stretch',
+          marginTop: 6,
+          paddingHorizontal: 4,
         },
         eyebrow: {
-          marginBottom: 12,
+          marginBottom: 14,
           fontSize: 12,
           letterSpacing: 4,
           textTransform: 'uppercase',
           color: colors.blue,
+          textAlign: 'center',
           ...displayFontStyle('semibold'),
         },
         headline: {
-          fontSize: Math.min(42, screenW * 0.1),
-          lineHeight: Math.min(48, screenW * 0.116),
+          fontSize: Math.min(40, screenW * 0.095),
+          lineHeight: Math.min(46, screenW * 0.11),
           color: colors.navy,
           textAlign: 'center',
-          letterSpacing: -1.4,
+          letterSpacing: -1.3,
           ...displayFontStyle('extrabold'),
         },
         accentWord: {
@@ -520,193 +526,140 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
         },
         subhead: {
           marginTop: 14,
-          fontSize: 16,
-          lineHeight: 25,
+          fontSize: 15,
+          lineHeight: 23,
           color: colors.muted,
           textAlign: 'center',
           letterSpacing: -0.1,
-          maxWidth: 310,
+          maxWidth: 320,
           ...displayFontStyle('medium'),
         },
         footer: {
           width: '100%',
-          paddingTop: 18,
+          paddingTop: 12,
         },
       }),
-    [colors, insets.bottom, insets.top, screenW, stage],
+    [colors, heroH, heroW, insets.bottom, insets.top, screenW],
   );
 
-  const center = stage / 2;
-
   return (
-    <Animated.View style={[styles.root, { opacity: exitOpacity }]}>
-      <Animated.View style={[styles.layer, { opacity: bgFade }]} pointerEvents="none">
+    <View style={styles.root}>
+      <View style={styles.layer} pointerEvents="none">
         <LinearGradient
           colors={['#EAF2FB', '#F5F8FC', '#EEF3F9']}
           locations={[0, 0.5, 1]}
           style={styles.layer}
         />
-        <Animated.View
-          style={[
-            styles.blob,
-            {
-              width: screenW * 0.75,
-              height: screenW * 0.75,
-              top: -screenW * 0.18,
-              right: -screenW * 0.22,
-              backgroundColor: 'rgba(63, 116, 204, 0.14)',
-              transform: [{ translateY: meshA }],
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.blob,
-            {
-              width: screenW * 0.55,
-              height: screenW * 0.55,
-              bottom: screenW * 0.02,
-              left: -screenW * 0.2,
-              backgroundColor: 'rgba(46, 196, 168, 0.1)',
-              transform: [{ translateY: meshB }],
-            },
-          ]}
-        />
-      </Animated.View>
+      </View>
 
-      <View style={styles.column}>
-        <View style={styles.topBlock}>
-          <View style={styles.stage}>
+      <View style={styles.layer}>
+        <Animated.View style={[styles.layer, { opacity: bgFade }]} pointerEvents="none">
+          <Animated.View
+            style={[
+              styles.blob,
+              {
+                width: screenW * 0.72,
+                height: screenW * 0.72,
+                top: -screenW * 0.16,
+                right: -screenW * 0.2,
+                backgroundColor: 'rgba(63, 116, 204, 0.13)',
+                transform: [{ translateY: meshA }],
+              },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.blob,
+              {
+                width: screenW * 0.5,
+                height: screenW * 0.5,
+                bottom: screenW * 0.04,
+                left: -screenW * 0.18,
+                backgroundColor: 'rgba(46, 196, 168, 0.1)',
+                transform: [{ translateY: meshB }],
+              },
+            ]}
+          />
+        </Animated.View>
+
+        <View style={styles.column}>
+          <View style={styles.topBlock}>
             <Animated.View
               style={[
-                styles.softGlow,
-                {
-                  opacity: Animated.multiply(logoOpacity, glowAlpha),
-                  transform: [{ scale: glowScale }],
-                },
+                styles.logoRow,
+                { opacity: logoOpacity, transform: [{ translateX: logoX }] },
               ]}
-            />
-
-            <Animated.View
-              style={{
-                position: 'absolute',
-                width: stage,
-                height: stage,
-                opacity: orbitOpacity,
-                transform: [{ rotate: reverseRotate }],
-              }}
-              pointerEvents="none"
             >
-              <View
-                style={[
-                  styles.ringDashed,
-                  {
-                    width: orbitRadius * 2.15,
-                    height: orbitRadius * 2.15,
-                    top: center - orbitRadius * 1.075,
-                    left: center - orbitRadius * 1.075,
-                  },
-                ]}
-              />
+              <MoonsLogo size="xl" />
             </Animated.View>
 
-            <Animated.View
-              style={{
-                position: 'absolute',
-                width: stage,
-                height: stage,
-                opacity: orbitOpacity,
-                transform: [{ rotate: orbitRotate }],
-              }}
-              pointerEvents="none"
-            >
-              <View
+            <View style={styles.heroStage}>
+              <Animated.View
                 style={[
-                  styles.ring,
+                  styles.heroLayer,
                   {
-                    width: orbitRadius * 2,
-                    height: orbitRadius * 2,
-                    top: center - orbitRadius,
-                    left: center - orbitRadius,
+                    opacity: candidateOpacity,
+                    transform: [{ translateY: candidateY }],
                   },
                 ]}
-              />
+              >
+                <Image
+                  source={CANDIDATE_IMG}
+                  style={styles.heroImage}
+                  contentFit="contain"
+                  transition={0}
+                />
+              </Animated.View>
 
-              {ORBIT_ITEMS.map((item, i) => {
-                const angle = (Math.PI * 2 * i) / ORBIT_ITEMS.length - Math.PI / 2;
-                const x = center + orbitRadius * Math.cos(angle) - CHIP / 2;
-                const y = center + orbitRadius * Math.sin(angle) - CHIP / 2;
-                const bobY = iconBobs[i].interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -6],
-                });
-                const bobScale = iconBobs[i].interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [1, 1.07],
-                });
-
-                return (
-                  <Animated.View
-                    key={`${item.name}-${i}`}
-                    style={[
-                      styles.orbitItem,
-                      {
-                        left: x,
-                        top: y,
-                        transform: [
-                          { rotate: orbitCounter },
-                          { translateY: bobY },
-                          { scale: bobScale },
-                        ],
-                      },
-                    ]}
-                  >
-                    <LinearGradient colors={item.colors} style={styles.iconShell}>
-                      <Ionicons name={item.name} size={24} color="#fff" />
-                    </LinearGradient>
-                  </Animated.View>
-                );
-              })}
-            </Animated.View>
+              <Animated.View
+                style={[
+                  styles.heroLayer,
+                  {
+                    opacity: recruiterOpacity,
+                    transform: [{ translateY: recruiterY }],
+                  },
+                ]}
+              >
+                <Image
+                  source={RECRUITER_IMG}
+                  style={styles.heroImage}
+                  contentFit="contain"
+                  transition={0}
+                />
+              </Animated.View>
+            </View>
 
             <Animated.View
               style={[
-                styles.logoMark,
-                { opacity: logoOpacity, transform: [{ scale: logoScale }] },
+                styles.copyBlock,
+                { opacity: copyOpacity, transform: [{ translateY: copyY }] },
               ]}
             >
-              <MoonsLogo size="xxl" />
+              <Text style={styles.eyebrow}>MoonsJob</Text>
+              <Text style={styles.headline}>
+                Your next{'\n'}
+                chapter{'\n'}
+                <Text style={styles.accentWord}>starts here.</Text>
+              </Text>
+              <Text style={styles.subhead}>
+                Search jobs, build your profile, and connect with recruiters — simply and
+                beautifully.
+              </Text>
             </Animated.View>
           </View>
 
           <Animated.View
-            style={[
-              styles.copyBlock,
-              { opacity: copyOpacity, transform: [{ translateY: copyY }] },
-            ]}
+            style={[styles.footer, { opacity: ctaOpacity, transform: [{ translateY: ctaY }] }]}
           >
-            <Text style={styles.eyebrow}>MoonsJob</Text>
-            <Text style={styles.headline}>
-              Your next chapter{'\n'}
-              <Text style={styles.accentWord}>starts here.</Text>
-            </Text>
-            <Text style={styles.subhead}>
-              Search jobs, build your profile, and connect with recruiters — simply and beautifully.
-            </Text>
+            <SwipeGetStarted
+              ready={continueReady}
+              onComplete={finish}
+              blue={colors.blue}
+              blueDark={colors.blueDark}
+            />
           </Animated.View>
         </View>
-
-        <Animated.View
-          style={[styles.footer, { opacity: ctaOpacity, transform: [{ translateY: ctaY }] }]}
-        >
-          <SwipeGetStarted
-            ready={continueReady}
-            onComplete={finish}
-            blue={colors.blue}
-            blueDark={colors.blueDark}
-          />
-        </Animated.View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
