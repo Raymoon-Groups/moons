@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   PanResponder,
   StyleSheet,
   Text,
@@ -26,8 +26,11 @@ const SWIPE_H = 64;
 const THUMB = 52;
 const TRACK_PAD = 6;
 
-const CANDIDATE_IMG = require('@/assets/landing/candidtae-1.png');
-const RECRUITER_IMG = require('@/assets/landing/recruiter-2.png');
+// Relative requires — more reliable on Expo Go than `@/` for binary assets.
+// WebP keeps transparency (JPEG cannot) at a size Expo Go can load.
+const CANDIDATE_IMG = require('../assets/landing/candidtae-1.webp');
+const RECRUITER_IMG = require('../assets/landing/recruiter-2.webp');
+const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 function useLoop(
   value: Animated.Value,
@@ -287,8 +290,8 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
   const meshDrift = useRef(new Animated.Value(0)).current;
 
   const heroW = Math.min(screenW - theme.spacing.lg * 2, 420);
-  // Near-square assets, full image visible (no crop / no frame).
-  const heroH = Math.min(heroW * 0.88, Math.max(220, screenW * 0.52));
+  // Keep hero compact so copy sits closer under the pics.
+  const heroH = Math.min(heroW * 0.72, Math.max(190, screenW * 0.42));
 
   useLoop(meshDrift, 1, 7000, true);
 
@@ -473,12 +476,12 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           alignItems: 'flex-start',
           flexGrow: 1,
           justifyContent: 'flex-start',
-          gap: 10,
-          paddingTop: 2,
+          gap: 0,
+          paddingTop: 4,
         },
         logoRow: {
           alignSelf: 'flex-start',
-          marginBottom: 2,
+          marginBottom: 0,
         },
         heroStage: {
           width: heroW,
@@ -486,26 +489,31 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           alignSelf: 'stretch',
           alignItems: 'center',
           justifyContent: 'center',
-          marginTop: 4,
-          marginBottom: 4,
-        },
-        heroLayer: {
-          ...StyleSheet.absoluteFillObject,
-          alignItems: 'center',
-          justifyContent: 'center',
+          marginTop: 18,
+          marginBottom: 0,
+          overflow: 'visible',
+          backgroundColor: 'transparent',
         },
         heroImage: {
           width: '100%',
           height: '100%',
+          backgroundColor: 'transparent',
+        },
+        midZone: {
+          flexGrow: 1,
+          flexShrink: 1,
+          width: '100%',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: 80,
         },
         copyBlock: {
           alignItems: 'center',
           alignSelf: 'stretch',
-          marginTop: 6,
           paddingHorizontal: 4,
         },
         eyebrow: {
-          marginBottom: 14,
+          marginBottom: 10,
           fontSize: 12,
           letterSpacing: 4,
           textTransform: 'uppercase',
@@ -525,7 +533,7 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
           color: colors.blue,
         },
         subhead: {
-          marginTop: 14,
+          marginTop: 12,
           fontSize: 15,
           lineHeight: 23,
           color: colors.muted,
@@ -536,7 +544,7 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
         },
         footer: {
           width: '100%',
-          paddingTop: 12,
+          paddingTop: 8,
         },
       }),
     [colors, heroH, heroW, insets.bottom, insets.top, screenW],
@@ -590,62 +598,59 @@ export function AppSplash({ onGetStarted, continueReady = false }: AppSplashProp
                 { opacity: logoOpacity, transform: [{ translateX: logoX }] },
               ]}
             >
-              <MoonsLogo size="xl" />
+              <MoonsLogo size="xxl" />
             </Animated.View>
 
             <View style={styles.heroStage}>
-              <Animated.View
+              <AnimatedImage
+                source={CANDIDATE_IMG}
                 style={[
-                  styles.heroLayer,
+                  styles.heroImage,
                   {
                     opacity: candidateOpacity,
                     transform: [{ translateY: candidateY }],
                   },
                 ]}
-              >
-                <Image
-                  source={CANDIDATE_IMG}
-                  style={styles.heroImage}
-                  contentFit="contain"
-                  transition={0}
-                />
-              </Animated.View>
+                resizeMode="contain"
+              />
 
-              <Animated.View
+              <AnimatedImage
+                source={RECRUITER_IMG}
                 style={[
-                  styles.heroLayer,
+                  styles.heroImage,
                   {
                     opacity: recruiterOpacity,
                     transform: [{ translateY: recruiterY }],
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
                   },
                 ]}
-              >
-                <Image
-                  source={RECRUITER_IMG}
-                  style={styles.heroImage}
-                  contentFit="contain"
-                  transition={0}
-                />
-              </Animated.View>
+                resizeMode="contain"
+              />
             </View>
 
-            <Animated.View
-              style={[
-                styles.copyBlock,
-                { opacity: copyOpacity, transform: [{ translateY: copyY }] },
-              ]}
-            >
-              <Text style={styles.eyebrow}>MoonsJob</Text>
-              <Text style={styles.headline}>
-                Your next{'\n'}
-                chapter{'\n'}
-                <Text style={styles.accentWord}>starts here.</Text>
-              </Text>
-              <Text style={styles.subhead}>
-                Search jobs, build your profile, and connect with recruiters — simply and
-                beautifully.
-              </Text>
-            </Animated.View>
+            <View style={styles.midZone}>
+              <Animated.View
+                style={[
+                  styles.copyBlock,
+                  { opacity: copyOpacity, transform: [{ translateY: copyY }] },
+                ]}
+              >
+                <Text style={styles.eyebrow}>MoonsJob</Text>
+                <Text style={styles.headline}>
+                  Your next{'\n'}
+                  chapter{'\n'}
+                  <Text style={styles.accentWord}>starts here.</Text>
+                </Text>
+                <Text style={styles.subhead}>
+                  Search jobs, build your profile, and connect with recruiters — simply and
+                  beautifully.
+                </Text>
+              </Animated.View>
+            </View>
           </View>
 
           <Animated.View
