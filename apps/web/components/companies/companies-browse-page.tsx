@@ -75,7 +75,7 @@ function CompanyRow({ company }: { company: CompanyListing }) {
                 )}
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
               <StarIcon />
               {company.openJobs} open role{company.openJobs === 1 ? '' : 's'}
             </span>
@@ -88,12 +88,12 @@ function CompanyRow({ company }: { company: CompanyListing }) {
               </span>
             )}
             {company.industry && (
-              <span className="rounded-md bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-moons-blue">
+              <span className="rounded-md bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-moons-blue dark:bg-moons-blue/15">
                 {company.industry}
               </span>
             )}
             {company.openJobs >= 3 && (
-              <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+              <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                 Actively hiring
               </span>
             )}
@@ -118,7 +118,7 @@ function CompanyRow({ company }: { company: CompanyListing }) {
                 {company.openJobs > (company.featuredJobs ?? []).length && (
                   <Link
                     href={`/companies/${company.recruiterId}`}
-                    className="rounded-lg border border-dashed border-moons-blue/40 px-3 py-1.5 text-xs font-medium text-moons-blue hover:bg-blue-50"
+                    className="rounded-lg border border-dashed border-moons-blue/40 px-3 py-1.5 text-xs font-medium text-moons-blue hover:bg-blue-50 dark:hover:bg-moons-blue/10"
                   >
                     +{company.openJobs - (company.featuredJobs ?? []).length} more
                   </Link>
@@ -334,7 +334,9 @@ export function CompaniesBrowsePage() {
                   type="button"
                   onClick={() => setActiveCategory(cat.id)}
                   className={`flex min-w-[160px] shrink-0 flex-col rounded-xl border px-4 py-3 text-left transition md:min-w-[180px] ${
-                    active ? 'border-moons-blue bg-blue-50 shadow-sm' : 'border-border bg-surface-elevated hover:border-moons-blue/30'
+                    active
+                      ? 'border-moons-blue bg-blue-50 shadow-sm dark:bg-moons-blue/15 dark:shadow-none'
+                      : 'border-border bg-surface-elevated hover:border-moons-blue/30 dark:bg-surface'
                   }`}
                 >
                   <span className="text-sm font-bold text-heading">{cat.label}</span>
@@ -413,7 +415,9 @@ export function CompaniesBrowsePage() {
                     type="button"
                     onClick={() => setLocationFilter(loc)}
                     className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm transition ${
-                      locationFilter === loc ? 'bg-blue-50 text-moons-blue' : 'hover:bg-surface'
+                      locationFilter === loc
+                        ? 'bg-blue-50 text-moons-blue dark:bg-moons-blue/15'
+                        : 'hover:bg-surface'
                     }`}
                   >
                     <span className="truncate">{loc}</span>
@@ -441,9 +445,9 @@ export function CompaniesBrowsePage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-moons-blue/20 bg-blue-50/50 p-4 shadow-sm sm:p-5">
+          <div className="rounded-2xl border border-moons-blue/20 bg-blue-50/50 p-4 shadow-sm dark:border-border dark:bg-surface dark:shadow-none sm:p-5">
             <h3 className="text-sm font-bold text-heading">Why explore companies?</h3>
-            <ul className="mt-3 space-y-2 text-xs leading-relaxed text-moons-muted">
+            <ul className="mt-3 space-y-2 text-xs leading-relaxed text-moons-muted dark:text-neutral-300">
               <li>· Compare culture, size, and industry before you apply</li>
               <li>· See all open roles from one employer in one place</li>
               <li>· Follow companies you like and check back for new jobs</li>

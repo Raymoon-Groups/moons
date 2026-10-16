@@ -96,7 +96,7 @@ export function UploadProgressModal({
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-[#0b1220]/55 backdrop-blur-[3px]"
+        className="absolute inset-0 bg-black/55 backdrop-blur-[3px]"
         style={{ animation: 'upload-backdrop-in 280ms ease-out both' }}
         aria-hidden
       />

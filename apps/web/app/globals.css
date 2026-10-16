@@ -31,17 +31,18 @@
 
 .dark {
   --background: #000000;
-  --foreground: #e8e8e8;
+  --foreground: #e5e5e5;
   --heading: #ffffff;
-  --surface: #111111;
-  --surface-elevated: #1a1a1a;
-  --surface-hover: #262626;
-  --border: #333333;
-  --border-subtle: #222222;
+  --surface: #0f0f0f;
+  --surface-elevated: #171717;
+  --surface-hover: #242424;
+  --border: #2e2e2e;
+  --border-subtle: #1f1f1f;
 
   --moons-blue: #7eb0ff;
   --moons-blue-dark: #5b8fd9;
-  --moons-navy: #0a0a0a;
+  /* Visible charcoal for navy buttons on pure black (not #000-on-#000) */
+  --moons-navy: #2a2a2a;
   --moons-orange: #7eb0ff;
   --moons-orange-dark: #5b8fd9;
   --moons-muted: #a3a3a3;
@@ -50,6 +51,8 @@
   --page-gradient-base: #000000;
   --page-gradient: none;
   --page-gradient-glow: none;
+  --saas-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --saas-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
@@ -118,16 +121,50 @@ body {
     background-color: var(--surface-elevated);
   }
 
-  .dark .bg-white\/80 {
-    background-color: rgb(26 35 50 / 0.85);
-  }
-
+  .dark .bg-white\/70,
+  .dark .bg-white\/80,
+  .dark .bg-white\/85,
+  .dark .bg-white\/90,
   .dark .bg-white\/95 {
-    background-color: rgb(26 35 50 / 0.92);
+    background-color: rgb(23 23 23 / 0.9);
   }
 
   .dark .hover\:bg-white:hover {
     background-color: var(--surface-hover);
+  }
+
+  .dark .bg-\[\#EEF3F9\],
+  .dark .bg-\[\#EEF1F4\],
+  .dark .bg-\[\#F7FAFD\],
+  .dark .bg-\[\#F8FAFC\],
+  .dark .bg-\[\#f4f6f9\],
+  .dark .bg-\[\#f8fafc\] {
+    background-color: var(--background);
+  }
+
+  .dark .bg-\[\#12151c\],
+  .dark .bg-\[\#07090f\],
+  .dark .bg-\[\#0b1220\],
+  .dark .bg-\[\#0c0c0c\] {
+    background-color: #000000;
+  }
+
+  .dark .border-\[\#D7E0EC\],
+  .dark .border-\[\#E4EAF2\],
+  .dark .border-\[\#C9D6E8\] {
+    border-color: var(--border);
+  }
+
+  .dark .focus\:bg-white:focus {
+    background-color: var(--surface-elevated);
+  }
+
+  .dark .from-\[\#EEF1F4\],
+  .dark .via-\[\#E8ECF0\],
+  .dark .to-\[\#E4E8ED\] {
+    --tw-gradient-from: var(--surface);
+    --tw-gradient-via: var(--surface-elevated);
+    --tw-gradient-to: var(--surface-hover);
   }
 
   .dark .hover\:bg-red-50:hover {
@@ -188,6 +225,24 @@ body {
   .dark .text-moons-navy,
   .dark .hover\:text-moons-navy:hover {
     color: var(--heading);
+  }
+
+  .dark .bg-moons-navy {
+    background-color: #2a2a2a;
+  }
+
+  .dark .bg-moons-navy\/8,
+  .dark .bg-moons-navy\/10,
+  .dark .bg-moons-navy\/15 {
+    background-color: rgb(255 255 255 / 0.06);
+  }
+
+  .dark .text-slate-900 {
+    color: var(--heading);
+  }
+
+  .dark .bg-sky-100 {
+    background-color: rgb(126 176 255 / 0.12);
   }
 
   .dark .text-red-600,
@@ -339,12 +394,16 @@ body {
   }
 
   .dark .india-map-state {
-    fill: #1a3050;
-    stroke: #3d6ea8;
+    fill: #1a1a1a;
+    stroke: #3a3a3a;
   }
 
   .dark .india-map-state:hover {
-    fill: #234a75;
+    fill: #2a2a2a;
+  }
+
+  .dark .career-wave-top {
+    fill: #000000;
   }
 
   .dark .bg-blue-50\/60,
@@ -378,11 +437,28 @@ body {
     color-scheme: dark;
   }
 
+  .dark select option,
+  .dark select optgroup {
+    background-color: #171717;
+    color: #f5f5f5;
+  }
+
   input:disabled,
   textarea:disabled,
   select:disabled {
     opacity: 0.65;
     cursor: not-allowed;
+  }
+
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark textarea:-webkit-autofill,
+  .dark select:-webkit-autofill {
+    -webkit-text-fill-color: var(--foreground);
+    caret-color: var(--foreground);
+    box-shadow: 0 0 0 1000px #0f0f0f inset;
+    transition: background-color 99999s ease-in-out 0s;
   }
 
   ::selection {

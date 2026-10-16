@@ -50,14 +50,19 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const onboarded = request.cookies.get('moons_onboarded')?.value === '1';
+
+  // Incomplete sessions must finish onboarding — but never bounce login/register
+  // based on a soft cookie alone (stale moons_session caused /login → /onboarding loops).
   if (isProtected && hasSession && pathname !== '/onboarding' && !isAdminRoute) {
-    const onboarded = request.cookies.get('moons_onboarded')?.value === '1';
     if (!onboarded) {
       return NextResponse.redirect(new URL('/onboarding', request.url));
     }
   }
 
-  if (isAuthPage && hasSession) {
+  // Only skip auth pages when the user is fully signed in + onboarded.
+  // Partial/stale sessions can open /login or /register to recover.
+  if (isAuthPage && hasSession && onboarded) {
     const next = request.nextUrl.searchParams.get('next');
     if (next?.startsWith('/') && !next.startsWith('//')) {
       return NextResponse.redirect(new URL(next, request.url));

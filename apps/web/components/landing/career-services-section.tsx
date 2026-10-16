@@ -11,6 +11,7 @@ function WaveTop() {
       aria-hidden
     >
       <path
+        className="career-wave-top"
         fill="#12151c"
         d="M0,40 C320,80 640,10 960,45 C1200,72 1320,55 1440,38 L1440,80 L0,80 Z"
       />
@@ -40,7 +41,7 @@ export function CareerServicesSection() {
     <div>
       <WaveTop />
 
-      <section className="relative overflow-hidden bg-[#12151c] px-4 pb-14 pt-6 sm:pb-20 md:pb-28 md:pt-10">
+      <section className="relative overflow-hidden bg-[#12151c] px-4 pb-14 pt-6 dark:bg-black sm:pb-20 md:pb-28 md:pt-10">
         <div
           aria-hidden
           className="absolute -left-16 top-8 h-40 w-40 rounded-[40%] bg-moons-orange/90 blur-sm md:h-52 md:w-52"
@@ -76,7 +77,7 @@ export function CareerServicesSection() {
 
             <Link
               href="/register"
-              className="inline-flex w-fit items-center gap-3 rounded-full bg-moons-orange px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-orange-dark"
+              className="inline-flex w-fit items-center gap-3 rounded-full bg-moons-orange px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-moons-orange-dark dark:text-black"
             >
               All Services
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-elevated/20 text-base">

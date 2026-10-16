@@ -83,7 +83,7 @@ function ResumeAnswerButton({
           setBusy(false);
         })();
       }}
-      className="group flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-white/80 px-4 py-3.5 text-left shadow-[0_8px_24px_-18px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5 hover:border-moons-blue/25 hover:bg-white disabled:opacity-60"
+      className="group flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-white/80 px-4 py-3.5 text-left shadow-[0_8px_24px_-18px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5 hover:border-moons-blue/25 hover:bg-white disabled:opacity-60 dark:bg-surface-elevated dark:hover:bg-surface-hover"
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-moons-blue/10 to-sky-100 text-moons-blue">
         <DocumentIcon className="h-5 w-5" />
@@ -146,7 +146,7 @@ export function ScreeningAnswersList({
       )}
 
       {questionItems.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-white/85 shadow-[0_10px_30px_-22px_rgba(15,23,42,0.35)] backdrop-blur-sm">
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-white/85 shadow-[0_10px_30px_-22px_rgba(15,23,42,0.35)] backdrop-blur-sm dark:bg-surface-elevated">
           <div className="flex items-center gap-3 border-b border-border/50 bg-gradient-to-r from-slate-50 to-white px-4 py-3.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-moons-blue/10 text-moons-blue">
               <ChatIcon className="h-3.5 w-3.5" />

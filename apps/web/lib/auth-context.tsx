@@ -91,12 +91,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Keep stored user visible even if profile refresh is slow.
-        if (!cancelled && stored) setUser(stored);
-        else if (!cancelled) {
-          const again = getStoredUser();
-          if (again) setUser(again);
+        // Soft cookie alone is not a session — drop it so /login and /register work.
+        const again = getStoredUser();
+        if (!again) {
+          clearAuthSession();
+          setUser(null);
+          return;
         }
+
+        // Keep stored user visible even if profile refresh is slow.
+        if (!cancelled) setUser(again);
 
         window.setTimeout(() => {
           if (!cancelled) void refreshProfile();

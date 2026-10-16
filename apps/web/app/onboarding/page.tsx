@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserRole, type AuthUser } from '@moons/shared';
 import { INDUSTRY_OPTIONS } from '@/components/profile/profile-constants';
 import { authUpload } from '@/lib/api-client';
+import { clearAuthSession } from '@/lib/auth';
 import { INDIAN_CITY_OPTIONS } from '@/lib/location-suggestions';
 import { parseResume } from '@/lib/resume-parser';
 import { useAuth } from '@/lib/auth-context';
@@ -19,9 +20,9 @@ const COMPANY_SIZE_OPTIONS = [
 ];
 
 const selectClass =
-  'mt-2.5 w-full rounded-2xl border border-[#D7E0EC] bg-[#F8FAFC] px-4 py-3.5 text-[15px] text-foreground outline-none transition focus:border-moons-blue focus:bg-white focus:ring-2 focus:ring-moons-blue/15';
+  'mt-2.5 w-full rounded-2xl border border-border bg-surface px-4 py-3.5 text-[15px] text-foreground outline-none transition focus:border-moons-blue focus:bg-surface-elevated focus:ring-2 focus:ring-moons-blue/15 dark:bg-background dark:focus:bg-surface';
 const inputClass =
-  'mt-2.5 w-full rounded-2xl border border-[#D7E0EC] bg-[#F8FAFC] px-4 py-3.5 text-[15px] text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:bg-white focus:ring-2 focus:ring-moons-blue/15';
+  'mt-2.5 w-full rounded-2xl border border-border bg-surface px-4 py-3.5 text-[15px] text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:bg-surface-elevated focus:ring-2 focus:ring-moons-blue/15 dark:bg-background dark:focus:bg-surface';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -53,6 +54,8 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (ready && !user) {
+      // Soft moons_session cookie without a real user causes login↔onboarding loops.
+      clearAuthSession();
       router.replace('/login');
       return;
     }
@@ -164,21 +167,29 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="relative min-h-dvh bg-[#EEF3F9]">
+    <div className="relative min-h-dvh bg-[#EEF3F9] dark:bg-background">
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 dark:hidden"
         style={{
           background:
             'radial-gradient(ellipse 80% 55% at 0% 0%, rgba(74,127,212,0.14), transparent 50%), radial-gradient(ellipse 60% 45% at 100% 100%, rgba(74,127,212,0.08), transparent 55%)',
         }}
         aria-hidden
       />
+      <div
+        className="pointer-events-none absolute inset-0 hidden dark:block"
+        style={{
+          background:
+            'radial-gradient(ellipse 70% 50% at 0% 0%, rgba(255,255,255,0.04), transparent 55%), radial-gradient(ellipse 55% 40% at 100% 100%, rgba(255,255,255,0.03), transparent 55%)',
+        }}
+        aria-hidden
+      />
 
       <div className="relative mx-auto flex min-h-dvh w-full max-w-[1180px] flex-col justify-center px-4 py-8 sm:px-8 sm:py-12 lg:px-10 lg:py-14">
-        <div className="w-full overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-[0_24px_80px_rgba(26,39,68,0.1)]">
+        <div className="w-full overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-[0_24px_80px_rgba(26,39,68,0.1)] dark:border-border dark:bg-surface-elevated dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
           <div className="grid min-h-[640px] lg:grid-cols-[1.05fr_1.2fr]">
-              {/* ── Left panel (light) ── */}
-              <aside className="relative flex flex-col justify-between border-b border-[#E4EAF2] bg-[#F7FAFD] p-8 sm:p-10 lg:border-b-0 lg:border-r lg:p-12 xl:p-14">
+              {/* ── Left panel ── */}
+              <aside className="relative flex flex-col justify-between border-b border-[#E4EAF2] bg-[#F7FAFD] p-8 dark:border-border dark:bg-surface sm:p-10 lg:border-b-0 lg:border-r lg:p-12 xl:p-14">
                 <div>
                   <span className="inline-flex rounded-full bg-moons-blue/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-moons-blue">
                     {isRecruiter ? 'Employer setup' : 'Jobseeker setup'}
@@ -212,7 +223,7 @@ export default function OnboardingPage() {
                       role="button"
                       tabIndex={0}
                       aria-label="Upload resume"
-                      className="flex min-h-[240px] cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#C9D6E8] bg-white px-6 py-10 text-center transition hover:border-moons-blue hover:bg-moons-blue/[0.03] focus:outline-none focus:ring-2 focus:ring-moons-blue/25"
+                      className="flex min-h-[240px] cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-surface-elevated px-6 py-10 text-center transition hover:border-moons-blue hover:bg-moons-blue/[0.03] focus:outline-none focus:ring-2 focus:ring-moons-blue/25 dark:bg-background dark:hover:bg-surface-hover"
                     >
                       {parsing ? (
                         <>
@@ -251,25 +262,25 @@ export default function OnboardingPage() {
                     />
 
                     {parseBanner === 'success' && (
-                      <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-100">
+                      <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20">
                         <p className="font-semibold">Resume read successfully</p>
                         {parsedFields.length > 0 && (
-                          <p className="mt-1 text-sm text-emerald-600">
+                          <p className="mt-1 text-sm text-emerald-600 dark:text-emerald-400">
                             Auto-filled: {parsedFields.join(', ')}
                           </p>
                         )}
                       </div>
                     )}
                     {parseBanner === 'partial' && (
-                      <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-100">
+                      <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-100 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20">
                         <p className="font-semibold">Resume uploaded</p>
-                        <p className="mt-1 text-sm text-amber-700">
+                        <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
                           Couldn’t extract everything — fill the fields on the right.
                         </p>
                       </div>
                     )}
                     {parseBanner === 'error' && (
-                      <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-100">
+                      <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 ring-1 ring-red-100 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/20">
                         Couldn’t read the file. Please fill details manually.
                       </div>
                     )}
@@ -283,7 +294,7 @@ export default function OnboardingPage() {
                     ].map((item) => (
                       <li
                         key={item}
-                        className="flex items-center gap-3 rounded-2xl border border-[#E4EAF2] bg-white px-4 py-3.5 text-sm font-medium text-heading"
+                        className="flex items-center gap-3 rounded-2xl border border-border bg-surface-elevated px-4 py-3.5 text-sm font-medium text-heading dark:bg-background"
                       >
                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-moons-blue/10 text-sm text-moons-blue">
                           ✓
@@ -296,7 +307,7 @@ export default function OnboardingPage() {
               </aside>
 
               {/* ── Right panel: form ── */}
-              <div className="flex flex-col justify-center bg-white p-8 sm:p-10 lg:p-12 xl:p-14">
+              <div className="flex flex-col justify-center bg-white p-8 dark:bg-surface-elevated sm:p-10 lg:p-12 xl:p-14">
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold tracking-tight text-heading sm:text-[28px]">
                     {isRecruiter ? 'Company details' : 'Your details'}
@@ -446,7 +457,7 @@ export default function OnboardingPage() {
                             const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
                             setPhone(digits);
                           }}
-                          className="mt-2.5 w-full rounded-2xl border border-[#D7E0EC] bg-[#F8FAFC] px-4 py-3.5 text-[15px] text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:bg-white focus:ring-2 focus:ring-moons-blue/15"
+                          className={inputClass}
                         />
                       </div>
                       <div>
@@ -458,7 +469,7 @@ export default function OnboardingPage() {
                           required
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
-                          className="mt-2.5 w-full rounded-2xl border border-[#D7E0EC] bg-[#F8FAFC] px-4 py-3.5 text-[15px] text-foreground outline-none transition focus:border-moons-blue focus:bg-white focus:ring-2 focus:ring-moons-blue/15"
+                          className={selectClass}
                         >
                           <option value="">Select city</option>
                           {INDIAN_CITY_OPTIONS.map((city) => (
@@ -480,7 +491,9 @@ export default function OnboardingPage() {
                   )}
 
                   {error && (
-                    <p className="rounded-2xl bg-red-50 px-4 py-3.5 text-sm text-red-600">{error}</p>
+                    <p className="rounded-2xl bg-red-50 px-4 py-3.5 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-300">
+                      {error}
+                    </p>
                   )}
 
                   <div className="pt-2">
@@ -538,7 +551,7 @@ function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-2.5 w-full rounded-2xl border border-[#D7E0EC] bg-[#F8FAFC] px-4 py-3.5 text-[15px] text-foreground outline-none transition placeholder:text-moons-muted focus:border-moons-blue focus:bg-white focus:ring-2 focus:ring-moons-blue/15"
+        className={inputClass}
       />
     </div>
   );

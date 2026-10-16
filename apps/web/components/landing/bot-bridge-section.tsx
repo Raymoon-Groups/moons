@@ -86,7 +86,7 @@ export function BotBridgeSection() {
 
   return (
     <section className="px-3 py-5 sm:px-4 sm:py-6 md:px-6 md:py-8">
-      <div className="bot-bridge relative mx-auto max-w-6xl overflow-hidden rounded-2xl bg-[#07090f] sm:rounded-[1.75rem] md:rounded-[2rem]">
+      <div className="bot-bridge relative mx-auto max-w-6xl overflow-hidden rounded-2xl bg-[#07090f] dark:bg-black sm:rounded-[1.75rem] md:rounded-[2rem]">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_15%_40%,rgba(74,127,212,0.16),transparent_55%)]"

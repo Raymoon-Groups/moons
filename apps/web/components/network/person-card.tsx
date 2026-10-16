@@ -304,14 +304,14 @@ function CardBanner({ bannerUrl }: { bannerUrl?: string | null }) {
   const cover = resolveAssetUrl(bannerUrl);
   if (cover) {
     return (
-      <div className="relative h-24 w-full overflow-hidden bg-[#EEF1F4]" aria-hidden>
+      <div className="relative h-24 w-full overflow-hidden bg-[#EEF1F4] dark:bg-surface" aria-hidden>
         <img src={cover} alt="" className="h-full w-full object-cover" />
       </div>
     );
   }
   return (
     <div
-      className="h-24 w-full bg-gradient-to-br from-[#EEF1F4] via-[#E8ECF0] to-[#E4E8ED]"
+      className="h-24 w-full bg-gradient-to-br from-[#EEF1F4] via-[#E8ECF0] to-[#E4E8ED] dark:from-surface dark:via-surface-elevated dark:to-surface-hover"
       aria-hidden
     />
   );

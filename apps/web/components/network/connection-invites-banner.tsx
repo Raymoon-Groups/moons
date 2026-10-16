@@ -200,7 +200,7 @@ export function ConnectionInvitesBanner() {
                     ? 'bg-emerald-100 text-emerald-800 ring-emerald-200'
                     : isIgnored
                       ? 'bg-red-100 text-red-800 ring-red-200'
-                      : 'bg-gradient-to-br from-moons-blue/15 to-sky-100 text-moons-navy ring-white dark:ring-surface-elevated'
+                      : 'bg-gradient-to-br from-moons-blue/15 to-sky-100 text-moons-navy ring-white dark:from-moons-blue/20 dark:to-surface dark:text-heading dark:ring-surface-elevated'
                 }`}
               >
                 {avatar ? (

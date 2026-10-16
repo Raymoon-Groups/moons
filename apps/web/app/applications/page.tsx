@@ -62,11 +62,11 @@ function ApplicationCard({
   });
 
   return (
-    <article className="group overflow-hidden rounded-[28px] border border-border/60 bg-white/90 shadow-[0_20px_60px_-38px_rgba(15,23,42,0.4)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-[0_26px_70px_-36px_rgba(15,23,42,0.45)]">
+    <article className="group overflow-hidden rounded-[28px] border border-border/60 bg-white/90 shadow-[0_20px_60px_-38px_rgba(15,23,42,0.4)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-[0_26px_70px_-36px_rgba(15,23,42,0.45)] dark:bg-surface-elevated dark:shadow-[0_20px_60px_-38px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_26px_70px_-36px_rgba(0,0,0,0.6)]">
       <div className="border-b border-border/50 bg-gradient-to-r from-moons-blue/[0.08] via-sky-50/60 to-white px-6 py-5 sm:px-7">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="flex min-w-0 gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-surface dark:ring-border">
               <span className="text-lg font-semibold text-heading">
                 {app.job.companyName.charAt(0).toUpperCase()}
               </span>
@@ -75,9 +75,9 @@ function ApplicationCard({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2.5">
                 <ApplicationStatusBadge status={app.status} />
-                <span className="meta-pill bg-white/80">{formatEmploymentType(app.job.employmentType)}</span>
+                <span className="meta-pill bg-white/80 dark:bg-surface">{formatEmploymentType(app.job.employmentType)}</span>
                 {app.job.location ? (
-                  <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-3 py-1 text-xs font-medium text-moons-muted">
+                  <span className="inline-flex items-center rounded-full border border-border/70 bg-white/70 px-3 py-1 text-xs font-medium text-moons-muted dark:bg-surface">
                     {app.job.location}
                   </span>
                 ) : null}
@@ -102,7 +102,7 @@ function ApplicationCard({
               ) : null}
 
               <div className="mt-4 flex flex-wrap gap-3">
-                <div className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/80 px-3.5 py-2 text-sm text-moons-muted shadow-sm">
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/80 px-3.5 py-2 text-sm text-moons-muted shadow-sm dark:border-border dark:bg-surface">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-moons-blue/10 text-moons-blue">
                     <CalendarIcon />
                   </span>
