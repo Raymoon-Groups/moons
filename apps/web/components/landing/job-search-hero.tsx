@@ -23,7 +23,7 @@ export function JobPortalHero() {
         sizes="100vw"
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0a0e17]/70 via-[#1a2744]/55 to-[#0a0e17]/80"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black/80"
         aria-hidden
       />
 

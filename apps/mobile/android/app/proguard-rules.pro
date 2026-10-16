@@ -7,12 +7,8 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# react-native-reanimated / worklets
+# react-native-reanimated
 -keep class com.swmansion.reanimated.** { *; }
--keep class com.swmansion.worklets.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
-
-# react-native-gesture-handler
--keep class com.swmansion.gesturehandler.** { *; }
 
 # Add any project specific keep options here:

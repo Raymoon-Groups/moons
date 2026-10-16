@@ -104,6 +104,7 @@ model User {
   postLikes           PostLike[]
   postComments        PostComment[]  @relation("PostCommentsAuthored")
   abuseReports        AbuseReport[]  @relation("AbuseReportsFiled")
+  authActivities      AuthActivity[]
 
   @@map("users")
 }
@@ -473,4 +474,32 @@ model AbuseReport {
   @@index([status, createdAt])
   @@index([targetType, targetId])
   @@map("abuse_reports")
+}
+
+enum AuthActivityType {
+  SIGNUP
+  LOGIN
+}
+
+enum AuthActivityMethod {
+  PASSWORD
+  GOOGLE
+}
+
+/** Product-style join/login events for admin dashboard (not raw DB browsing). */
+model AuthActivity {
+  id        String             @id @default(uuid())
+  userId    String             @map("user_id")
+  email     String
+  role      UserRole
+  type      AuthActivityType
+  method    AuthActivityMethod
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([type, createdAt])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("auth_activities")
 }

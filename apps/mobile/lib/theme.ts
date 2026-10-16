@@ -19,14 +19,14 @@ export const theme = {
   },
   shadow: {
     card: {
-      shadowColor: '#0f1c33',
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.1,
       shadowRadius: 20,
       elevation: 5,
     },
     soft: {
-      shadowColor: '#0f1c33',
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.06,
       shadowRadius: 10,

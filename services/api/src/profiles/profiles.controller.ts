@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -23,6 +24,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { OnboardingGuard } from '../common/guards/onboarding.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { RecruiterTalentQueryDto } from './dto/recruiter-talent-query.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfilesService } from './profiles.service';
 
@@ -41,6 +43,17 @@ export class ProfilesController {
   @ApiBearerAuth()
   getMyProfile(@CurrentUser() user: JwtPayload) {
     return this.profilesService.getByUserId(user.sub);
+  }
+
+  @Get('recruiter/talent')
+  @UseGuards(JwtAuthGuard, OnboardingGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.RECRUITER)
+  searchTalentPool(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: RecruiterTalentQueryDto,
+  ) {
+    return this.profilesService.searchTalentPoolForRecruiter(user.sub, query);
   }
 
   @Get('candidates/:userId')

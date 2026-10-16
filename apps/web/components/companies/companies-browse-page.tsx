@@ -260,7 +260,7 @@ export function CompaniesBrowsePage() {
 
   return (
     <div className="dash-page">
-      <section className="border-b border-border bg-gradient-to-br from-moons-navy via-[#243b6b] to-[#1a3a6e] px-4 py-10 md:py-12">
+      <section className="border-b border-border bg-gradient-to-br from-black via-[#141414] to-[#1a1a1a] px-4 py-10 md:py-12">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-2xl font-bold text-white md:text-3xl">Top companies hiring now</h1>
           <p className="mt-2 max-w-2xl text-sm text-white/75 md:text-base">

@@ -6,6 +6,7 @@ import {
   Easing,
   Image,
   PanResponder,
+  Platform,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -46,13 +47,13 @@ function useLoop(
               toValue,
               duration,
               easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
+              useNativeDriver: Platform.OS !== 'web',
             }),
             Animated.timing(value, {
               toValue: 0,
               duration,
               easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
+              useNativeDriver: Platform.OS !== 'web',
             }),
           ]),
         )
@@ -61,7 +62,7 @@ function useLoop(
             toValue,
             duration,
             easing: Easing.linear,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         );
     anim.start();

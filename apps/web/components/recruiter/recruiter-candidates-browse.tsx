@@ -3,21 +3,27 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ApplicationStatus } from '@moons/shared';
+import { ApplicationStatus, UserRole } from '@moons/shared';
 import type { EducationEntry, WorkExperienceEntry } from '@moons/shared';
 import { formatExperience, getResumeDisplayName } from '@/components/profile/profile-shared';
 import { ResumeDownloadButton } from '@/components/resume-download-button';
 import { DashPageHero } from '@/components/dash/dash-page-shell';
 import { RejectionReasonModal } from '@/components/recruiter/rejection-reason-modal';
-import { authFetch } from '@/lib/api-client';
+import { ApiError, authFetch } from '@/lib/api-client';
 import { resolveAssetUrl } from '@/lib/assets';
 import type { JobListing } from '@/lib/jobs';
+import { searchProfessionals } from '@/lib/network';
 import {
   buildRecruiterCandidatesUrl,
+  buildRecruiterTalentUrl,
   type RecruiterCandidateFilters,
   type RecruiterCandidateRow,
+  type RecruiterTalentPoolResponse,
+  type RecruiterTalentRow,
 } from '@/lib/recruiter-candidates';
 import { notify } from '@/lib/toast';
+
+type BrowseMode = 'discover' | 'applicants';
 
 const STATUS_OPTIONS = [
   ApplicationStatus.SUBMITTED,
@@ -425,18 +431,216 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
+function TalentCard({
+  row,
+  keyword,
+  phoneRevealed,
+  onRevealPhone,
+}: {
+  row: RecruiterTalentRow;
+  keyword: string;
+  phoneRevealed: boolean;
+  onRevealPhone: () => void;
+}) {
+  const profile = row.candidate.profile;
+  const name = profile?.fullName ?? row.candidate.email;
+  const avatarSrc = resolveAssetUrl(profile?.avatarUrl);
+  const resumeUrl = profile?.resumeUrl ?? null;
+  const resumeFileName = profile ? getResumeDisplayName(profile) : null;
+  const exp =
+    profile?.experienceYears != null
+      ? formatExperience(profile.experienceYears)
+      : null;
+  const salary = formatSalary(profile?.currentCtc ?? profile?.expectedCtc);
+  const skills = profile?.skills ?? [];
+  const extraSkills = profile?.preferredIndustries ?? [];
+  const profileUpdatedAt =
+    profile && 'updatedAt' in profile
+      ? (profile as { updatedAt?: string }).updatedAt
+      : undefined;
+
+  return (
+    <article className="candidate-card">
+      <div className="candidate-card-accent" aria-hidden />
+
+      <div className="px-5 pb-4 pt-5 md:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link
+              href={`/recruiter/candidates/${row.candidate.id}`}
+              className="text-xl font-bold tracking-tight text-moons-blue transition hover:text-moons-blue-dark hover:underline"
+            >
+              {name}
+            </Link>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {exp && (
+                <span className="meta-pill">
+                  <svg className="h-3.5 w-3.5 text-moons-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {exp}
+                </span>
+              )}
+              {salary && (
+                <span className="meta-pill">
+                  <span className="text-moons-blue">₹</span>
+                  {salary}
+                </span>
+              )}
+              {profile?.location && (
+                <span className="meta-pill">
+                  <svg className="h-3.5 w-3.5 text-moons-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
+                  </svg>
+                  {profile.location}
+                </span>
+              )}
+              {profile && 'openToWork' in profile && profile.openToWork ? (
+                <span className="meta-pill bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-300">
+                  Open to work
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="border-t border-border/60 px-5 py-4 md:px-6">
+          {profile && (
+            <div className="divide-y divide-border/40">
+              <DetailRow label="Current">{currentRoleLine(profile) ?? '—'}</DetailRow>
+              <DetailRow label="Previous">{previousRoleLine(profile) ?? '—'}</DetailRow>
+              <DetailRow label="Education">{educationLine(profile) ?? '—'}</DetailRow>
+              <DetailRow label="Locations">
+                {profile.preferredLocations?.length
+                  ? profile.preferredLocations.join(', ')
+                  : profile.location ?? '—'}
+              </DetailRow>
+              <DetailRow label="Skills">
+                <SkillChips skills={skills} keyword={keyword} />
+              </DetailRow>
+              {extraSkills.length > 0 && (
+                <DetailRow label="Industries">{extraSkills.join(', ')}</DetailRow>
+              )}
+              {profile.noticePeriod && (
+                <DetailRow label="Notice">{profile.noticePeriod}</DetailRow>
+              )}
+              {(profile.currentCtc || profile.expectedCtc) && (
+                <DetailRow label="CTC">
+                  <span className="font-medium text-heading">{profile.currentCtc ?? '—'}</span>
+                  {profile.expectedCtc && (
+                    <span className="text-moons-muted"> → {profile.expectedCtc}</span>
+                  )}
+                </DetailRow>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col items-center border-t border-border/60 bg-gradient-to-b from-surface/80 to-surface-elevated px-5 py-5 md:border-l md:border-t-0">
+          <div className="relative">
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-moons-blue/40 to-moons-navy/20 blur-sm" aria-hidden />
+            <div className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-surface-elevated bg-surface shadow-md">
+              {avatarSrc ? (
+                <img src={avatarSrc} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-moons-navy to-moons-blue text-2xl font-bold text-white">
+                  {name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {profile?.summary && (
+            <p className="mt-4 line-clamp-3 text-center text-xs leading-relaxed text-moons-muted">
+              {profile.summary}
+            </p>
+          )}
+
+          <div className="mt-5 flex w-full flex-col gap-2">
+            {profile?.phone ? (
+              phoneRevealed ? (
+                <>
+                  <a
+                    href={`tel:${profile.phone}`}
+                    className="rounded-xl border border-moons-blue/30 bg-moons-blue/5 px-3 py-2.5 text-center text-sm font-semibold text-moons-blue transition hover:bg-moons-blue/10"
+                  >
+                    {profile.phone}
+                  </a>
+                  <a
+                    href={`tel:${profile.phone}`}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-moons-blue px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark"
+                  >
+                    Call candidate
+                  </a>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onRevealPhone}
+                  className="rounded-xl border border-moons-blue/40 bg-surface-elevated px-3 py-2.5 text-sm font-semibold text-moons-blue shadow-sm transition hover:border-moons-blue hover:bg-moons-blue/5"
+                >
+                  View phone number
+                </button>
+              )
+            ) : (
+              <span className="text-center text-xs text-moons-muted">Phone not provided</span>
+            )}
+
+            <a
+              href={`mailto:${row.candidate.email}`}
+              className="rounded-xl border border-border bg-surface-elevated px-3 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/40 hover:bg-surface"
+            >
+              Email candidate
+            </a>
+
+            <Link
+              href={`/recruiter/candidates/${row.candidate.id}`}
+              className="rounded-xl bg-moons-blue px-3 py-2.5 text-center text-sm font-semibold text-white shadow-[0_4px_14px_rgba(74,127,212,0.35)] transition hover:bg-moons-blue-dark"
+            >
+              View full profile
+            </Link>
+
+            {resumeUrl && resumeFileName && (
+              <ResumeDownloadButton
+                url={resumeUrl}
+                fileName={resumeFileName}
+                label="Download CV"
+                className="rounded-xl border border-border bg-surface-elevated px-3 py-2.5 text-center text-sm font-semibold text-heading transition hover:border-moons-blue/40 hover:bg-surface disabled:opacity-60"
+              />
+            )}
+          </div>
+
+          <p className="mt-4 text-center text-[10px] leading-relaxed text-moons-muted">
+            {row.candidate.email}
+            <br />
+            {activeLabel(profileUpdatedAt) ?? 'On Moons'}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function RecruiterCandidatesBrowse() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
+  const initialMode =
+    searchParams.get('mode') === 'applicants' ? 'applicants' : 'discover';
 
+  const [mode, setMode] = useState<BrowseMode>(initialMode);
   const [filters, setFilters] = useState<RecruiterCandidateFilters>({ q: initialQ });
   const [draftQ, setDraftQ] = useState(initialQ);
   const [draftLocation, setDraftLocation] = useState('');
   const [experienceBucket, setExperienceBucket] = useState(0);
+  const [openToWorkOnly, setOpenToWorkOnly] = useState(false);
   const [statusFilters, setStatusFilters] = useState<ApplicationStatus[]>([]);
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [candidates, setCandidates] = useState<RecruiterCandidateRow[]>([]);
+  const [talent, setTalent] = useState<RecruiterTalentRow[]>([]);
+  const [talentTotal, setTalentTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -449,6 +653,81 @@ export function RecruiterCandidatesBrowse() {
       .catch(() => setJobs([]));
   }, []);
 
+  const loadTalent = useCallback(async (active: RecruiterCandidateFilters) => {
+    setLoading(true);
+    setError('');
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
+    const talentPoolReady = !apiBase.includes('api.moonsjob.com');
+
+    async function loadNetworkFallback() {
+      const data = await searchProfessionals({
+        role: UserRole.CANDIDATE,
+        q: active.q?.trim() || '',
+        location: active.location?.trim() || '',
+        ...(active.openToWork ? { openToWork: true } : {}),
+        ...(active.experienceMin != null ? { experienceMin: active.experienceMin } : {}),
+        ...(active.experienceMax != null ? { experienceMax: active.experienceMax } : {}),
+        page: 1,
+        limit: 100,
+      });
+      setTalent(
+        data.items.map((person) => ({
+          candidate: {
+            id: person.userId,
+            email: '',
+            profile: {
+              fullName: person.fullName,
+              avatarUrl: person.avatarUrl,
+              headline: person.headline,
+              location: person.location ?? null,
+              phone: null,
+              currentCompany: person.currentCompany ?? null,
+              experienceYears: null,
+              noticePeriod: null,
+              summary: null,
+              resumeUrl: null,
+              resumeFileName: null,
+              currentCtc: null,
+              expectedCtc: null,
+              skills: person.sharedSkills ?? [],
+              educations: [],
+              workExperiences: [],
+              certifications: [],
+              preferredRoles: [],
+              preferredLocations: [],
+              preferredIndustries: [],
+              openToWork: person.openToWork,
+            },
+          },
+        })),
+      );
+      setTalentTotal(data.total);
+    }
+
+    try {
+      if (talentPoolReady) {
+        try {
+          const data = await authFetch<RecruiterTalentPoolResponse>(
+            buildRecruiterTalentUrl({ ...active, limit: 100 }),
+          );
+          setTalent(data.items);
+          setTalentTotal(data.total);
+          return;
+        } catch (err) {
+          if (!(err instanceof ApiError) || err.status !== 404) throw err;
+        }
+      }
+
+      await loadNetworkFallback();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load talent pool');
+      setTalent([]);
+      setTalentTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const loadCandidates = useCallback(async (active: RecruiterCandidateFilters) => {
     setLoading(true);
     setError('');
@@ -458,7 +737,7 @@ export function RecruiterCandidatesBrowse() {
       );
       setCandidates(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load candidates');
+      setError(err instanceof Error ? err.message : 'Failed to load applicants');
       setCandidates([]);
     } finally {
       setLoading(false);
@@ -466,43 +745,51 @@ export function RecruiterCandidatesBrowse() {
   }, []);
 
   useEffect(() => {
-    loadCandidates(filters);
-  }, [filters, loadCandidates]);
+    if (mode === 'discover') {
+      loadTalent({ ...filters, openToWork: openToWorkOnly || undefined });
+    } else {
+      loadCandidates(filters);
+    }
+  }, [filters, loadCandidates, loadTalent, mode, openToWorkOnly]);
 
   const locationOptions = useMemo(() => {
     const locs = new Set<string>();
-    candidates.forEach((c) => {
+    const rows = mode === 'discover' ? talent : candidates;
+    rows.forEach((c) => {
       const loc = c.candidate.profile?.location;
       if (loc) locs.add(loc);
       c.candidate.profile?.preferredLocations?.forEach((l) => locs.add(l));
     });
     return Array.from(locs).sort();
-  }, [candidates]);
+  }, [candidates, talent, mode]);
 
-  const displayed = useMemo(() => {
+  const displayedApplicants = useMemo(() => {
     if (statusFilters.length === 0) return candidates;
     return candidates.filter((c) => statusFilters.includes(c.status as ApplicationStatus));
   }, [candidates, statusFilters]);
 
+  const displayedCount = mode === 'discover' ? talentTotal : displayedApplicants.length;
+
   const activeFilterCount = useMemo(() => {
     let n = 0;
     if (filters.q) n++;
-    if (filters.jobId) n++;
     if (filters.location) n++;
     if (filters.noticePeriod) n++;
-    if (filters.experienceMin != null || filters.experienceMax != null) {
-      if (experienceBucket !== 0) n++;
+    if (experienceBucket !== 0) n++;
+    if (mode === 'discover' && openToWorkOnly) n++;
+    if (mode === 'applicants') {
+      if (filters.jobId) n++;
+      if (statusFilters.length) n++;
     }
-    if (statusFilters.length) n++;
     return n;
-  }, [filters, experienceBucket, statusFilters]);
+  }, [filters, experienceBucket, statusFilters, mode, openToWorkOnly]);
 
   function applyFilters() {
     const bucket = EXPERIENCE_BUCKETS[experienceBucket];
     setFilters({
       q: draftQ,
       location: draftLocation || undefined,
-      jobId: filters.jobId,
+      jobId: mode === 'applicants' ? filters.jobId : undefined,
       noticePeriod: filters.noticePeriod,
       experienceMin: bucket.min,
       experienceMax: bucket.max,
@@ -514,8 +801,18 @@ export function RecruiterCandidatesBrowse() {
     setDraftLocation('');
     setExperienceBucket(0);
     setStatusFilters([]);
+    setOpenToWorkOnly(false);
     setFilters({});
-    router.replace('/recruiter/candidates');
+    router.replace(`/recruiter/candidates${mode === 'applicants' ? '?mode=applicants' : ''}`);
+  }
+
+  function switchMode(next: BrowseMode) {
+    setMode(next);
+    router.replace(
+      next === 'applicants'
+        ? '/recruiter/candidates?mode=applicants'
+        : '/recruiter/candidates',
+    );
   }
 
   async function updateStatus(
@@ -575,15 +872,19 @@ export function RecruiterCandidatesBrowse() {
       <div className="mx-auto max-w-7xl px-4 py-6 md:py-8">
         <div className="mb-8">
           <DashPageHero
-            eyebrow="Talent pipeline"
+            eyebrow="Talent database"
             title="Candidates"
             subtitle={
               loading ? (
-                'Loading your applicant pool…'
+                mode === 'discover'
+                  ? 'Loading all candidates on Moons…'
+                  : 'Loading your applicants…'
               ) : (
                 <>
-                  <span className="font-semibold text-heading">{displayed.length}</span>
-                  {' '}candidate{displayed.length === 1 ? '' : 's'} ready for review
+                  <span className="font-semibold text-heading">{displayedCount}</span>
+                  {mode === 'discover'
+                    ? ` candidate${displayedCount === 1 ? '' : 's'} in the talent pool`
+                    : ` applicant${displayedCount === 1 ? '' : 's'} ready for review`}
                 </>
               )
             }
@@ -599,6 +900,31 @@ export function RecruiterCandidatesBrowse() {
               </Link>
             }
           />
+
+          <div className="mt-5 inline-flex rounded-xl border border-border bg-surface-elevated p-1">
+            <button
+              type="button"
+              onClick={() => switchMode('discover')}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                mode === 'discover'
+                  ? 'bg-moons-blue text-white shadow-sm'
+                  : 'text-moons-muted hover:text-heading'
+              }`}
+            >
+              All candidates
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('applicants')}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                mode === 'applicants'
+                  ? 'bg-moons-blue text-white shadow-sm'
+                  : 'text-moons-muted hover:text-heading'
+              }`}
+            >
+              Applicants
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
@@ -632,44 +958,60 @@ export function RecruiterCandidatesBrowse() {
               />
             </FilterSection>
 
-            <FilterSection title="Job role">
-              <select
-                value={filters.jobId ?? ''}
-                onChange={(e) =>
-                  setFilters((f) => ({ ...f, jobId: e.target.value || undefined }))
-                }
-                className="space-input rounded-xl"
-              >
-                <option value="">All posted jobs</option>
-                {jobs.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {job.title}
-                  </option>
-                ))}
-              </select>
-            </FilterSection>
+            {mode === 'discover' && (
+              <FilterSection title="Availability">
+                <button
+                  type="button"
+                  onClick={() => setOpenToWorkOnly((v) => !v)}
+                  className={openToWorkOnly ? 'filter-chip filter-chip-active' : 'filter-chip'}
+                >
+                  Open to work only
+                </button>
+              </FilterSection>
+            )}
 
-            <FilterSection title="Status">
-              <div className="flex flex-wrap gap-1.5">
-                {STATUS_OPTIONS.map((status) => {
-                  const active = statusFilters.includes(status);
-                  return (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() =>
-                        setStatusFilters((prev) =>
-                          active ? prev.filter((s) => s !== status) : [...prev, status],
-                        )
-                      }
-                      className={active ? 'filter-chip filter-chip-active' : 'filter-chip'}
-                    >
-                      {formatApplicationStatus(status)}
-                    </button>
-                  );
-                })}
-              </div>
-            </FilterSection>
+            {mode === 'applicants' && (
+              <>
+                <FilterSection title="Job role">
+                  <select
+                    value={filters.jobId ?? ''}
+                    onChange={(e) =>
+                      setFilters((f) => ({ ...f, jobId: e.target.value || undefined }))
+                    }
+                    className="space-input rounded-xl"
+                  >
+                    <option value="">All posted jobs</option>
+                    {jobs.map((job) => (
+                      <option key={job.id} value={job.id}>
+                        {job.title}
+                      </option>
+                    ))}
+                  </select>
+                </FilterSection>
+
+                <FilterSection title="Status">
+                  <div className="flex flex-wrap gap-1.5">
+                    {STATUS_OPTIONS.map((status) => {
+                      const active = statusFilters.includes(status);
+                      return (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() =>
+                            setStatusFilters((prev) =>
+                              active ? prev.filter((s) => s !== status) : [...prev, status],
+                            )
+                          }
+                          className={active ? 'filter-chip filter-chip-active' : 'filter-chip'}
+                        >
+                          {formatApplicationStatus(status)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FilterSection>
+              </>
+            )}
 
             <FilterSection title="Experience">
               <div className="flex flex-wrap gap-1.5">
@@ -763,7 +1105,7 @@ export function RecruiterCandidatesBrowse() {
                   <div className="mt-2 h-4 w-1/2 animate-pulse rounded bg-surface" />
                 </div>
               ))
-            ) : displayed.length === 0 ? (
+            ) : mode === 'discover' && talent.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-moons-blue/30 bg-surface-elevated/50 px-8 py-16 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-moons-blue/10 text-moons-blue">
                   <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -772,17 +1114,50 @@ export function RecruiterCandidatesBrowse() {
                 </div>
                 <p className="mt-5 text-lg font-bold text-heading">No candidates found</p>
                 <p className="mt-2 max-w-sm text-sm text-moons-muted">
-                  Adjust your filters or post a new job to start building your talent pool.
+                  Adjust filters, or seed the database so candidate profiles exist locally.
                 </p>
-                <Link
-                  href="/recruiter/jobs/new"
-                  className="mt-6 inline-flex rounded-full bg-moons-blue px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark"
-                >
-                  Post a Job
-                </Link>
               </div>
+            ) : mode === 'applicants' && displayedApplicants.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-moons-blue/30 bg-surface-elevated/50 px-8 py-16 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-moons-blue/10 text-moons-blue">
+                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <p className="mt-5 text-lg font-bold text-heading">No applicants yet</p>
+                <p className="mt-2 max-w-sm text-sm text-moons-muted">
+                  Switch to All candidates to browse the full talent pool, or post a job to receive applications.
+                </p>
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('discover')}
+                    className="inline-flex rounded-full border border-moons-blue/40 bg-surface-elevated px-6 py-3 text-sm font-semibold text-moons-blue transition hover:bg-moons-blue/5"
+                  >
+                    Browse all candidates
+                  </button>
+                  <Link
+                    href="/recruiter/jobs/new"
+                    className="inline-flex rounded-full bg-moons-blue px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-moons-blue-dark"
+                  >
+                    Post a Job
+                  </Link>
+                </div>
+              </div>
+            ) : mode === 'discover' ? (
+              talent.map((row) => (
+                <TalentCard
+                  key={row.candidate.id}
+                  row={row}
+                  keyword={filters.q ?? ''}
+                  phoneRevealed={revealedPhones.has(row.candidate.id)}
+                  onRevealPhone={() =>
+                    setRevealedPhones((prev) => new Set(prev).add(row.candidate.id))
+                  }
+                />
+              ))
             ) : (
-              displayed.map((row) => (
+              displayedApplicants.map((row) => (
                 <CandidateCard
                   key={row.id}
                   row={row}

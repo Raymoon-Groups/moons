@@ -8,7 +8,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User, UserRole } from '@prisma/client';
+import {
+  AuthActivityMethod,
+  AuthActivityType,
+  User,
+  UserRole,
+} from '@prisma/client';
 import { isRecruiterCompanyEmail, RECRUITER_COMPANY_EMAIL_MESSAGE } from '../common/utils/recruiter-email';
 import * as bcrypt from 'bcrypt';
 import { randomInt, randomUUID } from 'crypto';
@@ -197,6 +202,11 @@ export class AuthService {
 
     await this.redisService.del(key);
     await this.redisService.del(`${OTP_VERIFY_RATE_PREFIX}${email}`);
+    await this.trackAuthActivity(
+      user,
+      AuthActivityType.SIGNUP,
+      AuthActivityMethod.PASSWORD,
+    );
 
     const withProfile = await this.usersService.findByIdWithProfile(user.id);
     const tokens = await this.issueTokens(user.id, user.email, user.role);
@@ -244,6 +254,11 @@ export class AuthService {
     }
 
     await this.redisService.del(`${LOGIN_RATE_PREFIX}${email}`);
+    await this.trackAuthActivity(
+      user,
+      AuthActivityType.LOGIN,
+      AuthActivityMethod.PASSWORD,
+    );
 
     const withProfile = await this.usersService.findByIdWithProfile(user.id);
     const tokens = await this.issueTokens(user.id, user.email, user.role);
@@ -259,6 +274,7 @@ export class AuthService {
     const email = normalizeEmail(googleUser.email);
 
     let user = await this.usersService.findByGoogleId(googleUser.googleId);
+    let activityType: AuthActivityType = AuthActivityType.LOGIN;
 
     if (!user) {
       const byEmail = await this.usersService.findByEmail(email);
@@ -288,12 +304,19 @@ export class AuthService {
           fullName: googleUser.fullName,
           avatarUrl: googleUser.avatarUrl,
         });
+        activityType = AuthActivityType.SIGNUP;
       }
     }
 
     if (user.role === UserRole.RECRUITER) {
       this.assertRecruiterCompanyEmail(email);
     }
+
+    await this.trackAuthActivity(
+      user,
+      activityType,
+      AuthActivityMethod.GOOGLE,
+    );
 
     const withProfile = await this.usersService.findByIdWithProfile(user.id);
     const tokens = await this.issueTokens(user.id, user.email, user.role);
@@ -1012,5 +1035,26 @@ export class AuthService {
     const bufB = Buffer.from(b);
     if (bufA.length !== bufB.length) return false;
     return timingSafeEqual(bufA, bufB);
+  }
+
+  /** Non-blocking signup/login event for admin analytics dashboard. */
+  private async trackAuthActivity(
+    user: Pick<User, 'id' | 'email' | 'role'>,
+    type: AuthActivityType,
+    method: AuthActivityMethod,
+  ) {
+    try {
+      await this.prisma.authActivity.create({
+        data: {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          type,
+          method,
+        },
+      });
+    } catch {
+      // Never fail auth because analytics write failed.
+    }
   }
 }

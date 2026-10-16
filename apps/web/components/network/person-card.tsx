@@ -17,10 +17,7 @@ import {
   ignoreConnectionInvite,
   isStaleConnectionInviteError,
 } from '@/lib/connection-invites';
-import {
-  cancelConnection,
-  removeConnection,
-} from '@/lib/network';
+import { cancelConnection } from '@/lib/network';
 import type { NetworkUserCard } from '@moons/shared';
 import { notify } from '@/lib/toast';
 
@@ -49,14 +46,11 @@ function CloseIcon({ className }: { className?: string }) {
 }
 
 const btnBase =
-  'inline-flex h-8 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moons-blue/40';
-const btnPrimary = `${btnBase} bg-moons-blue text-white hover:bg-moons-blue-dark disabled:opacity-60`;
-const btnSecondary = `${btnBase} border border-border bg-surface-elevated text-heading hover:bg-surface`;
-const btnGhost = `${btnBase} text-moons-muted hover:bg-surface hover:text-foreground`;
-const btnOutline = `${btnBase} border border-foreground/40 bg-transparent text-heading hover:bg-surface disabled:opacity-60`;
-const btnDanger =
-  'inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/50 disabled:opacity-60 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/15';
-
+  'inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl px-3 text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moons-blue/40';
+const btnPrimary = `${btnBase} bg-moons-blue text-white shadow-sm shadow-moons-blue/20 hover:bg-moons-blue-dark disabled:opacity-60`;
+const btnSecondary = `${btnBase} border border-border/80 bg-surface text-heading hover:border-moons-blue/40 hover:bg-surface-hover`;
+const btnGhost = `${btnBase} text-moons-muted hover:bg-surface-hover hover:text-foreground`;
+const btnOutline = `${btnBase} border border-border bg-transparent text-heading hover:border-moons-blue/40 hover:bg-surface-hover disabled:opacity-60`;
 function SuggestionContext({ person }: { person: NetworkUserCard }) {
   const reason = formatRecommendationReason(person.recommendationReason);
   const mutuals = person.mutualConnections ?? 0;
@@ -158,34 +152,9 @@ function ConnectActions({
   if (connectionStatus === 'ACCEPTED') {
     return (
       <div className="space-y-2">
-        <Link href={`/network/${userId}`} className={btnSecondary}>
-          View profile
+        <Link href={`/messages?with=${userId}`} className={btnPrimary}>
+          Message
         </Link>
-        {onUpdated && (
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() =>
-              run(
-                async () => {
-                  await removeConnection(userId);
-                  notify.success('Connection removed');
-                },
-                {
-                  refreshAll: true,
-                  update: {
-                    connectionId: '',
-                    connectionStatus: 'NONE',
-                    connectionDirection: null,
-                  },
-                },
-              )
-            }
-            className={btnDanger}
-          >
-            Remove connection
-          </button>
-        )}
         {error && <p className="text-center text-[10px] text-red-600">{error}</p>}
       </div>
     );
@@ -404,29 +373,18 @@ function CelebrationCardShell({
   );
 }
 
-function ConnectedFooter({
-  userId,
-  onRemove,
-  removing,
-}: {
-  userId: string;
-  onRemove?: () => void;
-  removing?: boolean;
-}) {
+function ConnectedFooter({ userId }: { userId: string }) {
   return (
-    <div className="space-y-2">
-      <p className="text-center text-xs font-semibold text-emerald-700">Connected</p>
+    <div className="space-y-2.5">
+      <div className="flex justify-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/25">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+          Connected
+        </span>
+      </div>
       <Link href={`/messages?with=${userId}`} className={btnPrimary}>
         Message
       </Link>
-      <Link href={`/network/${userId}`} className={btnSecondary}>
-        View profile
-      </Link>
-      {onRemove && (
-        <button type="button" disabled={removing} onClick={onRemove} className={btnDanger}>
-          Remove connection
-        </button>
-      )}
     </div>
   );
 }
@@ -511,7 +469,6 @@ export function PersonCard({
   const [direction, setDirection] = useState(person.connectionDirection ?? null);
   const [celebrating, setCelebrating] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     setStatus(person.connectionStatus ?? 'NONE');
@@ -543,26 +500,9 @@ export function PersonCard({
     onDismiss?.();
   }
 
-  async function handleRemove() {
-    setRemoving(true);
-    try {
-      await removeConnection(person.userId);
-      handleConnectionChange({
-        connectionId: '',
-        connectionStatus: 'NONE',
-        connectionDirection: null,
-      });
-      onUpdated?.();
-    } finally {
-      setRemoving(false);
-    }
-  }
-
   let footerContent: React.ReactNode = null;
   if (showConnect && showConnected) {
-    footerContent = (
-      <ConnectedFooter userId={person.userId} onRemove={onUpdated ? handleRemove : undefined} removing={removing} />
-    );
+    footerContent = <ConnectedFooter userId={person.userId} />;
   } else if (showConnect && !isAccepted) {
     footerContent = (
       <ConnectActions

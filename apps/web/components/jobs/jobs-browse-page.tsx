@@ -391,7 +391,7 @@ export function JobsBrowsePage() {
   return (
     <div className="dash-page">
       {/* Search hero */}
-      <section className="relative overflow-x-clip overflow-y-visible bg-gradient-to-br from-[#1a2744] via-[#243b6b] to-[#1a3a6e] px-4 pb-16 pt-10 md:pb-20 md:pt-12">
+      <section className="relative overflow-x-clip overflow-y-visible bg-gradient-to-br from-black via-[#141414] to-[#1a1a1a] px-4 pb-16 pt-10 md:pb-20 md:pt-12">
         <div
           className="pointer-events-none absolute inset-0 opacity-20"
           style={{

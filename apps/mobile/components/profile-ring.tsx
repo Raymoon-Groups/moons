@@ -48,8 +48,9 @@ export function ProfileRing({
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
+          // Use SVG transform (not rotation/origin) — origin becomes invalid
+          // DOM `transform-origin` on react-native-web.
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
       <View

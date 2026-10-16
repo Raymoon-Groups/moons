@@ -26,7 +26,7 @@ export function AuthSplitLayout({ title, subtitle, footer, children }: AuthSplit
           sizes="(max-width: 1024px) 100vw, 55vw"
         />
         <div
-          className="absolute inset-0 bg-gradient-to-br from-[#1a2744]/70 via-[#1a2744]/35 to-[#1a2744]/55"
+          className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/40 to-black/55"
           aria-hidden
         />
         <div

@@ -118,7 +118,7 @@ export class FilesService {
     }
 
     if (category === 'resumes') {
-      await this.assertResumeAccess(filename, user.sub);
+      await this.assertResumeAccess(filename, user.sub, user.role);
       return;
     }
 
@@ -130,7 +130,11 @@ export class FilesService {
     throw new ForbiddenException('Access denied');
   }
 
-  private async assertResumeAccess(filename: string, viewerId: string) {
+  private async assertResumeAccess(
+    filename: string,
+    viewerId: string,
+    viewerRole?: string,
+  ) {
     const ownerId = filename.replace(/\.[^.]+$/, '');
     if (ownerId === viewerId) return;
 
@@ -144,15 +148,29 @@ export class FilesService {
     });
     if (application) return;
 
-    // Match network profile visibility: connected (or public) + resume not hidden
     const profile = await this.prisma.profile.findUnique({
       where: { userId: ownerId },
       select: {
         hideResume: true,
         profileVisibility: true,
+        user: { select: { role: true } },
       },
     });
-    if (!profile || profile.hideResume) {
+    if (!profile) {
+      throw new ForbiddenException('You do not have access to this resume');
+    }
+
+    // Naukri-style: recruiters can download CVs of non-private candidates
+    if (
+      viewerRole === 'RECRUITER' &&
+      profile.user.role === 'CANDIDATE' &&
+      profile.profileVisibility !== 'PRIVATE'
+    ) {
+      return;
+    }
+
+    // Match network profile visibility: connected (or public) + resume not hidden
+    if (profile.hideResume) {
       throw new ForbiddenException('You do not have access to this resume');
     }
 

@@ -199,7 +199,7 @@ export function ImageCropModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onCancel}>
-      <View style={[styles.root, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12, backgroundColor: '#0b1220' }]}>
+      <View style={[styles.root, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12, backgroundColor: '#0a0a0a' }]}>
         <View style={styles.header}>
           <Pressable onPress={onCancel} disabled={busy} hitSlop={12}>
             <Text style={styles.headerAction}>Cancel</Text>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   frame: {
     overflow: 'hidden',
-    backgroundColor: '#111827',
+    backgroundColor: '#141414',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
   },

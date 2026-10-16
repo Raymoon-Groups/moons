@@ -345,7 +345,7 @@ export default function MessageThreadScreen() {
             styles.header,
             {
               borderBottomColor: isDark ? 'rgba(50, 64, 88, 0.6)' : 'rgba(15,28,51,0.06)',
-              backgroundColor: isDark ? '#0d1420' : '#ffffff',
+              backgroundColor: isDark ? colors.background : '#ffffff',
               paddingTop: insets.top + 6,
             },
           ]}
@@ -426,7 +426,7 @@ export default function MessageThreadScreen() {
               style={[
                 styles.chatBody,
                 {
-                  backgroundColor: isDark ? '#0a0f18' : '#eef3f9',
+                  backgroundColor: isDark ? colors.surface : '#eef3f9',
                   opacity: rows.length ? fadeAnim : 1,
                 },
               ]}
@@ -520,7 +520,7 @@ export default function MessageThreadScreen() {
               {
                 bottom: keyboardHeight,
                 borderTopColor: isDark ? 'rgba(50, 64, 88, 0.6)' : 'rgba(15,28,51,0.06)',
-                backgroundColor: isDark ? '#0d1420' : '#ffffff',
+                backgroundColor: isDark ? colors.background : '#ffffff',
                 paddingBottom: composeBottomPad,
               },
               styles.compose,

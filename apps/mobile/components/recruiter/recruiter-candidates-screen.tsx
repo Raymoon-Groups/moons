@@ -23,6 +23,7 @@ import { EmptyState } from '@/components/portal-ui';
 import { SearchBar } from '@/components/search-bar';
 import { StatusBadge } from '@/components/status-badge';
 import { ApiError, authFetch } from '@/lib/api';
+import { API_URL } from '@/lib/api-url';
 import { resolveAssetUrl, resolveAvatarUrl } from '@/lib/assets';
 import {
   notifyConnectionsRefresh,
@@ -35,6 +36,7 @@ import { OPEN_ON_MOONS_LABEL, showOpenOnMoonsToViewer } from '@/lib/open-on-moon
 import { openResumeFileOrAlert } from '@/lib/open-resume';
 import {
   buildRecruiterCandidatesUrl,
+  buildRecruiterTalentUrl,
   EXPERIENCE_BUCKETS,
   NOTICE_OPTIONS,
   type RecruiterCandidateRow,
@@ -670,6 +672,57 @@ export function RecruiterCandidatesScreen({ showHeader = true }: { showHeader?: 
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       try {
+        // Talent pool endpoint is not on production yet — skip the 404.
+        const talentPoolReady = !API_URL.includes('api.moonsjob.com');
+
+        if (talentPoolReady) {
+          try {
+            const data = await authFetch<{
+              items: Array<{
+                candidate: {
+                  id: string;
+                  email: string;
+                  profile: {
+                    fullName: string | null;
+                    headline: string | null;
+                    avatarUrl: string | null;
+                    currentCompany: string | null;
+                    location: string | null;
+                    openToWork?: boolean;
+                    skills?: string[];
+                  } | null;
+                };
+              }>;
+              total: number;
+            }>(
+              buildRecruiterTalentUrl({
+                q: searchQ.trim() || undefined,
+                location: locationQ.trim() || undefined,
+                ...(openToWorkOnly ? { openToWork: true } : {}),
+                page: 1,
+                limit: 50,
+              }),
+            );
+            setPeople(
+              data.items.map((row) => ({
+                userId: row.candidate.id,
+                fullName: row.candidate.profile?.fullName ?? null,
+                headline: row.candidate.profile?.headline ?? null,
+                avatarUrl: row.candidate.profile?.avatarUrl ?? null,
+                role: UserRole.CANDIDATE,
+                currentCompany: row.candidate.profile?.currentCompany ?? null,
+                location: row.candidate.profile?.location ?? null,
+                openToWork: row.candidate.profile?.openToWork,
+                sharedSkills: row.candidate.profile?.skills?.slice(0, 6),
+              })),
+            );
+            setDiscoverTotal(data.total);
+            return;
+          } catch (err) {
+            if (!(err instanceof ApiError) || err.status !== 404) throw err;
+          }
+        }
+
         const data = await searchProfessionals({
           role: UserRole.CANDIDATE,
           q: searchQ.trim() || '',

@@ -68,6 +68,18 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "2188518432074244",
+          "clientToken": "73d088244a6d33a8bd5ebc98282fd4fc",
+          "displayName": "Moonsjob",
+          "scheme": "fb2188518432074244",
+          "advertiserIDCollectionEnabled": true,
+          "autoLogAppEventsEnabled": true,
+          "isAutoInitEnabled": true
+        }
       ]
     ],
     "web": {

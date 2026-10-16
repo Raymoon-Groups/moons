@@ -157,6 +157,146 @@ export class ProfilesService {
     return this.toProfileResponse(profile);
   }
 
+  /**
+   * Naukri-style talent database: every onboarded, non-private candidate
+   * so recruiters can browse, contact, and download CVs.
+   */
+  async searchTalentPoolForRecruiter(
+    recruiterId: string,
+    filters: {
+      q?: string;
+      location?: string;
+      experienceMin?: number;
+      experienceMax?: number;
+      noticePeriod?: string;
+      openToWork?: boolean;
+      page?: number;
+      limit?: number;
+    } = {},
+  ) {
+    const page = filters.page ?? 1;
+    const limit = Math.min(filters.limit ?? 50, 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ProfileWhereInput = {
+      userId: { not: recruiterId },
+      profileVisibility: { not: ProfileVisibility.PRIVATE },
+      user: {
+        role: UserRole.CANDIDATE,
+        onboardingCompleted: true,
+      },
+    };
+
+    if (filters.location?.trim()) {
+      const location = filters.location.trim();
+      where.OR = [
+        { location: { contains: location, mode: 'insensitive' } },
+        { preferredLocations: { hasSome: [location] } },
+      ];
+    }
+
+    if (filters.experienceMin != null || filters.experienceMax != null) {
+      where.experienceYears = {};
+      if (filters.experienceMin != null) {
+        where.experienceYears.gte = filters.experienceMin;
+      }
+      if (filters.experienceMax != null) {
+        where.experienceYears.lte = filters.experienceMax;
+      }
+    }
+
+    if (filters.noticePeriod) {
+      where.noticePeriod = filters.noticePeriod;
+    }
+
+    if (filters.openToWork === true) {
+      where.openToWork = true;
+    }
+
+    if (filters.q?.trim()) {
+      const q = filters.q.trim();
+      const tokens = q.split(/\s+/).filter(Boolean);
+      const matchTerm = (term: string): Prisma.ProfileWhereInput[] => [
+        { fullName: { contains: term, mode: 'insensitive' } },
+        { headline: { contains: term, mode: 'insensitive' } },
+        { designation: { contains: term, mode: 'insensitive' } },
+        { currentCompany: { contains: term, mode: 'insensitive' } },
+        { summary: { contains: term, mode: 'insensitive' } },
+        { location: { contains: term, mode: 'insensitive' } },
+        { skills: { hasSome: [term] } },
+        { preferredRoles: { hasSome: [term] } },
+        { preferredIndustries: { hasSome: [term] } },
+        { user: { email: { contains: term, mode: 'insensitive' } } },
+      ];
+
+      const andClauses: Prisma.ProfileWhereInput[] = Array.isArray(where.AND)
+        ? [...where.AND]
+        : where.AND
+          ? [where.AND]
+          : [];
+
+      andClauses.push(
+        tokens.length > 1
+          ? { AND: tokens.map((token) => ({ OR: matchTerm(token) })) }
+          : { OR: matchTerm(tokens[0] ?? q) },
+      );
+      where.AND = andClauses;
+    }
+
+    const [profiles, total] = await Promise.all([
+      this.prisma.profile.findMany({
+        where,
+        include: {
+          user: { select: { id: true, email: true, role: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.profile.count({ where }),
+    ]);
+
+    const items = profiles.map((profile) => ({
+      candidate: {
+        id: profile.user.id,
+        email: profile.user.email,
+        profile: {
+          fullName: profile.fullName,
+          avatarUrl: profile.avatarUrl,
+          headline: profile.headline,
+          designation: profile.designation,
+          location: profile.location,
+          phone: profile.phone,
+          currentCompany: profile.currentCompany,
+          experienceYears: profile.experienceYears,
+          noticePeriod: profile.noticePeriod,
+          summary: profile.summary,
+          resumeUrl: profile.resumeUrl,
+          resumeFileName: profile.resumeFileName,
+          currentCtc: profile.currentCtc,
+          expectedCtc: profile.expectedCtc,
+          skills: profile.skills,
+          educations: profile.educations,
+          workExperiences: profile.workExperiences,
+          certifications: profile.certifications,
+          preferredRoles: profile.preferredRoles,
+          preferredLocations: profile.preferredLocations,
+          preferredIndustries: profile.preferredIndustries,
+          openToWork: profile.openToWork,
+          updatedAt: profile.updatedAt,
+        },
+      },
+    }));
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
   async getByUserId(userId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { userId },

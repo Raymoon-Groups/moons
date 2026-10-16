@@ -28,19 +28,15 @@ const CareerServices = dynamic(
   { loading: () => <SectionSkeleton /> },
 );
 
-const PopularSearchTags = dynamic(
-  () => import('@/components/landing/landing-sections').then((m) => m.PopularSearchTags),
-  { loading: () => <SectionSkeleton /> },
-);
-
-const EmployerBanner = dynamic(
-  () => import('@/components/landing/landing-sections').then((m) => m.EmployerBanner),
-  { loading: () => <SectionSkeleton /> },
-);
-
 const BotBridgeSection = dynamic(
   () =>
     import('@/components/landing/bot-bridge-section').then((m) => m.BotBridgeSection),
+  { loading: () => <SectionSkeleton /> },
+);
+
+const PlayStoreSection = dynamic(
+  () =>
+    import('@/components/landing/play-store-section').then((m) => m.PlayStoreSection),
   { loading: () => <SectionSkeleton /> },
 );
 
@@ -58,10 +54,9 @@ export default function Home() {
       <BrowseCategories />
       <TrendingJobsSection />
       <TopCompaniesSection />
+      <PlayStoreSection />
       <JobsByCity />
       <CareerServices />
-      <PopularSearchTags />
-      <EmployerBanner />
     </>
   );
 }

@@ -1,0 +1,14 @@
+# Keep EAS builds free of local machine caches / absolute Windows paths
+**/android/.gradle/
+**/android/build/
+**/android/app/build/
+**/android/local.properties
+**/android/.cxx/
+**/.expo/
+**/node_modules/
+**/.turbo/
+**/.next/
+**/dist/
+**/*.log
+apps/mobile/scripts/dump-autolink.mjs
+apps/mobile/scripts/autolink-dump.json

@@ -79,7 +79,7 @@ function ProfileRing({
         <defs>
           <linearGradient id="moons-ring-recruiter" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#4a7fd4" />
-            <stop offset="100%" stopColor="#1a2744" />
+            <stop offset="100%" stopColor="#111111" />
           </linearGradient>
         </defs>
       </svg>

@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { join } from 'path';
 import { ApplicationsModule } from './applications/applications.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { AuthModule } from './auth/auth.module';
 import { BlogsModule } from './blogs/blogs.module';
@@ -52,6 +53,7 @@ import { UsersModule } from './users/users.module';
     AnnouncementsModule,
     FilesModule,
     ReportsModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
   providers: [

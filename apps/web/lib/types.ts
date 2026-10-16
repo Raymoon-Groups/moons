@@ -104,6 +104,7 @@ export interface ApplicantRow {
       preferredLocations: string[];
       preferredIndustries: string[];
       designation?: string | null;
+      openToWork?: boolean;
       updatedAt?: string;
     } | null;
   };
