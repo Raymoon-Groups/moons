@@ -65,10 +65,7 @@ export function isPersonalEmailDomain(domain: string): boolean {
 }
 
 export function isRecruiterCompanyEmail(email: string): boolean {
+  // Temporarily allow any email for recruiters (including Gmail / personal).
   const domain = extractEmailDomain(email);
-  if (!domain || !domain.includes('.')) {
-    return false;
-  }
-
-  return !isPersonalEmailDomain(domain);
+  return Boolean(domain && domain.includes('.'));
 }

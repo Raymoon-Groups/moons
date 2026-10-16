@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole, type AuthResponse, getPasswordValidationErrors, isRecruiterCompanyEmail, PASSWORD_REQUIREMENTS_MESSAGE, RECRUITER_COMPANY_EMAIL_MESSAGE } from '@moons/shared';
+import { UserRole, type AuthResponse, getPasswordValidationErrors, PASSWORD_REQUIREMENTS_MESSAGE } from '@moons/shared';
 import { AuthDivider } from '@/components/auth/auth-divider';
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout';
 import { PasswordField } from '@/components/auth/password-field';
@@ -36,10 +36,6 @@ function RegisterForm() {
     setError('');
     setPasswordErrors([]);
     setInfo('');
-    if (role === UserRole.RECRUITER && !isRecruiterCompanyEmail(email)) {
-      setError(RECRUITER_COMPANY_EMAIL_MESSAGE);
-      return;
-    }
     const nextPasswordErrors = getPasswordValidationErrors(password);
     if (nextPasswordErrors.length > 0) {
       setPasswordErrors(nextPasswordErrors);

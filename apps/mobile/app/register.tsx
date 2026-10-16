@@ -4,9 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   UserRole,
   getPasswordValidationErrors,
-  isRecruiterCompanyEmail,
   PASSWORD_REQUIREMENTS_MESSAGE,
-  RECRUITER_COMPANY_EMAIL_MESSAGE,
 } from '@moons/shared';
 import { AuthField, AuthLayout, AuthPasswordField } from '@/components/auth-layout';
 import { GoogleSignInButton } from '@/components/google-sign-in-button';
@@ -72,10 +70,6 @@ export default function RegisterScreen() {
     setError('');
     setPasswordErrors([]);
     setInfo('');
-    if (role === UserRole.RECRUITER && !isRecruiterCompanyEmail(email.trim())) {
-      setError(RECRUITER_COMPANY_EMAIL_MESSAGE);
-      return;
-    }
     const nextPasswordErrors = getPasswordValidationErrors(password);
     if (nextPasswordErrors.length > 0) {
       setPasswordErrors(nextPasswordErrors);
